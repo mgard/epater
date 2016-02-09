@@ -6,7 +6,7 @@ import ply.lex as lex
 instructionList = ['MOV', 'LDR', 'STR', 'LDM', 'STM', 'ADD', 'SUB', 'POP', 'PUSH', 'B']
 regexpInstr = (r'|').join(instructionList)
 
-DecInfo = namedtuple("DecInfo", ['type', 'dim', 'vals'])
+DecInfo = namedtuple("DecInfo", ['type', 'nbits', 'dim', 'vals'])
 ShiftInfo = namedtuple("ShiftInfo", ['type', 'count'])
 MemAccessPostInfo = namedtuple("MemAccessPostInfo", ['base', 'offsettype', 'offset', 'direction'])
 MemAccessPreInfo = namedtuple("MemAccessPretInfo", ['base', 'offsettype', 'offset', 'direction', 'shift'])
@@ -74,10 +74,15 @@ def t_MEMACCESSPOST(t):
 
 def t_DECLARATION(t):
     r'D[SC](8|16|32)\s+\w+.*'
-    dim = int(t.value.split()[0][2:])
+    bits = int(t.value.split()[0][2:])
     vals = t.value.split()[1].split(",")
+    if len(vals) < 2:
+        vals = []
+        dim = t.value.split()[1]
+    else:
+        dim = len(vals)
     dectype = "constant" if t.value[1] == "C" else "variable"
-    t.value = namedtuple(dim, vals, dectype)
+    t.value = namedtuple(dectype, bits, dim, vals)
     return t
 
 def t_SECTION(t):

@@ -23,6 +23,15 @@ shiftMapping = {'LSL': 0,
                 'ASR': 2,
                 'ROR': 3}
 
+updateModeLDMMapping = {'ED': 3, 'IB': 3,
+                        'FD': 1, 'IA': 1,
+                        'EA': 2, 'DB': 2,
+                        'FA': 0, 'DA': 0}
+updateModeSTMMapping = {'FA': 3, 'IB': 3,
+                        'EA': 1, 'IA': 1,
+                        'FD': 2, 'DB': 2,
+                        'ED': 0, 'DA': 0}
+
 dataOpcodeMapping = {'AND': 0,
                      'EOR': 1,
                      'SUB': 2,
@@ -54,6 +63,7 @@ def immediateToBytecode(imm):
     return immval, immrot
 
 def checkTokensCount(tokensDict):
+    # Not a comprehensive check
     assert tokensDict['COND'] <= 1
     assert tokensDict['SETFLAGS'] <= 1
     assert tokensDict['SHIFTREG'] + tokensDict['SHIFTIMM'] <= 1
@@ -61,10 +71,10 @@ def checkTokensCount(tokensDict):
     assert tokensDict['BYTEONLY'] <= 1
     assert tokensDict['MEMACCESSPRE'] + tokensDict['MEMACCESSPOST'] <= 1
     assert tokensDict['WRITEBACK'] <= 1
+    assert tokensDict['UPDATEMODE'] <= 1
 
 
 def DataInstructionToBytecode(asmtokens):
-    assert asmtokens[0].type == 'INSTR'
     mnemonic = asmtokens[0].value
     b = dataOpcodeMapping[mnemonic] << 21
 
@@ -106,7 +116,6 @@ def DataInstructionToBytecode(asmtokens):
 
 
 def MemInstructionToBytecode(asmtokens):
-    assert asmtokens[0].type == 'INSTR'
     mnemonic = asmtokens[0].value
 
     b = 1 << 26
@@ -156,7 +165,6 @@ def MemInstructionToBytecode(asmtokens):
 
 
 def MultipleMemInstructionToBytecode(asmtokens):
-    assert asmtokens[0].type == 'INSTR'
     mnemonic = asmtokens[0].value
     b = 0b100 << 25
 
@@ -176,6 +184,11 @@ def MultipleMemInstructionToBytecode(asmtokens):
         elif tok.type == 'LISTREGS':
             for i in range(tok.value):
                 b |= tok.value[i] << i
+        elif tok.type == 'UPDATEMODE':
+            if mnemonic in ('LDM', 'POP'):
+                b |= updateModeLDMMapping[tok.value] << 23
+            elif mnemonic in ('STM', 'PUSH'):
+                b |= updateModeSTMMapping[tok.value] << 23
         dictSeen[tok.type] += 1
 
     if dictSeen['COND'] == 0:
@@ -185,7 +198,6 @@ def MultipleMemInstructionToBytecode(asmtokens):
     return struct.pack("=I", b)
 
 def BranchInstructionToBytecode(self, asmtokens):
-    assert asmtokens[0].type == 'INSTR'
     mnemonic = asmtokens[0].value
 
     if mnemonic == 'BX':
@@ -215,10 +227,21 @@ def BranchInstructionToBytecode(self, asmtokens):
 
 def DeclareInstructionToBytecode(asmtokens):
     assert asmtokens[0].type == 'DECLARATION'
+    info = asmtokens[0].value
 
-    formatletter = "=B" if asmtokens[0].value[0] == 8 else "=H" if asmtokens[0].value[0] == 16 else "=I"
-    return struct.pack(formatletter*len(asmtokens[0].value[1]),
-                        [int(v, 0) for v in asmtokens[0].value[1]])
+    formatletter = "=B" if info.nbits == 8 else "=H" if info.nbits == 16 else "=I" # 32
+    return struct.pack(formatletter*info.dim,
+                        [0]*info.dim if len(info.vals) > 0 else [int(v, 0) for v in info.vals])
+
+
+instrToCategoryMapping  = {k:DataInstructionToBytecode for k in dataOpcodeMapping}
+instrToCategoryMapping += {k:BranchInstructionToBytecode for k in ['B', 'BL', 'BX']}
+instrToCategoryMapping += {k:MemInstructionToBytecode for k in ['LDR', 'STR']}
+instrToCategoryMapping += {k:MultipleMemInstructionToBytecode for k in ['LDM', 'STM', 'POP', 'PUSH']}
+instrToCategoryMapping += {k:DeclareInstructionToBytecode for k in ['DC', 'DS']}
+def InstructionToBytecode(asmtokens):
+    assert asmtokens[0].type == 'INSTR'
+    return instrToCategoryMapping[asmtokens[0].value](asmtokens)
 
 
 class InstructionBytecode:
