@@ -4,7 +4,6 @@ import re
 instructionList = ['MOV', 'LDR', 'STR', 'ADD', 'SUB', 'POP', 'PUSH', 'B']
 regexpInstr = (r'|').join(instructionList)
 
-# List of token names.   This is always required
 tokens = (
    'INSTR',
    'REGISTER',
@@ -54,7 +53,7 @@ def t_MEMACCESSPRE(t):
 def t_MEMACCESSPOST(t):
     rbase = re.search(r'R[0-9]{1,2}|SP|LR|PC', t.value).group(0)
     rbase = int(rbase[1:]) if rbase[0] == "R" else ["SP","LR","PC"].index(rbase)+13
-    
+
     if t.value[-1] == "]":
         t.value = (rbase, "imm", 0, 1)
     else:
@@ -134,31 +133,3 @@ def t_error(t):
 # Build the lexer
 lex.lex(reflags=re.UNICODE)
 lexer = lex.lex()
-
-if __name__ == '__main__':
-    data = """
-    label1
-    MOV R2, R0 ; ceci est un commentaire
-    MOV R4, #89 ; ceci MOV R3, #76
-    ; Encore MOV
-    autrelabel MOVS R3, R1, LSL #5
-    MOVEQ R0, R1, LSR R5
-    LDRNE R4, [R3, -R0]
-    LDR R4, [R3, #12]!
-    STR R8, [R11], -R4, LSL #2
-    STR R9, [SP], #+0x22
-    LDRB R8,[R3]
-    LDR R3, label2
-    LDR R7, [R0, R1, ASR #2]
-    STR R7, =_monadresse
-    B label1
-    """
-    for i,line in enumerate(data.split("\n")):
-        print("Line " + str(i+1))
-        lexer.input(line)
-        while True:
-            tok = lexer.token()
-            if not tok:
-                break      # No more input
-            print("\t {} -> {}, ligne {}, col {}".format(tok.type, tok.value, tok.lineno, tok.lexpos))
-
