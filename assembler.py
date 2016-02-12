@@ -61,10 +61,15 @@ class Assembler:
             elif pline[idxToken].type == "INSTR":
                 assert currentAddr != -1
                 assignedAddr[i] = currentAddr
-                currentAddr += 4
+                currentAddr += 4        # Size of an instruction
+        maxAddrBySection[currentSection] = currentAddr
 
         # Third pass : replace all the labels in the instructions
-                
+        for i,pline in enumerate(parsedCode):
+            if len(pline) == 0:
+                # We have to keep these empty lines in order to keep track of the line numbers
+                continue
+
         # Fourth pass : create bytecode
 
 

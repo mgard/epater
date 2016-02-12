@@ -26,7 +26,8 @@ tokens = (
    'BYTEONLY',
    'UPDATEMODE',
    'LABEL',
-   'LABELADDR',
+   'REFLABEL',
+   'REFLABELADDR',
    'MEMACCESSPRE',
    'MEMACCESSPOST',
    'DECLARATION',
@@ -154,9 +155,14 @@ def t_BYTEONLY(t):
     r'((?<=(LDR|STR))|(?<=((LDR|STR)[A-Z]{2})))B\s+'
     return t
 
-def t_LABELADDR(t):
+def t_REFLABELADDR(t):
     r'\s*=\w+'
     t.value = t.value[1:]
+    return t
+
+def t_REFLABEL(t):
+    r'(?<=,)\s*\w+'
+    t.value = t.value.strip()
     return t
 
 def t_LABEL(t):
