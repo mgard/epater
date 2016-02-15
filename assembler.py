@@ -1,6 +1,6 @@
 import re
 
-from lexparser import lexer
+from lexparser import lexer, MemAccessPreInfo, ShiftInfo, DummyToken
 from instruction import InstructionToBytecode
 
 BASE_ADDR_INTVEC = 0x00
@@ -65,11 +65,38 @@ class Assembler:
         maxAddrBySection[currentSection] = currentAddr
 
         # Third pass : replace all the labels in the instructions
+        labelsAddrAddr = {}     # Contains to position of the address of a given label once it have been generated (so we do not generate it again)
         for i,pline in enumerate(parsedCode):
             if len(pline) == 0:
                 # We have to keep these empty lines in order to keep track of the line numbers
                 continue
 
+            for j,token in enumerate(pline):
+                if token.type == "REFLABEL":
+                    addrToReach = labelsAddr[token.value]
+                    diff = assignedAddr[i] - addrToReach
+                    pline[j] = DummyToken("MEMACCESSPRE",
+                                          MemAccessPreInfo(15, "imm", abs(diff), diff // abs(diff), ShiftInfo("LSL", 0)))
+                elif token.type == "REFLABELADDR":
+                    if token.value not in labelsAddrAddr:
+                        # We must put the address at the end of the current section
+                        # We will have to put these values in memory thereafter
+                        labelsAddrAddr[token.value] = maxAddrBySection["CODE"]         # TODO : change section accordingly
+                        maxAddrBySection["CODE"] += 4
+                    addrToReach = labelsAddrAddr[token.value]
+                    diff = assignedAddr[i] - addrToReach
+                    pline[j] = DummyToken("MEMACCESSPRE",
+                                          MemAccessPreInfo(15, "imm", abs(diff), diff // abs(diff), ShiftInfo("LSL", 0)))
+
         # Fourth pass : create bytecode
+        # At this point, we should have only valid ARM instructions, so let's parse them
+        for i,pline in enumerate(parsedCode):
+            if len(pline) == 0:
+                # We have to keep these empty lines in order to keep track of the line numbers
+                continue
+
+            
+
+        # Fifth pass : add the missing label address
 
 

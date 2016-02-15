@@ -6,6 +6,7 @@ import ply.lex as lex
 instructionList = ['MOV', 'LDR', 'STR', 'LDM', 'STM', 'ADD', 'SUB', 'POP', 'PUSH', 'B']
 regexpInstr = (r'|').join(instructionList)
 
+DummyToken = namedtuple("DummyToken", ['type', 'value'])
 DecInfo = namedtuple("DecInfo", ['type', 'nbits', 'dim', 'vals'])
 ShiftInfo = namedtuple("ShiftInfo", ['type', 'count'])
 MemAccessPostInfo = namedtuple("MemAccessPostInfo", ['base', 'offsettype', 'offset', 'direction'])
