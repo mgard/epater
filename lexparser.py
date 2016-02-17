@@ -2,6 +2,26 @@ import re
 from collections import namedtuple
 import ply.lex as lex
 
+"""
+This module is used to parse the ARM assembly.
+
+We ought to parse the _syntax_ and not the _semantic_. This stage should let
+pass as much code as possible, even if the assembly is ultimately invalid. For
+instance, the instruction :
+MOV R0, R42
+is semantically invalid (because R42 is not a valid register), but is
+syntactically valid.
+
+For this reason, this module willingly does not check (non-comprehensive listing):
+- The register number
+- The constant values (is it possible to encode the constant)
+- The shift values
+- The validity of a memory access
+- The existence of a previous label declaration when we try to access it
+
+This allows to propagate the error further in the parsing process, making it
+easier to produce a relevant error message to the user.
+"""
 
 instructionList = ['MOV', 'LDR', 'STR', 'LDM', 'STM', 'ADD', 'SUB', 'POP', 'PUSH', 'B']
 regexpInstr = (r'|').join(instructionList)

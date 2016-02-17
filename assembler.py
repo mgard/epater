@@ -95,7 +95,7 @@ class Assembler:
                 # We have to keep these empty lines in order to keep track of the line numbers
                 continue
 
-            
+
 
         # Fifth pass : add the missing label address
 

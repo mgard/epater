@@ -1,6 +1,7 @@
 import struct
 import math
 from collections import defaultdict
+from enum import Enum
 
 conditionMapping = {'EQ': 0,
                     'NE': 1,
@@ -242,6 +243,27 @@ instrToCategoryMapping += {k:DeclareInstructionToBytecode for k in ['DC', 'DS']}
 def InstructionToBytecode(asmtokens):
     assert asmtokens[0].type == 'INSTR'
     return instrToCategoryMapping[asmtokens[0].value](asmtokens)
+
+
+
+class InstrType(Enum):
+    undefined = -1
+    dataop = 0
+    memop = 1
+    multiplememop = 2
+    branch = 3
+
+globalInstrInfo = {'MOV': InstrType.dataop,
+                   'ADD': InstrType.dataop,
+                   'LDR': InstrType.memop,
+                   'STR': InstrType.memop,
+                   'LDM': InstrType.multiplememop,
+                   'STM': InstrType.multiplememop,
+                   'B'  : InstrType.branch,
+                   'BX' : InstrType.branch,
+                   'BL' : InstrType.branch,
+                   }
+
 
 
 class InstructionBytecode:
