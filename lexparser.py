@@ -2,6 +2,9 @@ import re
 from collections import namedtuple
 import ply.lex as lex
 
+from instruction import exportInstrInfo
+from settings import getSetting
+
 """
 This module is used to parse the ARM assembly.
 
@@ -23,7 +26,7 @@ This allows to propagate the error further in the parsing process, making it
 easier to produce a relevant error message to the user.
 """
 
-instructionList = ['MOV', 'LDR', 'STR', 'LDM', 'STM', 'ADD', 'SUB', 'POP', 'PUSH', 'B']
+instructionList = tuple(exportInstrInfo.keys())
 regexpInstr = (r'|').join(instructionList)
 
 DummyToken = namedtuple("DummyToken", ['type', 'value'])
@@ -97,14 +100,14 @@ def t_MEMACCESSPOST(t):
 def t_DECLARATION(t):
     r'D[SC](8|16|32)\s+\w+.*'
     bits = int(t.value.split()[0][2:])
-    vals = t.value.split()[1].split(",")
+    vals = [int(v, 0) for v in t.value[t.value.find(" ")+1:].split(",")]
     if len(vals) < 2:
         vals = []
-        dim = t.value.split()[1]
+        dim = int(t.value.split()[1], 0)
     else:
         dim = len(vals)
     dectype = "constant" if t.value[1] == "C" else "variable"
-    t.value = namedtuple(dectype, bits, dim, vals)
+    t.value = DecInfo(dectype, bits, dim, vals)
     return t
 
 def t_SECTION(t):
@@ -114,7 +117,7 @@ def t_SECTION(t):
 
 def t_REGISTER(t):
     r'(R[0-9]{1})|(R1[0-5]{1})|SP|LR|PC'
-    t.value = int(t.value[1:])
+    t.value = int(t.value[1:]) if t.value[0] == "R" else ["SP","LR","PC"].index(t.value)+13
     return t
 
 @lex.TOKEN(r'\{[R0-9\-,\s]}')

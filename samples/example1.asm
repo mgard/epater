@@ -1,6 +1,6 @@
 SECTION INTVEC
 
-mavariable DC32 0x22
+mavariable DC32 0x22, 0x1
 monautrevariable DC32 0xFFEEDDCC, 0x11223344
 
 SECTION CODE
@@ -41,7 +41,7 @@ loop ADD R0, R0, #1
 CMP R0, R1
 BNE loop
 BEQ skip
-MOV R11, #BEEF
+MOV R11, #0xBEEF
 skip
 MOV R2, #0xFF
 MOV R3, #255

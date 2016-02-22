@@ -3,6 +3,74 @@ import math
 from collections import defaultdict
 from enum import Enum
 
+from settings import getSetting
+
+class InstrType(Enum):
+    undefined = -1
+    dataop = 0
+    memop = 1
+    multiplememop = 2
+    branch = 3
+    multiply = 4
+    swap = 5
+    softinterrupt = 6
+    declareOp = 100
+
+    @staticmethod
+    def getEncodeFunction(inType):
+        return {InstrType.dataop: DataInstructionToBytecode,
+                InstrType.memop: MemInstructionToBytecode,
+                InstrType.multiplememop: MultipleMemInstructionToBytecode,
+                InstrType.branch: BranchInstructionToBytecode,
+                InstrType.multiply: MultiplyInstructionToBytecode,
+                InstrType.swap: SwapInstructionToBytecode,
+                InstrType.softinterrupt: SoftinterruptInstructionToBytecode,
+                InstrType.declareOp: DeclareInstructionToBytecode}[inType]
+
+exportInstrInfo = {# DATA OPERATIONS
+                   'AND': InstrType.dataop,
+                   'EOR': InstrType.dataop,
+                   'SUB': InstrType.dataop,
+                   'RSB': InstrType.dataop,
+                   'ADD': InstrType.dataop,
+                   'ADC': InstrType.dataop,
+                   'SBC': InstrType.dataop,
+                   'RSC': InstrType.dataop,
+                   'TST': InstrType.dataop,
+                   'TEQ': InstrType.dataop,
+                   'CMP': InstrType.dataop,
+                   'CMN': InstrType.dataop,
+                   'ORR': InstrType.dataop,
+                   'MOV': InstrType.dataop,
+                   'BIC': InstrType.dataop,
+                   'MVN': InstrType.dataop,
+                    # MEMORY OPERATIONS
+                   'LDR': InstrType.memop,
+                   'STR': InstrType.memop,
+                    # MULTIPLE MEMORY OPERATIONS
+                   'LDM': InstrType.multiplememop,
+                   'STM': InstrType.multiplememop,
+                   'PUSH': InstrType.multiplememop,
+                   'POP': InstrType.multiplememop,
+                    # BRANCH OPERATIONS
+                   'B'  : InstrType.branch,
+                   'BX' : InstrType.branch,
+                   'BL' : InstrType.branch,
+                   'BLX': InstrType.branch,
+                    # MULTIPLY OPERATIONS
+                   'MUL': InstrType.multiply,
+                    # SWAP OPERATIONS
+                   'SWP': InstrType.swap,
+                    # SOFTWARE INTERRUPT OPERATIONS
+                   'SWI': InstrType.softinterrupt,
+                   }
+
+globalInstrInfo = dict(exportInstrInfo)
+globalInstrInfo.update({# DECLARATION STATEMENTS
+                   'DC' : InstrType.declareOp,
+                   'DS' : InstrType.declareOp,
+                    })
+
 conditionMapping = {'EQ': 0,
                     'NE': 1,
                     'CS': 2,
@@ -215,6 +283,11 @@ def BranchInstructionToBytecode(self, asmtokens):
         elif tok.type == 'REGISTER':
             # Only for BX
             b |= tok.value
+        elif tok.type == 'MEMACCESSPRE':
+            # When we find a label in the previous parsing stage,
+            # we replace it with a MEMACCESSPRE token, even if this
+            # token cannot appear in actual code
+            b |= tok.value.offset
         elif tok.type == 'CONSTANT':
             b |= tok.value
         dictSeen[tok.type] += 1
@@ -226,8 +299,23 @@ def BranchInstructionToBytecode(self, asmtokens):
     return struct.pack("=I", b)
 
 
+def MultiplyInstructionToBytecode(asmtokens):
+    # TODO
+    raise NotImplementedError()
+
+
+def SwapInstructionToBytecode(asmtokens):
+    # Todo
+    raise NotImplementedError()
+
+
+def SoftinterruptInstructionToBytecode(asmtokens):
+    # TODO
+    raise NotImplementedError()
+
+
 def DeclareInstructionToBytecode(asmtokens):
-    assert asmtokens[0].type == 'DECLARATION'
+    assert asmtokens[0].type == 'DECLARATION', str((asmtokens[0].type, asmtokens[0].value))
     info = asmtokens[0].value
 
     formatletter = "=B" if info.nbits == 8 else "=H" if info.nbits == 16 else "=I" # 32
@@ -235,34 +323,14 @@ def DeclareInstructionToBytecode(asmtokens):
                         [0]*info.dim if len(info.vals) > 0 else [int(v, 0) for v in info.vals])
 
 
-instrToCategoryMapping  = {k:DataInstructionToBytecode for k in dataOpcodeMapping}
-instrToCategoryMapping += {k:BranchInstructionToBytecode for k in ['B', 'BL', 'BX']}
-instrToCategoryMapping += {k:MemInstructionToBytecode for k in ['LDR', 'STR']}
-instrToCategoryMapping += {k:MultipleMemInstructionToBytecode for k in ['LDM', 'STM', 'POP', 'PUSH']}
-instrToCategoryMapping += {k:DeclareInstructionToBytecode for k in ['DC', 'DS']}
+
 def InstructionToBytecode(asmtokens):
     assert asmtokens[0].type == 'INSTR'
-    return instrToCategoryMapping[asmtokens[0].value](asmtokens)
+    tp = globalInstrInfo[asmtokens[0].value]
+    return InstrType.getEncodeFunction(tp)(asmtokens)
 
 
 
-class InstrType(Enum):
-    undefined = -1
-    dataop = 0
-    memop = 1
-    multiplememop = 2
-    branch = 3
-
-globalInstrInfo = {'MOV': InstrType.dataop,
-                   'ADD': InstrType.dataop,
-                   'LDR': InstrType.memop,
-                   'STR': InstrType.memop,
-                   'LDM': InstrType.multiplememop,
-                   'STM': InstrType.multiplememop,
-                   'B'  : InstrType.branch,
-                   'BX' : InstrType.branch,
-                   'BL' : InstrType.branch,
-                   }
 
 
 
