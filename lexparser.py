@@ -106,7 +106,7 @@ def t_DECLARATION(t):
         dim = int(t.value.split()[1], 0)
     else:
         dim = len(vals)
-    dectype = "constant" if t.value[1] == "C" else "variable"
+    dectype = "DC" if t.value[1] == "C" else "DS"
     t.value = DecInfo(dectype, bits, dim, vals)
     return t
 
@@ -165,6 +165,7 @@ def t_SHIFTIMM(t):
 
 def t_COND(t):
     r'(?<=[A-Z])AL|EQ|NE|CS|CC|MI|PL|VS|VC|HS|LO|HI|LS|GE|LT|GT|LE\s+'
+    t.value = t.value.strip()
     return t
 
 def t_UPDATEMODE(t):

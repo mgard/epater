@@ -67,7 +67,6 @@ def parse(code):
         if pline[idxToken].type == "DECLARATION":
             assert currentAddr != -1
             assignedAddr[i] = currentAddr
-            print(pline[idxToken].value)
             currentAddr += pline[idxToken].value.nbits // 8 * pline[idxToken].value.dim
         elif pline[idxToken].type == "INSTR":
             assert currentAddr != -1
@@ -98,7 +97,7 @@ def parse(code):
                     # We must put the address at the end of the current section
                     # We will have to put these values in memory thereafter
                     labelsAddrAddr[token.value] = maxAddrBySection[currentSection]
-                    labelsAddrBySection[currentSection].append(token.value)
+                    labelsAddrBySection[currentSection].append(labelsAddr[token.value])
                     maxAddrBySection[currentSection] += 4
                 addrToReach = labelsAddrAddr[token.value]
                 diff = assignedAddr[i] - addrToReach
@@ -127,6 +126,7 @@ def parse(code):
 
         for j,token in enumerate(pline):
             if token.type in ("INSTR", "DECLARATION"):
+                print(pline)
                 tmp = InstructionToBytecode(pline[j:])
                 bc += tmp
                 matchBytecodeASM += [i]*len(tmp)

@@ -119,9 +119,11 @@ dataOpcodeMapping = {'AND': 0,
                      'MVN': 15}
 
 def immediateToBytecode(imm):
+    if imm == 0:
+        return 0, 0
     scale = math.log2(imm)
     immval, immrot = None, None
-    for s in range(8, 30, 2):
+    for s in range(8, 33, 2):
         if scale < s:
             div = 2**(s-8)
             if imm % div == 0:
@@ -178,7 +180,7 @@ def DataInstructionToBytecode(asmtokens):
         dictSeen[tok.type] += 1
 
     if dictSeen['COND'] == 0:
-        b |= conditionMapping['AL'] << 31
+        b |= conditionMapping['AL'] << 28
 
     checkTokensCount(dictSeen)
     return struct.pack("=I", b)
@@ -227,7 +229,7 @@ def MemInstructionToBytecode(asmtokens):
         dictSeen[tok.type] += 1
 
     if dictSeen['COND'] == 0:
-        b |= conditionMapping['AL'] << 31
+        b |= conditionMapping['AL'] << 28
 
     checkTokensCount(dictSeen)
     return struct.pack("=I", b)
@@ -261,12 +263,12 @@ def MultipleMemInstructionToBytecode(asmtokens):
         dictSeen[tok.type] += 1
 
     if dictSeen['COND'] == 0:
-        b |= conditionMapping['AL'] << 31
+        b |= conditionMapping['AL'] << 28
 
     checkTokensCount(dictSeen)
     return struct.pack("=I", b)
 
-def BranchInstructionToBytecode(self, asmtokens):
+def BranchInstructionToBytecode(asmtokens):
     mnemonic = asmtokens[0].value
 
     if mnemonic == 'BX':
@@ -293,7 +295,7 @@ def BranchInstructionToBytecode(self, asmtokens):
         dictSeen[tok.type] += 1
 
     if dictSeen['COND'] == 0:
-        b += conditionMapping['AL'] << 31
+        b += conditionMapping['AL'] << 28
 
     checkTokensCount(dictSeen)
     return struct.pack("=I", b)
@@ -318,15 +320,14 @@ def DeclareInstructionToBytecode(asmtokens):
     assert asmtokens[0].type == 'DECLARATION', str((asmtokens[0].type, asmtokens[0].value))
     info = asmtokens[0].value
 
-    formatletter = "=B" if info.nbits == 8 else "=H" if info.nbits == 16 else "=I" # 32
-    return struct.pack(formatletter*info.dim,
-                        [0]*info.dim if len(info.vals) > 0 else [int(v, 0) for v in info.vals])
+    formatletter = "B" if info.nbits == 8 else "H" if info.nbits == 16 else "I" # 32
+    return struct.pack("="+formatletter*info.dim, *([0]*info.dim if len(info.vals) == 0 else info.vals))
 
 
 
 def InstructionToBytecode(asmtokens):
-    assert asmtokens[0].type == 'INSTR'
-    tp = globalInstrInfo[asmtokens[0].value]
+    assert asmtokens[0].type in ('INSTR', 'DECLARATION')
+    tp = globalInstrInfo[asmtokens[0].value if asmtokens[0].type == 'INSTR' else asmtokens[0].value.type]
     return InstrType.getEncodeFunction(tp)(asmtokens)
 
 

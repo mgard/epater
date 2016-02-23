@@ -41,7 +41,7 @@ loop ADD R0, R0, #1
 CMP R0, R1
 BNE loop
 BEQ skip
-MOV R11, #0xBEEF
+MOV R11, #0xEF
 skip
 MOV R2, #0xFF
 MOV R3, #255
