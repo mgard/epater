@@ -4,6 +4,7 @@ import math
 
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
+from procsimulator import Simulator
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='EPATER, ARM emulator')
@@ -11,7 +12,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     with open(args.inputfile) as f:
-        ASMparser(f)
+        bytecode, bcinfos = ASMparser(f)
+
+    interpreter = BCInterpreter(bytecode)
+    interpreter.setLineMapping(bcinfos)
+    sim = Simulator()
+    interpreter.setSimulator(sim)
 
 
 

@@ -1,6 +1,7 @@
 import struct
 import math
 from collections import defaultdict
+from functools import lru_cache
 from enum import Enum
 
 from settings import getSetting
@@ -87,10 +88,14 @@ conditionMapping = {'EQ': 0,
                     'LE': 13,
                     'AL': 14}
 
+conditionMappingR = {v: k for k,v in conditionMapping.items()}
+
 shiftMapping = {'LSL': 0,
                 'LSR': 1,
                 'ASR': 2,
                 'ROR': 3}
+
+shiftMappingR = {v: k for k,v in shiftMapping.items()}
 
 updateModeLDMMapping = {'ED': 3, 'IB': 3,
                         'FD': 1, 'IA': 1,
@@ -117,6 +122,8 @@ dataOpcodeMapping = {'AND': 0,
                      'MOV': 13,
                      'BIC': 14,
                      'MVN': 15}
+
+dataOpcodeMappingR = {v: k for k,v in dataOpcodeMapping.items()}
 
 def immediateToBytecode(imm):
     if imm == 0:
@@ -153,7 +160,10 @@ def DataInstructionToBytecode(asmtokens):
     countReg = 0
     dictSeen = defaultdict(int)
     for tok in asmtokens[1:]:
-        if tok.type == 'SETFLAGS':
+        # "TEQ, TST, CMP and CMN do not write the result of their operation but do set
+        # flags in the CPSR. An assembler should always set the S flag for these instructions
+        # even if this is not specified in the mnemonic" (4-15, ARM7TDMI-S Data Sheet)
+        if tok.type == 'SETFLAGS' or mnemonic in ('TEQ', 'TST', 'CMP', 'CMN'):
             b |= 1 << 20
         elif tok.type == 'COND':
             condSeen = True
@@ -167,6 +177,7 @@ def DataInstructionToBytecode(asmtokens):
                 b |= tok.value << 16
         elif tok.type == 'CONSTANT':
             b |= 1 << 25
+            # TODO ERROR, see sec 4.5.3 in ARM7 Data Sheet (should be x2)
             immval, immrot = immediateToBytecode(tok.value)
             b |= immval
             b |= immrot << 8
@@ -216,9 +227,9 @@ def MemInstructionToBytecode(asmtokens):
             if tok.value.direction > 0:
                 b |= 1 << 23
             if tok.value.offsettype == "imm":
-                b |= 1 << 25
                 b |= tok.value.offset
             elif tok.value.offsettype == "reg":
+                b |= 1 << 25
                 b |= tok.value.offset
         elif tok.type == 'SHIFTIMM':
             # Should be post increment
@@ -331,10 +342,105 @@ def InstructionToBytecode(asmtokens):
     return InstrType.getEncodeFunction(tp)(asmtokens)
 
 
+def checkMask(data, posOnes, posZeros):
+    v = 0
+    for p1 in posOnes:
+        v |= 1 << p1
+    if data & v != v:
+        return False
+    v = 0
+    for p0 in posZeros:
+        v |= 1 << p0
+    if data & v != 0:
+        return False
+    return True
 
 
+@lru_cache(maxsize=256)
+def BytecodeToInstrInfos(bc):
+    """
+    :param bc: The current instruction, in a bytes or bytearray object
+    :return: A tuple containing four elements. The first is a *InstrType* value
+    that corresponds to the type of the current instruction. The second is a
+    tuple containing the registers indices that see their value modified by
+    this instruction. The third is a decoding of the condition code.
+    Finally, the fourth element is not globally defined, and is used by
+    the decoder to put informations relevant to the current instruction. For
+    instance, when decoding a data processing instruction, this fourth element
+    will, amongst other things, contain the opcode of the request operation.
+    """
+    assert len(bc) == 4 # 32 bits
+    instrInt = int(bc.hex, 16)      # It's easier to work with integer objects when it comes to bit manipulation
 
+    affectedRegs = ()
+    condition = conditionMappingR[instrInt >> 28]
+    miscInfo = None
 
-class InstructionBytecode:
-    def __init__(self):
-        pass
+    if checkMask(instrInt, (24, 25, 26, 27), ()): # Software interrupt
+        category = InstrType.softinterrupt
+        miscInfo = instrInt & (0xFF << 24)
+
+    elif checkMask(instrInt, (4, 25, 26), (27,)):    # Undefined instruction
+        category = InstrType.undefined
+
+    elif checkMask(instrInt, (27, 25), (26,)):       # Branch
+        category = InstrType.branch
+        setlr = bool(instrInt & (1 << 24))
+        if setlr:
+            affectedRegs = (14,)
+        miscInfo = {'mode': 'imm',
+                    'L': setlr,
+                    'offset': instrInt & 0xFFFFFF}
+
+    elif checkMask(instrInt, (27,), (26, 25)):       # Block data transfer
+        category = InstrType.multiplememop
+
+    elif checkMask(instrInt, (26, 25), (4, 27)) or checkMask(instrInt, (26,), (25, 27)):    # Single data transfer
+        category = InstrType.memop
+
+    elif checkMask(instrInt, (24, 21, 4) + tuple(range(8, 20)), (27, 26, 25, 23, 22, 20, 7, 6, 5)): # BX
+        category = InstrType.branch
+
+    elif checkMask(instrInt, (7, 4), tuple(range(22, 28)) + (5, 6)):    # MUL
+        category = InstrType.multiply
+
+    elif checkMask(instrInt, (7, 4, 24), (27, 26, 25, 23, 21, 20, 11, 10, 9, 8, 6, 5)): # Swap
+        category = InstrType.swap
+
+    elif checkMask(instrInt, (), (27, 26)):     # Data processing
+        category = InstrType.dataop
+        opcodeNum = (instrInt >> 21) & 0xF
+        opcode = dataOpcodeMappingR[opcodeNum]
+
+        imm = bool(instrInt & (1 << 25))
+        flags = bool(instrInt & (1 << 20))
+
+        rd = (instrInt >> 12) & 0xF
+        rn = (instrInt >> 16) & 0xF
+        
+        if imm:
+            val = instrInt & 0xFF
+            shift = ("LSL", "imm", (instrInt >> 8) & 0xF)
+        else:
+            val = instrInt & 0xF
+            if instrInt & (1 << 4):
+                shift = (shiftMappingR[(instrInt >> 5) & 0x3], "reg", (instrInt >> 8) & 0xF)
+            else:
+                shift = (shiftMappingR[(instrInt >> 5) & 0x3] , "imm", (instrInt >> 7) & 0x1F)
+        op2 = (val, shift)
+
+        if not 7 < opcodeNum < 12:
+            affectedRegs = (rd,)
+
+        misc = {'opcode': opcode,
+                'rd': rd,
+                'setflags': flags,
+                'imm': imm,
+                'rn': rn,
+                'op2': op2}
+
+    else:
+        assert False, "Unknown instruction!"
+
+    return category, affectedRegs, condition, miscInfo
+
