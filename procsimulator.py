@@ -9,13 +9,24 @@ class Register:
         self.id = n
         self.val = val
         self.altname = altname
+        self.history = None
 
 
 class Processor:
-    pass
+
+    def __init__(self):
+        self.regs = [Register(i) for i in range(16)]
+        self.regs[13].altname = "SP"
+        self.regs[14].altname = "LR"
+        self.regs[15].altname = "PC"
+
+
 
 class Memory:
-    pass
+
+    def __init__(self, size):
+        self.size = size
+        self.history = None
 
 class SimState(Enum):
     undefined = -1
@@ -29,5 +40,13 @@ class Simulator:
 
     def __init__(self):
         self.proc = Processor()
-        self.mem = Memory
+        self.mem = Memory()
         self.state = SimState.uninitialized
+
+    def _printState(self):
+        """
+        Debug function
+        :return:
+        """
+        pass
+
