@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ARM Simulator</title>
+        <link rel="stylesheet" type="text/css" media="screen" href="css/style.css">
+        <script src="js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+        <script type="text/javascript">
+            window.define = window.define || ace.define;
+        </script>
+        <script src="js/ace/theme-cobalt.js" type="text/javascript" charset="utf-8"></script>
+        <script src="js/ace-custom/mode-assembly_arm.js" type="text/javascript" charset="utf-8"></script>
+    </head>
+    <body id="body_">
+    <!-- <h1 id="header"># ARM Editor Online #</h1> -->
+    <table id="content">
+        <tr>
+            <td id="regView">
+                <input id="bin" type="radio" name="representation" value="bin" onclick="changeBase(2);"/> bin
+                <input id="dec" type="radio" name="representation" value="dec" onclick="changeBase(10);" checked="checked" /> dec
+                <input id="hex" type="radio" name="representation" value="hex" onclick="changeBase(16);"/> hex <br>
+                <br>
+                <b>Registers View</b> <br>
+                >> <i id="gp">General Purpose</i>
+                <table>
+                    <tr>
+                        <td>r0</td>
+                        <td><input class="regVal" id="r0" type="text" name="r0" value="0" onchange="changeRegVal('r0');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r1</td>
+                        <td><input class="regVal" id="r1" type="text" name="r1" value="0" onchange="changeRegVal('r1');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r2</td>
+                        <td><input class="regVal" id="r2" type="text" name="r2" value="0" onchange="changeRegVal('r2');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r3</td>
+                        <td><input class="regVal" id="r3" type="text" name="r3" value="0" onchange="changeRegVal('r3');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r4</td>
+                        <td><input class="regVal" id="r4" type="text" name="r4" value="0" onchange="changeRegVal('r4');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r5</td>
+                        <td><input class="regVal" id="r5" type="text" name="r5" value="0" onchange="changeRegVal('r5');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r6</td>
+                        <td><input class="regVal" id="r6" type="text" name="r6" value="0" onchange="changeRegVal('r6');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r7</td>
+                        <td><input class="regVal" id="r7" type="text" name="r7" value="0" onchange="changeRegVal('r7');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r8</td>
+                        <td><input class="regVal" id="r8" type="text" name="r8" value="0" onchange="changeRegVal('r8');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r9</td>
+                        <td><input class="regVal" id="r9" type="text" name="r9" value="0" onchange="changeRegVal('r9');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r10 (sl)</td>
+                        <td><input class="regVal" id="r10" type="text" name="r10" value="0" onchange="changeRegVal('r10');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r11 (fp)</td>
+                        <td><input class="regVal" id="r11" type="text" name="r11" value="0" onchange="changeRegVal('r11');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r12 (ip)</td>
+                        <td><input class="regVal" id="r12" type="text" name="r12" value="0" onchange="changeRegVal('r12');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r13 (sp)</td>
+                        <td><input class="regVal" id="r13" type="text" name="r13" value="0" onchange="changeRegVal('r13');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r14 (lr)</td>
+                        <td><input class="regVal" id="r14" type="text" name="r14" value="0" onchange="changeRegVal('r14');"/></td>
+                    </tr>
+                    <tr>
+                        <td>r15 (pc)</td>
+                        <td><input class="regVal" id="r15" type="text" name="r15" value="0" onchange="changeRegVal('r15');"/></td>
+                    </tr>
+                </table>
+                <div>>> <i>Current Program Status</i></div>
+                <table>
+                    <tr>
+                        <td>Negative (N)</td>
+                        <td><input class="regVal" id="n" type="text" name="n" value="0" disabled="disabled"/></td>
+                    </tr>
+                    <tr>
+                        <td>Zero (Z)</td>
+                        <td><input class="regVal" id="z" type="text" name="z" value="0" disabled="disabled"/></td>
+                    </tr>
+                    <tr>
+                        <td>Carry (C)</td>
+                        <td><input class="regVal" id="c" type="text" name="c" value="0" disabled="disabled"/></td>
+                    </tr>
+                    <tr>
+                        <td>Overflow (V)</td>
+                        <td><input class="regVal" id="v" type="text" name="v" value="0" disabled="disabled"/></td>
+                    </tr>
+                </table>
+            </td>
+            <td id="editorPanel">
+                <div id="editor">
+# ARM program to print "Hello World!"
+
+# *************** instruction memory
+.text
+.global main
+main:
+# store(push) lr to the stack
+sub		sp, sp, #4
+str		lr, [sp, #0]
+
+# your code here
+ldr		r0, =hello
+bl  	printf
+
+# retrive(pop) lr from the stack
+ldr		lr, [sp, #0]
+add		sp, sp, #4
+
+# return
+mov		pc, lr
+
+# *************** data memory
+.data
+hello: .asciz "Hello World!\n"
+                </div>
+                <br>
+                <div>
+                    <div style="float: left;">
+                        <input type="file" id="fileToLoad">
+                        <button onclick="loadFileAsText()">Load</button>
+                    </div>
+                    <div style="float: right;">
+                        <button onclick="editor.setValue('');">
+                            <img src="image/cl.png" alt="Clear"/></button>
+                        <button onclick="saveTextAsFile()">
+                            <img src="image/dl.png" alt="Download"/></button>
+                    </div>
+                </div>
+                <br>
+            </td>
+            <td id="dashboard">
+                <div id="editorLineNum"></div>
+                <div id="stepInLine"></div>
+                <div id="ic"></div>
+                <div id="instruct">Instruction courante:</div>
+                <br>
+                <div id="lable"></div>
+                <div id="data"></div>
+                <br>
+                <b>Memory</b>
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th>Address</th>
+                            <th>Instruction</th>
+                        </tr>
+                    </thead>
+                    <tbody id="instructTBody">
+                    </tbody>
+                </table>
+                <hr/>
+                <b>Interruptions</b>
+                <hr/>
+                <div>
+                    <button onclick="simulate()">
+                        <img src="image/ex.png" alt="Simulate"/></button>
+                    <button onclick="assemble()">Assemble</button>
+                    <button id="stepIn" onclick="stepIn()" disabled="disabled" class="hide">Step In</button>
+                </div>
+                Input (stdin)<br>
+                <textarea id="stdin_" name ="stdin" placeholder="your inputs here"></textarea><br>
+                Output (stdout)<br>
+                <textarea id="stdout_" name="stdout" placeholder="your output here"></textarea>
+            </td>
+        </tr>
+    </table>
+
+    <script type="text/javascript">
+        var editor = ace.edit("editor");
+        var assembly_armMode = ace.require("ace/mode/assembly_arm").Mode;
+        editor.getSession().setMode(new assembly_armMode());
+    </script>
+
+    <script src="js/jquery-1.11.1.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="js/tooltipster/js/jquery.tooltipster.min.js" type="text/javascript" charset="utf-8"></script>
+    <link rel="stylesheet" type="text/css" href="js/tooltipster/css/tooltipster.css" />
+    <script src="js/comm.js" type="text/javascript" charset="utf-8"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#gp').tooltipster({
+                content: $('<table border="1"> \
+                                <thead>\
+                                    <tr>\
+                                        <th>&nbsp;</th>\
+                                        <th>R0</th>\
+                                        <th>R1</th>\
+                                    </tr>\
+                                </thead>\
+                                <tbody id="dataTBody">\
+                                <tr><td>0</td></tr>\
+                                <tr><td>1</td></tr>\
+                                </tbody>\
+                            </table>'),
+                position: 'bottom'
+            });
+        });
+    </script>
+
+</body>
+</html>

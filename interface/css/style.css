@@ -1,0 +1,54 @@
+html, body {
+    height:100%;
+}
+
+body {
+    background-color:#F0F5F5;
+    padding: 0; margin: 0;
+}
+
+#regView {
+    vertical-align: top;
+}
+
+.regVal {
+    width: 50px;
+}
+
+#content {
+    height: 100%;
+    margin: 0 auto;
+}
+
+#editorPanel {
+    padding: 0 0 0 1em;
+    height: 100%;
+    margin: 0;
+    vertical-align: top;
+}
+
+#editor {
+    width: 630px;
+    height: calc(100% - 70px);
+    border: 1px solid rgba(136,164,155, 0.7)
+}
+
+#dashboard {
+    padding-left: 1em;
+    vertical-align: top;
+}
+
+#stdin_ {
+    width:300px;
+    height:50px;
+}
+
+#stdout_ {
+    width: 300px;
+    height: 100px;
+}
+
+img {
+    height: 30px;
+    width: auto;
+}
