@@ -1,24 +1,19 @@
-
+from procsimulator import Simulator, Memory, Register
 
 class BCInterpreter:
 
-    def __init__(self, bytecode):
-        self.bc, self.dbginf, self.sim = None, None, None
-        self.setBytecode(bytecode)
-
-    def setBytecode(self, bytecode):
+    def __init__(self, bytecode, mappingInfo):
         self.bc = bytecode
-
-    def setLineMapping(self, debuginfo):
-        self.dbginf = debuginfo
-
-    def setSimulator(self, simulator):
-        self.sim = simulator
+        self.dbginf = mappingInfo
+        self.sim = Simulator()
 
     def reset(self):
         pass
 
     def setBreakpoint(self, lineno):
+        pass
+
+    def setBreakpointMem(self, addr):
         pass
 
     def stepforward(self):
@@ -27,7 +22,7 @@ class BCInterpreter:
     def stepinto(self):
         pass
 
-    def stepreturn(self):
+    def stepout(self):
         pass
 
     def run(self):

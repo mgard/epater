@@ -60,6 +60,7 @@ exportInstrInfo = {# DATA OPERATIONS
                    'BLX': InstrType.branch,
                     # MULTIPLY OPERATIONS
                    'MUL': InstrType.multiply,
+                   'MLA': InstrType.multiply,
                     # SWAP OPERATIONS
                    'SWP': InstrType.swap,
                     # SOFTWARE INTERRUPT OPERATIONS
@@ -156,7 +157,6 @@ def DataInstructionToBytecode(asmtokens):
     mnemonic = asmtokens[0].value
     b = dataOpcodeMapping[mnemonic] << 21
 
-    condSeen = False
     countReg = 0
     dictSeen = defaultdict(int)
     for tok in asmtokens[1:]:
@@ -166,7 +166,6 @@ def DataInstructionToBytecode(asmtokens):
         if tok.type == 'SETFLAGS' or mnemonic in ('TEQ', 'TST', 'CMP', 'CMN'):
             b |= 1 << 20
         elif tok.type == 'COND':
-            condSeen = True
             b |= conditionMapping[tok.value] << 28
         elif tok.type == 'REGISTER':
             if dictSeen['REGISTER'] == 0:
@@ -313,8 +312,35 @@ def BranchInstructionToBytecode(asmtokens):
 
 
 def MultiplyInstructionToBytecode(asmtokens):
-    # TODO
-    raise NotImplementedError()
+    mnemonic = asmtokens[0].value
+
+    b = 9 << 4
+    if mnemonic == 'MLA':
+        b |= 1 << 21
+
+    countReg = 0
+    dictSeen = defaultdict(int)
+    for tok in asmtokens[1:]:
+        if tok.type == 'SETFLAGS':
+            b |= 1 << 20
+        elif tok.type == 'COND':
+            b |= conditionMapping[tok.value] << 28
+        elif tok.type == 'REGISTER':
+            if dictSeen['REGISTER'] == 0:
+                b |= tok.value << 16
+            elif dictSeen['REGISTER'] == 1:
+                b |= tok.value
+            elif dictSeen['REGISTER'] == 2:
+                b |= tok.value << 8
+            else:
+                b |= tok.value << 12
+        dictSeen[tok.type] += 1
+
+    if dictSeen['COND'] == 0:
+        b |= conditionMapping['AL'] << 28
+
+    checkTokensCount(dictSeen)
+    return struct.pack("=I", b)
 
 
 def SwapInstructionToBytecode(asmtokens):
@@ -394,18 +420,85 @@ def BytecodeToInstrInfos(bc):
 
     elif checkMask(instrInt, (27,), (26, 25)):       # Block data transfer
         category = InstrType.multiplememop
+        pre = bool(instrInt & (1 << 24))
+        sign = 1 if instrInt & (1 << 22) else -1
+        writeback = bool(instrInt & (1 << 23))
+        mode = "LDR" if instrInt & (1 << 20) else "STR"
+
+        basereg = (instrInt >> 16) & 0xF
+        reglist = instrInt & 0xFFFF
+        affectedRegs = []
+        for i in range(16):
+            if reglist & (1 << i):
+                affectedRegs.append(i)
+        affectedRegs = tuple(affectedRegs)
+
+        miscInfo = {'base': basereg,
+                    'reglist': reglist,
+                    'pre': pre,
+                    'sign': sign,
+                    'writeback': writeback,
+                    'mode': mode}
 
     elif checkMask(instrInt, (26, 25), (4, 27)) or checkMask(instrInt, (26,), (25, 27)):    # Single data transfer
         category = InstrType.memop
 
+        imm = not bool(instrInt & (1 << 25))   # For LDR/STR, imm is 0 if offset IS an immediate value (4-26 datasheet)
+        pre = bool(instrInt & (1 << 24))
+        sign = 1 if instrInt & (1 << 23) else -1
+        byte = bool(instrInt & (1 << 22))
+        writeback = bool(instrInt & (1 << 21))
+        mode = "LDR" if instrInt & (1 << 20) else "STR"
+
+        basereg = (instrInt >> 16) & 0xF
+        destreg = (instrInt >> 12) & 0xF
+        if imm:
+            offset = instrInt & 0xFFF
+        else:
+            rm = instrInt & 0xF
+            if instrInt & (1 << 4):
+                shift = (shiftMappingR[(instrInt >> 5) & 0x3], "reg", (instrInt >> 8) & 0xF)
+            else:
+                shift = (shiftMappingR[(instrInt >> 5) & 0x3] , "imm", (instrInt >> 7) & 0x1F)
+            offset = (rm, shift)
+
+        affectedRegs = (destreg,) if not writeback else (destreg, basereg)
+        miscInfo = {'base': basereg,
+                    'rd': destreg,
+                    'offset': offset,
+                    'imm': imm,
+                    'pre': pre,
+                    'sign': sign,
+                    'byte': byte,
+                    'writeback': writeback,
+                    'mode': mode}
+
     elif checkMask(instrInt, (24, 21, 4) + tuple(range(8, 20)), (27, 26, 25, 23, 22, 20, 7, 6, 5)): # BX
         category = InstrType.branch
+        miscInfo = {'mode': 'reg',
+                    'L': False,
+                    'offset': instrInt & 0xF}
 
-    elif checkMask(instrInt, (7, 4), tuple(range(22, 28)) + (5, 6)):    # MUL
+    elif checkMask(instrInt, (7, 4), tuple(range(22, 28)) + (5, 6)):    # MUL or MLA
         category = InstrType.multiply
+        rd = (instrInt >> 16) & 0xF
+        rn = (instrInt >> 12) & 0xF
+        rs = (instrInt >> 8) & 0xF
+        rm = instrInt & 0xF
+        affectedRegs = (rd,)
+
+        flags = bool(instrInt & (1 << 20))
+        accumulate = bool(instrInt & (1 << 21))
+
+        miscInfo = {'accumulate':accumulate,
+                    'setflags': flags,
+                    'rd': rd,
+                    'operandsmul': (rm, rs),
+                    'operandadd': rd}
 
     elif checkMask(instrInt, (7, 4, 24), (27, 26, 25, 23, 21, 20, 11, 10, 9, 8, 6, 5)): # Swap
         category = InstrType.swap
+        # TODO
 
     elif checkMask(instrInt, (), (27, 26)):     # Data processing
         category = InstrType.dataop
@@ -417,7 +510,7 @@ def BytecodeToInstrInfos(bc):
 
         rd = (instrInt >> 12) & 0xF
         rn = (instrInt >> 16) & 0xF
-        
+
         if imm:
             val = instrInt & 0xFF
             shift = ("LSL", "imm", (instrInt >> 8) & 0xF)
