@@ -29,6 +29,16 @@ easier to produce a relevant error message to the user.
 instructionList = tuple(exportInstrInfo.keys())
 regexpInstr = (r'|').join(instructionList)
 
+class LexError(Exception):
+    """
+    The exception class used when the parser encounter an invalid syntax.
+    """
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+
 DummyToken = namedtuple("DummyToken", ['type', 'value'])
 DecInfo = namedtuple("DecInfo", ['type', 'nbits', 'dim', 'vals'])
 ShiftInfo = namedtuple("ShiftInfo", ['type', 'count'])

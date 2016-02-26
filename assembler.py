@@ -1,7 +1,7 @@
 import struct
 from collections import defaultdict
 
-from lexparser import lexer, MemAccessPreInfo, ShiftInfo, DummyToken
+from lexparser import lexer, MemAccessPreInfo, ShiftInfo, DummyToken, LexError
 from instruction import InstructionToBytecode
 from settings import getSetting
 
@@ -9,6 +9,19 @@ BASE_ADDR_INTVEC = 0x00
 BASE_ADDR_CODE   = 0x80
 BASE_ADDR_DATA   = 0x1000
 
+class ParseError:
+    dictErrors = {'SYNTAX': "Erreur de syntaxe",
+                  'RANGE' : "Erreur de range",
+                  'INVINSTR': "Instruction invalide",
+                  }
+
+    def __init__(self, etype, msg, gravity="ERROR"):
+        self.t = etype
+        self.m = msg
+        self.gravity = gravity
+
+    def __str__(self):
+        return "{} : {}".format(self.t, self.m)
 
 def parse(code):
     """
@@ -18,12 +31,19 @@ def parse(code):
     a list object which maps each address in the bytecode to a line in the
     provided ARM assembly
     """
+    listErrors = []
+
     # First pass : lexical parsing
     parsedCode = []
     for line in code:
-        #print("PARSING : " + line)
-        lexer.input(line)
         parsedCode.append([])
+
+        try:
+            lexer.input(line)
+        except LexError as e:
+            listErrors.append(str(e))
+            continue
+            
         while True:
             tok = lexer.token()
             if not tok:
