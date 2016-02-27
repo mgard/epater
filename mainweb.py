@@ -21,7 +21,7 @@ async def producer(data_list):
     while True:
         await asyncio.sleep(0.1)
         if data_list:
-            return data_list.pop(0)
+            return json.dumps(data_list.pop(0))
 
 
 async def handler(websocket, path):
@@ -30,6 +30,8 @@ async def handler(websocket, path):
     received = []
     try:
         while True:
+            if not websocket.open:
+                break
             listener_task = asyncio.ensure_future(websocket.recv())
             producer_task = asyncio.ensure_future(producer(to_send))
             done, pending = await asyncio.wait(
@@ -38,7 +40,8 @@ async def handler(websocket, path):
 
             if listener_task in done:
                 message = listener_task.result()
-                received.append(message)
+                if message:
+                    received.append(message)
             else:
                 listener_task.cancel()
 
@@ -82,6 +85,12 @@ def process(ws, msg_in):
         elif data[0] == 'animate':
             # Faire step into à chaque intervalle
             pass
+        elif data[0] == 'update':
+            pass
+        elif data[0] == 'breakpoints':
+            pass
+        else:
+            print("Unknown message: ", data)
 
 
 if __name__ == '__main__':
