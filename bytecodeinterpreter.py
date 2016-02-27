@@ -5,7 +5,7 @@ class BCInterpreter:
     def __init__(self, bytecode, mappingInfo):
         self.bc = bytecode
         self.dbginf = mappingInfo
-        self.sim = Simulator()
+        self.sim = Simulator(bytecode)
 
     def reset(self):
         pass

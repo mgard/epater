@@ -14,10 +14,7 @@ if __name__ == '__main__':
     with open(args.inputfile) as f:
         bytecode, bcinfos = ASMparser(f)
 
-    interpreter = BCInterpreter(bytecode)
-    interpreter.setLineMapping(bcinfos)
-    sim = Simulator()
-    interpreter.setSimulator(sim)
+    interpreter = BCInterpreter(bytecode, bcinfos)
 
 
 
