@@ -127,6 +127,13 @@ dataOpcodeMapping = {'AND': 0,
 dataOpcodeMappingR = {v: k for k,v in dataOpcodeMapping.items()}
 
 def immediateToBytecode(imm):
+    """
+    The immediate operand rotate field is a 4 bit unsigned integer which specifies a shift
+    operation on the 8 bit immediate value. This value is zero extended to 32 bits, and then
+    subject to a rotate right by twice the value in the rotate field. (ARM datasheet, 4.5.3)
+    :param imm:
+    :return:
+    """
     if imm == 0:
         return 0, 0
     scale = math.log2(imm)
@@ -385,7 +392,7 @@ def checkMask(data, posOnes, posZeros):
 @lru_cache(maxsize=256)
 def BytecodeToInstrInfos(bc):
     """
-    :param bc: The current instruction, in a bytes or bytearray object
+    :param bc: The current instruction, in a bytes object
     :return: A tuple containing four elements. The first is a *InstrType* value
     that corresponds to the type of the current instruction. The second is a
     tuple containing the registers indices that see their value modified by

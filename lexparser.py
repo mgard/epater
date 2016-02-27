@@ -215,8 +215,9 @@ t_ignore  = ' \t'
 
 # Error handling rule
 def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
-    t.lexer.skip(1)
+    raise LexError("Caractere invalide (colonne {}) : {}".format(t.lexpos, t.value[0]))
+    #print("Illegal character '%s'" % t.value[0])
+    #t.lexer.skip(1)
 
 # Build the lexer
 lex.lex(reflags=re.UNICODE)

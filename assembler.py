@@ -59,6 +59,7 @@ def parse(code):
     for i,pline in enumerate(parsedCode):
         if len(pline) == 0:
             # We have to keep these empty lines in order to keep track of the line numbers
+            assignedAddr[i] = currentAddr
             continue
         idxToken = 0
 
@@ -127,7 +128,10 @@ def parse(code):
     # Fourth pass : create bytecode
     # At this point, we should have only valid ARM instructions, so let's parse them
     # At the end of each section, we also add the address defined on the previous pass
-    bytecode = {}
+
+    # We add a special field in the bytecode info to tell the simulator the start address of each section
+    bytecode = {'__MEMINFOSTART': {"INTVEC": BASE_ADDR_INTVEC, "CODE": BASE_ADDR_CODE, "DATA": BASE_ADDR_DATA},
+                '__MEMINFOEND': maxAddrBySection}
     matchBytecodeASM = []
     currentSection = None
     bc = bytes()
