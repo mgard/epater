@@ -122,6 +122,30 @@ class Simulator:
         """
         pass
 
+    def _shiftVal(self, val, shiftInfo):
+        shiftamount = self.regs[shiftInfo[2]].get() if shiftInfo[1] == 'reg' else shiftInfo[2]
+        carryOut = 0
+        if shiftInfo[0] == "LSL":
+            carryOut = (val >> (32-shiftamount)) & 1
+            val = (val << shiftamount) & 0xFFFFFFFF
+        elif shiftInfo[0] == "LSR":
+            carryOut = (val >> (shiftamount-1)) & 1
+            val = (val >> shiftamount) & 0xFFFFFFFF
+        elif shiftInfo[0] == "ASR":
+            carryOut = (val >> (shiftamount-1)) & 1
+            firstBit = (val >> 31) & 1
+            val = ((val >> shiftamount) & 0xFFFFFFFF) | (2**(shiftamount+1) << (32-shiftamount))
+        elif shiftInfo[0] == "ROR":
+            if shiftamount == 0:
+                # The form of the shift field which might be expected to give ROR #0 is used to encode
+                # a special function of the barrel shifter, rotate right extended (RRX). This is a rotate right
+                # Todo RRX
+                pass
+            carryOut = (val >> (shiftamount-1)) & 1
+            val = ((val & (2**32-1)) >> shiftamount%32) | (val << (32-(shiftamount%32)) & (2**32-1))
+
+
+
     def execInstr(self, addr):
         """
         Execute one instruction
@@ -131,12 +155,19 @@ class Simulator:
         in which case it is not an error but rather a Breakpoint reached.
         """
         # Retrieve instruction from memory
-        bc = bytes(self.mem.get(addr))
+        bc = bytes(self.mem.get(addr))[::-1]    # Memory is little endian, so we convert it back to a more usable form
 
         # Decode it
         t, regs, cond, misc = BytecodeToInstrInfos(bc)
 
         # Execute it
         if t == InstrType.dataop:
-            pass
+            # Get first operand value
+            op1 = self.regs[misc['rn']].get()
+            # Get second operand value
+            if misc['imm']:
+                pass
+            else:
+                op2 = self.regs[misc['op2'][0]].get()
+            # Get destination register and write the result
 
