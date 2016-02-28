@@ -168,7 +168,9 @@ hello: .asciz "Hello World!\n"
                 <div id="data"></div>
                 <br>
                 <b>Memory</b>
+                bug: assemble, second row edit strange?
                 <div id="memoryview"></div>
+                <div id="paginator"></div>
                 <hr/>
                 <b>Interruptions</b>
                 <hr/>
@@ -258,16 +260,16 @@ hello: .asciz "Hello World!\n"
 
             // Memory viewer
             var metadata = [];
-            metadata.push({ name: "c0", label: "0", datatype: "string", editable: true});
-            metadata.push({ name: "c1", label: "1", datatype: "string", editable: true});
-            metadata.push({ name: "c2", label: "2", datatype: "string", editable: true});
-            metadata.push({ name: "c3", label: "3", datatype: "string", editable: true});
-            metadata.push({ name: "c4", label: "4", datatype: "string", editable: true});
-            metadata.push({ name: "c5", label: "5", datatype: "string", editable: true});
-            metadata.push({ name: "c6", label: "6", datatype: "string", editable: true});
-            metadata.push({ name: "c7", label: "7", datatype: "string", editable: true});
-            metadata.push({ name: "c8", label: "8", datatype: "string", editable: true});
-            metadata.push({ name: "c9", label: "9", datatype: "string", editable: true});
+            metadata.push({ name: "c0", label: "00", datatype: "string", editable: true});
+            metadata.push({ name: "c1", label: "01", datatype: "string", editable: true});
+            metadata.push({ name: "c2", label: "02", datatype: "string", editable: true});
+            metadata.push({ name: "c3", label: "03", datatype: "string", editable: true});
+            metadata.push({ name: "c4", label: "04", datatype: "string", editable: true});
+            metadata.push({ name: "c5", label: "05", datatype: "string", editable: true});
+            metadata.push({ name: "c6", label: "06", datatype: "string", editable: true});
+            metadata.push({ name: "c7", label: "07", datatype: "string", editable: true});
+            metadata.push({ name: "c8", label: "08", datatype: "string", editable: true});
+            metadata.push({ name: "c9", label: "09", datatype: "string", editable: true});
 
             var data = [];
             data.push({id: 1, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
@@ -284,14 +286,64 @@ hello: .asciz "Hello World!\n"
             editableGrid = new EditableGrid("DemoGridJsData", {
                 modelChanged: function(rowIndex, columnIndex, oldValue, newValue, row) { 
                      console.log(rowIndex, columnIndex, row, newValue);
-                     var addr = 0;
+                     var addr = rowIndex*10 +columnIndex;
                      ws.send(JSON.stringify(['memchange', addr, newValue]));
-                }
+                },
+                enableSort: false,
+                pageSize: 10,
+                tableRendered: function() { this.updatePaginator(); }
             });
             editableGrid.load({"metadata": metadata, "data": data});
             editableGrid.renderGrid("memoryview", "testgrid");
 
         });
+
+        // From editablegrid's demo
+        function image(relativePath) {
+            return "./editablegrid/images/" + relativePath;
+        }
+        EditableGrid.prototype.updatePaginator = function()
+        {
+            var paginator = $("#paginator").empty();
+            var nbPages = this.getPageCount();
+
+            // get interval
+            var interval = this.getSlidingPageInterval(20);
+            if (interval == null) return;
+
+            // get pages in interval (with links except for the current page)
+            var pages = this.getPagesInInterval(interval, function(pageIndex, isCurrent) {
+                if (isCurrent) return "" + (pageIndex + 1);
+                return $("<a>").css("cursor", "pointer").html(pageIndex + 1).click(function(event) { editableGrid.setPageIndex(parseInt($(this).html()) - 1); });
+            });
+
+            // "first" link
+            var link = $("<a>").html("<img src='" + image("gofirst.png") + "'/>&nbsp;");
+            if (!this.canGoBack()) link.css({ opacity : 0.4, filter: "alpha(opacity=40)" });
+            else link.css("cursor", "pointer").click(function(event) { editableGrid.firstPage(); });
+            paginator.append(link);
+
+            // "prev" link
+            link = $("<a>").html("<img src='" + image("prev.png") + "'/>&nbsp;");
+            if (!this.canGoBack()) link.css({ opacity : 0.4, filter: "alpha(opacity=40)" });
+            else link.css("cursor", "pointer").click(function(event) { editableGrid.prevPage(); });
+            paginator.append(link);
+
+            // pages
+            for (p = 0; p < pages.length; p++) paginator.append(pages[p]).append(" | ");
+
+            // "next" link
+            link = $("<a>").html("<img src='" + image("next.png") + "'/>&nbsp;");
+            if (!this.canGoForward()) link.css({ opacity : 0.4, filter: "alpha(opacity=40)" });
+            else link.css("cursor", "pointer").click(function(event) { editableGrid.nextPage(); });
+            paginator.append(link);
+
+            // "last" link
+            link = $("<a>").html("<img src='" + image("golast.png") + "'/>&nbsp;");
+            if (!this.canGoForward()) link.css({ opacity : 0.4, filter: "alpha(opacity=40)" });
+            else link.css("cursor", "pointer").click(function(event) { editableGrid.lastPage(); });
+            paginator.append(link);
+        };
     </script>
 
 </body>

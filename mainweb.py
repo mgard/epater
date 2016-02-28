@@ -76,14 +76,14 @@ def process(ws, msg_in):
         data = json.loads(msg)
         if data[0] == 'assemble':
             # TODO: Afficher les erreurs à l'écran
-            bytecode, bcinfos = ASMparser(data[1].split("\n"))
-            interpreters[ws] = BCInterpreter(bytecode, bcinfos)
+            #bytecode, bcinfos = ASMparser(data[1].split("\n"))
+            #interpreters[ws] = BCInterpreter(bytecode, bcinfos)
 
             # TODO: Reset interface
             # Memory View
-            cols = {"c{}".format(i): "00" for i in range(9)}
+            cols = {"c{}".format(i): "00" for i in range(10)}
             vallist = []
-            for i in range(10):
+            for i in range(20):
                 vallist.append({"id": i, "values": cols})
             retval.append(["mem", vallist])
         elif data[0] == 'stepinto':
