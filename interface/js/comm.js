@@ -60,5 +60,9 @@ function assemble() {
 }
 
 function sendBreakpoints() {
-    ws.send(JSON.stringify(['breakpoints', asm_breakpoints]));
+    ws.send(JSON.stringify(['breakpointsinst', asm_breakpoints]));
+}
+
+function sendMsg(msg) {
+    ws.send(JSON.stringify([msg]));
 }

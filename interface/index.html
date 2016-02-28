@@ -118,30 +118,61 @@
             </td>
             <td id="editorPanel">
                 <div id="editor">
-# ARM program to print "Hello World!"
+SECTION INTVEC
 
-# *************** instruction memory
-.text
-.global main
-main:
-# store(push) lr to the stack
-sub		sp, sp, #4
-str		lr, [sp, #0]
+mavariable DC32 0x22, 0x1
+monautrevariable DC32 0xFFEEDDCC, 0x11223344
 
-# your code here
-ldr		r0, =hello
-bl  	printf
+SECTION CODE
 
-# retrive(pop) lr from the stack
-ldr		lr, [sp, #0]
-add		sp, sp, #4
+main
+B testmov
 
-# return
-mov		pc, lr
+testmov
+MOV R0, #0
+MOV R1, #0xA
+MOV R2, #1 LSL R1
+MOV R3, #0xF0000000
+MOV R4, #0x1000 ASR #3
+MOV R5, PC
 
-# *************** data memory
-.data
-hello: .asciz "Hello World!\n"
+testop
+MOV R0, #4
+MOV R1, #0xB
+ADD R2, R0, R1
+SUB R3, R0, R1
+SUB R4, R1, R0
+AND R5, R0, R1
+ORR R6, R0, R1
+XOR R7, R6, R1
+
+testmem
+LDR R3, mavariable
+LDR R4, =mavariable
+LDR R10, [R4, #8]
+SUB R6, PC, #8
+LDR R7, =variablemem
+STR R6, [R7]
+
+testloop
+MOV R0, #0
+MOV R1, #0xF
+loop ADD R0, R0, #1
+CMP R0, R1
+BNE loop
+BEQ skip
+MOV R11, #0xEF
+skip
+MOV R2, #0xFF
+MOV R3, #255
+SUBS R4, R2, R3
+MOVGT R5, #1
+MOVLE R5, #2
+MOVEQ R6, #3
+
+SECTION DATA
+
+variablemem DS32 10
                 </div>
                 <br>
                 <div>
@@ -176,9 +207,9 @@ hello: .asciz "Hello World!\n"
                 <div>
                     <button onclick="assemble()">Assemble</button>
                     <button onclick="simulate()" disable="disabled">Run</button>
-                    <button id="stepin" onclick="stepIn()" disable="disabled">Step In</button>
-                    <button id="stepforward" onclick="stepIn()" disable="disabled">Step Forward</button>
-                    <button id="stepout" onclick="stepIn()" disable="disabled">Step Out</button>
+                    <button id="stepin" onclick="sendMsg('stepinto')" disable="disabled">Step In</button>
+                    <button id="stepforward" onclick="sendMsg('stepforward')" disable="disabled">Step Forward</button>
+                    <button id="stepout" onclick="sendMsg('stepout')" disable="disabled">Step Out</button>
                 </div>
                 Input (stdin)<br>
                 <textarea id="stdin_" name ="stdin" placeholder="your inputs here"></textarea><br>
@@ -270,6 +301,7 @@ hello: .asciz "Hello World!\n"
             metadata.push({ name: "c8", label: "08", datatype: "string", editable: true});
             metadata.push({ name: "c9", label: "09", datatype: "string", editable: true});
 
+            // Not necessary?
             var data = [];
             data.push({id: 1, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
             data.push({id: 2, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});

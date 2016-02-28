@@ -67,6 +67,26 @@ async def handler(websocket, path):
         print("User {} disconnected.".format(websocket))
 
 
+def generateUpdate(inter):
+    """
+    Generates the messages to update the interface
+    """
+    retval = []
+    # Memory View
+    # web interface is 1-indexed
+    cols = {"c{}".format(i): "00" for i in range(10)}
+    vallist = []
+    for i in range(20):
+        vallist.append({"id": i+1, "values": cols})
+    retval.append(["mem", vallist])
+    
+    # Registers
+    regs = inter.getRegisters()
+    #retval.extend([["r{}".format(i), "0"] for i in range(16)])
+    retval.extend(zip(list("r{}".format(i) for i in range(16)), regs))
+    return retval
+
+
 def process(ws, msg_in):
     """
     Output: List of messages to send.
@@ -76,29 +96,27 @@ def process(ws, msg_in):
         data = json.loads(msg)
         if data[0] == 'assemble':
             # TODO: Afficher les erreurs à l'écran
-            #bytecode, bcinfos = ASMparser(data[1].split("\n"))
-            #interpreters[ws] = BCInterpreter(bytecode, bcinfos)
+            bytecode, bcinfos = ASMparser(data[1].split("\n"))
+            interpreters[ws] = BCInterpreter(bytecode, bcinfos)
 
-            # TODO: Reset interface
-            # Memory View
-            # web interface is 1-indexed
-            cols = {"c{}".format(i): "00" for i in range(10)}
-            vallist = []
-            for i in range(20):
-                vallist.append({"id": i+1, "values": cols})
-            retval.append(["mem", vallist])
+            retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'stepinto':
             interpreters[ws].stepinto()
+            retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'stepforward':
-            pass
+            print("stepforward")
+            interpreters[ws].stepforward()
+            retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'stepout':
             pass
+            retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'reset':
             interpreters[ws].reset()
-        elif data[0] == 'setbreakinst':
-            pass
-        elif data[0] == 'setbreakmem':
-            pass
+            retval.extend(generateUpdate(interpreters[ws]))
+        elif data[0] == 'breakpointsinst':
+            interpreters[ws].setBreakpoints(data[1])
+        elif data[0] == 'breakpointsmem':
+            interpreters[ws].setBreakpointsMem(data[1])
         elif data[0] == 'run':
             pass
         elif data[0] == 'animate':
@@ -106,6 +124,7 @@ def process(ws, msg_in):
             pass
         elif data[0] == 'update':
             pass
+            retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'breakpoints':
             pass
         else:
