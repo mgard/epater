@@ -4,6 +4,7 @@ import math
 import asyncio
 import json
 import collections
+from itertools import repeat
 
 import websockets
 
@@ -25,6 +26,7 @@ async def producer(data_list):
 
 
 async def handler(websocket, path):
+    print("User {} connected.".format(websocket))
     connected.add(websocket)
     to_send = []
     received = []
@@ -39,7 +41,10 @@ async def handler(websocket, path):
                 return_when=asyncio.FIRST_COMPLETED)
 
             if listener_task in done:
-                message = listener_task.result()
+                try:
+                    message = listener_task.result()
+                except websockets.exceptions.ConnectionClosed:
+                    break
                 if message:
                     received.append(message)
             else:
@@ -51,23 +56,36 @@ async def handler(websocket, path):
             else:
                 producer_task.cancel()
 
-            # TODO: Try là-dessus
+            # TODO: Try là-dessus?
             data = process(websocket, received)
             if data:
-                to_send.append(data)
+                to_send.extend(data)
     finally:
         if websocket in interpreters:
             del interpreters[websocket]
         connected.remove(websocket)
+        print("User {} disconnected.".format(websocket))
 
 
 def process(ws, msg_in):
+    """
+    Output: List of messages to send.
+    """
+    retval = []
     for msg in msg_in:
         data = json.loads(msg)
         if data[0] == 'assemble':
-            # TODO: Rappatrier les erreurs à l'écran
+            # TODO: Afficher les erreurs à l'écran
             bytecode, bcinfos = ASMparser(data[1].split("\n"))
             interpreters[ws] = BCInterpreter(bytecode, bcinfos)
+
+            # TODO: Reset interface
+            # Memory View
+            cols = {"c{}".format(i): "00" for i in range(9)}
+            vallist = []
+            for i in range(10):
+                vallist.append({"id": i, "values": cols})
+            retval.append(["mem", vallist])
         elif data[0] == 'stepinto':
             interpreters[ws].stepinto()
         elif data[0] == 'stepforward':
@@ -91,6 +109,8 @@ def process(ws, msg_in):
             pass
         else:
             print("Unknown message: ", data)
+    del msg_in[:]
+    return retval
 
 
 if __name__ == '__main__':

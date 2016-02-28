@@ -17,8 +17,12 @@ ws.onmessage = function (event) {
     } else if (obj[0] == 'codeerror') {
         // Record code error tooltips
         codeerrors[obj[1]] = obj[2];
+        updateCodeErrors();
+    } else if (obj[0] == 'mem') {
+        editableGrid.load({"data": obj[1]});
+        editableGrid.renderGrid("memoryview", "testgrid");
+        console.log("Loaded!");
     }
-    updateCodeErrors();
 };
 
 
