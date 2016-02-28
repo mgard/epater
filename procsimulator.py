@@ -123,7 +123,7 @@ class Simulator:
         pass
 
     def _shiftVal(self, val, shiftInfo):
-        shiftamount = self.regs[shiftInfo[2]].get() if shiftInfo[1] == 'reg' else shiftInfo[2]
+        shiftamount = self.regs[shiftInfo[2]].get() & 0xF if shiftInfo[1] == 'reg' else shiftInfo[2]
         carryOut = 0
         if shiftInfo[0] == "LSL":
             carryOut = (val >> (32-shiftamount)) & 1
@@ -138,11 +138,12 @@ class Simulator:
         elif shiftInfo[0] == "ROR":
             if shiftamount == 0:
                 # The form of the shift field which might be expected to give ROR #0 is used to encode
-                # a special function of the barrel shifter, rotate right extended (RRX). This is a rotate right
-                # Todo RRX
-                pass
-            carryOut = (val >> (shiftamount-1)) & 1
-            val = ((val & (2**32-1)) >> shiftamount%32) | (val << (32-(shiftamount%32)) & (2**32-1))
+                # a special function of the barrel shifter, rotate right extended (RRX).
+                carryOut = val & 1
+                val = (val >> 1) | (int(self.flags['C']) << 31)
+            else:
+                carryOut = (val >> (shiftamount-1)) & 1
+                val = ((val & (2**32-1)) >> shiftamount%32) | (val << (32-(shiftamount%32)) & (2**32-1))
 
 
 
