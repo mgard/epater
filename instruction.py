@@ -95,6 +95,7 @@ shiftMapping = {'LSL': 0,
                 'LSR': 1,
                 'ASR': 2,
                 'ROR': 3}
+# TODO Add RRX rotate mode (special case of ROR)
 
 shiftMappingR = {v: k for k,v in shiftMapping.items()}
 
@@ -126,7 +127,7 @@ dataOpcodeMapping = {'AND': 0,
 
 dataOpcodeMappingR = {v: k for k,v in dataOpcodeMapping.items()}
 
-def immediateToBytecode(imm):
+def immediateToBytecode(imm, tryinverse=True):
     """
     The immediate operand rotate field is a 4 bit unsigned integer which specifies a shift
     operation on the 8 bit immediate value. This value is zero extended to 32 bits, and then
@@ -135,18 +136,29 @@ def immediateToBytecode(imm):
     :return:
     """
     if imm == 0:
-        return 0, 0
-    scale = math.log2(imm)
-    immval, immrot = None, None
-    for s in range(8, 33, 2):
-        if scale < s:
-            div = 2**(s-8)
-            if imm % div == 0:
-                immval, immrot = imm // div, s-8
-            else:
-                break
-    assert not immval is None
-    return immval, immrot
+        return 0, 0, False
+
+    mostSignificantOne = int(math.log2(imm))
+    if mostSignificantOne < 8:
+        # Are we already able to fit the value in the immediate field?
+        return imm & 0xFF, 0, False
+    elif mostSignificantOne % 2 == 0 and imm >> (mostSignificantOne-8) == (imm >> (mostSignificantOne-8)) & 0xFF:
+        # Does it fit in 8 bits?
+        return imm >> (mostSignificantOne-8), (mostSignificantOne-8) // 2, False
+    elif mostSignificantOne % 2 == 1 and imm >> (mostSignificantOne-9) == (imm >> (mostSignificantOne-9)) & 0xFF:
+        return imm >> (mostSignificantOne-9), (mostSignificantOne-9) // 2, False
+    elif tryinverse:
+        # Lets try to fit the inverse of the requested value
+        invimm = ~imm
+        res = immediateToBytecode(invimm, False)
+        if res is None:
+            return None
+        else:
+            return res[0], res[1], True
+    else:
+        # It is impossible to generate the requested value
+        return None
+
 
 def checkTokensCount(tokensDict):
     # Not a comprehensive check
@@ -183,8 +195,13 @@ def DataInstructionToBytecode(asmtokens):
                 b |= tok.value << 16
         elif tok.type == 'CONSTANT':
             b |= 1 << 25
-            # TODO ERROR, see sec 4.5.3 in ARM7 Data Sheet (should be x2)
-            immval, immrot = immediateToBytecode(tok.value)
+            immval, immrot, inverse = immediateToBytecode(tok.value)
+            if inverse:
+                # We can fit the constant, but we have to swap MOV<->MVN in order to do so
+                if mnemonic == 'MOV':
+                    b |= dataOpcodeMapping['MVN'] << 21     # MVN is 1111 opcode
+                elif mnemonic == 'MVN':
+                    b ^= 1 << 22
             b |= immval
             b |= immrot << 8
         elif tok.type == 'SHIFTREG':
@@ -520,7 +537,7 @@ def BytecodeToInstrInfos(bc):
 
         if imm:
             val = instrInt & 0xFF
-            shift = ("LSL", "imm", (instrInt >> 8) & 0xF)
+            shift = ("LSR", "imm", ((instrInt >> 8) & 0xF)*2)
         else:
             val = instrInt & 0xF
             if instrInt & (1 << 4):
