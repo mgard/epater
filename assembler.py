@@ -154,7 +154,7 @@ def parse(code):
                 tmp = InstructionToBytecode(pline[j:])[::-1]            # Convert in little endian
                 bc += tmp
                 matchBytecodeASM += [i]*len(tmp)
-
+    bytecode[currentSection] = bc
 
     return bytecode, matchBytecodeASM
 
