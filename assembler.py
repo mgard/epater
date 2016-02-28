@@ -143,7 +143,7 @@ def parse(code):
         if pline[0].type == "SECTION":
             if currentSection is not None:
                 for val in labelsAddrBySection[currentSection]:
-                    bc += struct.pack("=I", val)
+                    bc += struct.pack("=I", val)[::-1]                  # Convert in little endian
                 bytecode[currentSection] = bc
                 bc = bytes()
             currentSection = pline[0].value
@@ -151,9 +151,10 @@ def parse(code):
         for j,token in enumerate(pline):
             if token.type in ("INSTR", "DECLARATION"):
                 print(pline)
-                tmp = InstructionToBytecode(pline[j:])
+                tmp = InstructionToBytecode(pline[j:])[::-1]            # Convert in little endian
                 bc += tmp
                 matchBytecodeASM += [i]*len(tmp)
+
 
     return bytecode, matchBytecodeASM
 
