@@ -68,7 +68,7 @@ class Memory:
         if addr < 0 or addr > self.maxAddr - (size-1):
             return None
         for sec in self.startAddr.keys():
-            if self.startAddr[sec] < addr < self.endAddr[sec] - (size-1):
+            if self.startAddr[sec] <= addr < self.endAddr[sec] - (size-1):
                 return (sec, addr - self.startAddr[sec])
         return None
 
