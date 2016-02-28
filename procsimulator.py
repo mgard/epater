@@ -90,6 +90,9 @@ class Memory:
         sec, offset = resolvedAddr
         self.data[sec][offset:offset+size] = val
 
+    def formatMemToDisplay(self):
+        pass
+
 
 class SimState(Enum):
     undefined = -1
@@ -114,6 +117,10 @@ class Simulator:
                       'V': False,
                       'C': False,
                       'N': False}
+
+    def reset(self):
+        self.regs[15].set(0)
+        self.state = SimState.ready
 
     def _printState(self):
         """
@@ -144,7 +151,7 @@ class Simulator:
             else:
                 carryOut = (val >> (shiftamount-1)) & 1
                 val = ((val & (2**32-1)) >> shiftamount%32) | (val << (32-(shiftamount%32)) & (2**32-1))
-
+        return carryOut, val
 
 
     def execInstr(self, addr):
@@ -160,6 +167,7 @@ class Simulator:
 
         # Decode it
         t, regs, cond, misc = BytecodeToInstrInfos(bc)
+        workingFlags = self.flags.copy()
 
         # Execute it
         if t == InstrType.dataop:
@@ -167,8 +175,51 @@ class Simulator:
             op1 = self.regs[misc['rn']].get()
             # Get second operand value
             if misc['imm']:
-                pass
+                op2 = misc['op2'][0]
             else:
                 op2 = self.regs[misc['op2'][0]].get()
+            carry, op2 = self._shiftVal(op2, misc['op2'][1])
+            workingFlags['C'] = bool(carry)
+
             # Get destination register and write the result
+            destrd = misc['rd']
+
+            if misc['opcode'] in ("AND", "TST"):
+                destrd = op1 & op2
+            elif misc['opcode'] in ("EOR", "TEQ"):
+                destrd = op1 ^ op2
+            elif misc['opcode'] in ("SUB", "CMP"):
+                destrd = op1 - op2
+            elif misc['opcode'] == "RSB":
+                destrd = op2 - op1
+            elif misc['opcode'] in ("ADD", "CMN"):
+                destrd = op1 + op2
+                workingFlags['C'] = bool(destrd & (1 << 32))
+            elif misc['opcode'] == "ADC":
+                destrd = op1 + op2 + int(self.flags['C'])
+                workingFlags['C'] = bool(destrd & (1 << 32))
+            elif misc['opcode'] == "SBC":
+                destrd = op1 - op2 + int(self.flags['C']) - 1
+            elif misc['opcode'] == "RSC":
+                destrd = op2 - op1 + int(self.flags['C']) - 1
+            elif misc['opcode'] == "ORR":
+                destrd = op1 | op2
+            elif misc['opcode'] == "MOV":
+                destrd = op1 & ~op2     # Bit clear?
+            elif misc['opcode'] == "MVN":
+                destrd = ~op2
+
+            if destrd == 0:
+                workingFlags['Z'] = True
+            if destrd < 0:
+                workingFlags['N'] = True
+
+            # TODO Flag V
+
+            if misc['setflags']:
+                self.flags = workingFlags
+
+    def nextInstr(self):
+        self.execInstr(self.regs[15].get())
+        self.regs[15].set(self.regs[15].get()+4)
 

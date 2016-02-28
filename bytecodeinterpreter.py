@@ -6,9 +6,10 @@ class BCInterpreter:
         self.bc = bytecode
         self.dbginf = mappingInfo
         self.sim = Simulator(bytecode)
+        self.reset()
 
     def reset(self):
-        pass
+        self.sim.reset()
 
     def setBreakpoint(self, lineno):
         pass
@@ -17,14 +18,20 @@ class BCInterpreter:
         pass
 
     def stepforward(self):
-        pass
+        self.sim.nextInstr()
 
     def stepinto(self):
-        pass
+        self.sim.nextInstr()
 
     def stepout(self):
         pass
 
     def run(self):
         pass
+
+    def getMemory(self):
+        return self.sim.mem.formatMemToDisplay()
+
+    def getRegisters(self):
+        return list(r.get() for r in self.sim.regs)
 

@@ -537,7 +537,7 @@ def BytecodeToInstrInfos(bc):
 
         if imm:
             val = instrInt & 0xFF
-            shift = ("LSR", "imm", ((instrInt >> 8) & 0xF)*2)
+            shift = ("ROR", "imm", ((instrInt >> 8) & 0xF) * 2)       # see 4.5.3 of ARM doc to understand the * 2
         else:
             val = instrInt & 0xF
             if instrInt & (1 << 4):
