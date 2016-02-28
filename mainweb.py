@@ -81,10 +81,11 @@ def process(ws, msg_in):
 
             # TODO: Reset interface
             # Memory View
+            # web interface is 1-indexed
             cols = {"c{}".format(i): "00" for i in range(10)}
             vallist = []
             for i in range(20):
-                vallist.append({"id": i, "values": cols})
+                vallist.append({"id": i+1, "values": cols})
             retval.append(["mem", vallist])
         elif data[0] == 'stepinto':
             interpreters[ws].stepinto()
