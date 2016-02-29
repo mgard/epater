@@ -11,10 +11,10 @@ class BCInterpreter:
     def reset(self):
         self.sim.reset()
 
-    def setBreakpoint(self, lineno):
+    def setBreakpoints(self, lineno):
         pass
 
-    def setBreakpointMem(self, addr):
+    def setBreakpointsMem(self, addr):
         pass
 
     def stepforward(self):
@@ -30,7 +30,7 @@ class BCInterpreter:
         pass
 
     def getMemory(self):
-        return self.sim.mem.formatMemToDisplay()
+        return self.sim.mem.serialize()
 
     def getRegisters(self):
         return list(r.get() for r in self.sim.regs)

@@ -120,6 +120,8 @@
                 <div id="editor">
 SECTION INTVEC
 
+B main
+
 mavariable DC32 0x22, 0x1
 monautrevariable DC32 0xFFEEDDCC, 0x11223344
 
@@ -234,19 +236,9 @@ variablemem DS32 10
         var editableGrid = null;
         $(document).ready(function() {
 
-            editor.session.on("changeScrollTop", function(scroll) {
-                setTimeout(function() {
-                    updateCodeErrors();
-                }, 100);
-            });
-
 			editor.on("guttermousedown", function(e) {
 				var target = e.domEvent.target;
 				if (target.className.indexOf("ace_gutter-cell") == -1)
-					return;
-				/*if (!editor.isFocused())
-					return;*/
-				if (e.clientX > 25 + target.getBoundingClientRect().left)
 					return;
 
 				var row = e.getDocumentPosition().row ;
@@ -263,8 +255,9 @@ variablemem DS32 10
 			})
 
             editor.on("change", function() {
-                removeCodeErrors();
-                $(".ace_content").css("background-color", "#FFF9F9");
+                //removeCodeErrors();
+                if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
+                $(".ace_content").css("background-color", "#FFF6F6");
             });
 
             $("input").change(function () {
