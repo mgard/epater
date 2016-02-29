@@ -26,7 +26,7 @@ class Register:
         self.id = n
         self.val = val
         self.altname = altname
-        self.history = None
+        self.history = []
         self.breakpoint = 0
 
     def get(self):
@@ -37,6 +37,7 @@ class Register:
     def set(self, val):
         if self.breakpoint & 2:
             raise Breakpoint("R{}".format(id))
+        self.history.append(val)
         self.val = val
 
 
@@ -45,13 +46,14 @@ class Memory:
     def __init__(self, memcontent, initval=0):
         self.size = sum(len(b) for b in memcontent)
         self.initval = initval
-        self.history = None
+        self.history = []
         self.startAddr = memcontent['__MEMINFOSTART']
         self.endAddr = memcontent['__MEMINFOEND']
         self.maxAddr = max(self.endAddr.values())
         assert len(self.startAddr) == len(self.endAddr)
 
         self.data = {k:bytearray(memcontent[k]) for k in self.startAddr.keys()}
+        self.initdata = self.data.copy()
 
         # Maps address to an integer 'n'. The integer n allows to determine if the breakpoint should be
         # used or not, in the same way of Unix permissions.
@@ -71,7 +73,7 @@ class Memory:
             return None
         for sec in self.startAddr.keys():
             if self.startAddr[sec] <= addr < self.endAddr[sec] - (size-1):
-                return (sec, addr - self.startAddr[sec])
+                return sec, addr - self.startAddr[sec]
         return None
 
     def get(self, addr, size=4):
@@ -90,6 +92,7 @@ class Memory:
         if self.breakpoints[addr] & 2:
             raise Breakpoint(addr)
         sec, offset = resolvedAddr
+        self.history.append((sec, offset, size, val))
         self.data[sec][offset:offset+size] = val
 
     def serialize(self):
@@ -261,9 +264,13 @@ class Simulator:
             elif misc['opcode'] in ("ADD", "CMN"):
                 res = op1 + op2
                 workingFlags['C'] = bool(destrd & (1 << 32))
+                if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
+                    workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
             elif misc['opcode'] == "ADC":
                 res = op1 + op2 + int(self.flags['C'])
                 workingFlags['C'] = bool(destrd & (1 << 32))
+                if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
+                    workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
             elif misc['opcode'] == "SBC":
                 res = op1 - op2 + int(self.flags['C']) - 1
             elif misc['opcode'] == "RSC":
@@ -281,8 +288,6 @@ class Simulator:
                 workingFlags['Z'] = True
             if res < 0:
                 workingFlags['N'] = True
-
-            # TODO Flag V
 
             if misc['setflags']:
                 self.flags = workingFlags
