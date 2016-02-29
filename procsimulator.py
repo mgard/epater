@@ -1,4 +1,4 @@
-import operator
+import struct
 from enum import Enum
 from collections import defaultdict
 
@@ -177,7 +177,7 @@ class Simulator:
         in which case it is not an error but rather a Breakpoint reached.
         """
         # Retrieve instruction from memory
-        bc = bytes(self.mem.get(addr))[::-1]    # Memory is little endian, so we convert it back to a more usable form
+        bc = bytes(self.mem.get(addr))    # Memory is little endian, so we convert it back to a more usable form
 
         # Decode it
         t, regs, cond, misc = BytecodeToInstrInfos(bc)
@@ -225,8 +225,8 @@ class Simulator:
 
             realAddr = addr if misc['pre'] else baseval
             if misc['mode'] == 'LDR':
-                res = self.mem.get(realAddr, size=1 if misc['byte'] else 4)
-                self.regs[misc['rd']].set(int(res.hex(), 16))
+                res = struct.unpack("<I", self.mem.get(realAddr, size=1 if misc['byte'] else 4))[0]
+                self.regs[misc['rd']].set(res)
             else:       # STR
                 self.mem.set(realAddr, self.regs[misc['rd']].get(), size=1 if misc['byte'] else 4)
 

@@ -274,9 +274,9 @@ def MemInstructionToBytecode(asmtokens):
             if tok.value.direction > 0:
                 b |= 1 << 23
             if tok.value.offsettype == "imm":
-                b |= 1 << 25
                 b |= tok.value.offset
             elif tok.value.offsettype == "reg":
+                b |= 1 << 25
                 b |= tok.value.offset
                 b |= shiftMapping[tok.value.shift.type] << 5
                 b |= tok.value.shift.count << 7
@@ -456,7 +456,7 @@ def BytecodeToInstrInfos(bc):
     will, amongst other things, contain the opcode of the request operation.
     """
     assert len(bc) == 4 # 32 bits
-    instrInt = int(bc.hex(), 16)      # It's easier to work with integer objects when it comes to bit manipulation
+    instrInt = struct.unpack("<I", bc)[0]      # It's easier to work with integer objects when it comes to bit manipulation
 
     affectedRegs = ()
     condition = conditionMappingR[instrInt >> 28]
