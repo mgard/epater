@@ -30,7 +30,7 @@ class BCInterpreter:
         pass
 
     def getMemory(self):
-        return self.sim.mem.formatMemToDisplay()
+        return self.sim.mem.serialize()
 
     def getRegisters(self):
         return list(r.get() for r in self.sim.regs)

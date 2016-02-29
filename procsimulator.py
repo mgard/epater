@@ -1,3 +1,4 @@
+import operator
 from enum import Enum
 from collections import defaultdict
 
@@ -90,8 +91,21 @@ class Memory:
         sec, offset = resolvedAddr
         self.data[sec][offset:offset+size] = val
 
-    def formatMemToDisplay(self):
-        pass
+    def serialize(self):
+        """
+        Serialize the memory, useful to be displayed.
+        """
+        sorted_mem = sorted(self.startAddr.items(), key=operator.itemgetter(1))
+        ret_val = bytearray()
+        for sec, start in sorted_mem:
+            padding_size = start - len(ret_val)
+            ret_val += bytearray('\0' * padding_size, 'utf-8')
+
+            ret_val += self.data[sec]
+
+            padding_size = self.endAddr[sec] - start - len(self.data[sec])
+            ret_val += bytearray('\0' * padding_size, 'utf-8')
+        return ret_val
 
 
 class SimState(Enum):
