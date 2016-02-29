@@ -127,7 +127,7 @@ dataOpcodeMapping = {'AND': 0,
 
 dataOpcodeMappingR = {v: k for k,v in dataOpcodeMapping.items()}
 
-def immediateToBytecode(imm, tryinverse=True):
+def immediateToBytecode(imm):
     """
     The immediate operand rotate field is a 4 bit unsigned integer which specifies a shift
     operation on the 8 bit immediate value. This value is zero extended to 32 bits, and then
@@ -137,27 +137,63 @@ def immediateToBytecode(imm, tryinverse=True):
     """
     if imm == 0:
         return 0, 0, False
+    if imm < 0:
+        val, rot, _ = immediateToBytecode(~imm)
+        return val, rot, True
 
     mostSignificantOne = int(math.log2(imm))
+    leastSignificantOne = int(math.log2((1 + (imm ^ (imm-1))) >> 1))
+    #print(mostSignificantOne, leastSignificantOne)
     if mostSignificantOne < 8:
         # Are we already able to fit the value in the immediate field?
         return imm & 0xFF, 0, False
-    elif mostSignificantOne % 2 == 0 and imm >> (mostSignificantOne-8) == (imm >> (mostSignificantOne-8)) & 0xFF:
+    elif mostSignificantOne - leastSignificantOne < 8:
         # Does it fit in 8 bits?
-        return imm >> (mostSignificantOne-8), (mostSignificantOne-8) // 2, False
-    elif mostSignificantOne % 2 == 1 and imm >> (mostSignificantOne-9) == (imm >> (mostSignificantOne-9)) & 0xFF:
-        return imm >> (mostSignificantOne-9), (mostSignificantOne-9) // 2, False
-    elif tryinverse:
-        # Lets try to fit the inverse of the requested value
-        invimm = ~imm
-        res = immediateToBytecode(invimm, False)
-        if res is None:
-            return None
+        # If so, we want to put the MSB to the utmost left possible in 8 bits
+        # Remember that we can only do an EVEN number of right rotations
+        if mostSignificantOne % 2 == 0:
+            val = imm >> (mostSignificantOne - 6)
+            rot = (32 - (mostSignificantOne - 6)) // 2
         else:
-            return res[0], res[1], True
+            val = imm >> (mostSignificantOne - 7)
+            rot = (32 - (mostSignificantOne - 7)) // 2
+        return val & 0xFF, rot, False
     else:
         # It is impossible to generate the requested value
         return None
+
+# TEST CODE
+def _immShiftTestCases():
+    # Asserted with IAR
+    tcases = [(0, 0x000),
+              (1, 0x001),
+              (255, 0x0ff),
+              (256, 0xf40),
+              (260, 0xf41),
+              (1024, 0xe40),
+              (4096, 0xd40),
+              (8192, 0xd80),
+              (65536, 0xb40),
+              (0x80000000, 0x480)]
+    negtcases = [(-1, 0x000),
+                 (-2, 0x001),
+                 (-255, 0x0fe)]
+
+    for case in tcases:
+        print("Testing case {}... ".format(case[0]), end="")
+        val, rot, inv = immediateToBytecode(case[0])
+        assert 0 <= val <= 255, "Echec cas {} (pas entre 0 et 255) : {}".format(case[0], val)
+        cmpval = val & 0xFF | ((rot & 0xF) << 8)
+        assert case[1] == cmpval, "Echec cas {} (invalide) : {} vs {}".format(case[0], hex(cmpval), hex(case[1]))
+        print("OK")
+    for case in negtcases:
+        print("Testing case {}... ".format(case[0]), end="")
+        val, rot, inv = immediateToBytecode(case[0])
+        assert 0 <= val <= 255, "Echec cas {} (pas entre 0 et 255) : {}".format(case[0], val)
+        cmpval = val & 0xFF | ((rot & 0xF) << 8)
+        assert case[1] == cmpval, "Echec cas {} (invalide) : {} vs {}".format(case[0], hex(cmpval), hex(case[1]))
+        print("OK")
+# END TEST CODE
 
 
 def checkTokensCount(tokensDict):
@@ -217,7 +253,7 @@ def DataInstructionToBytecode(asmtokens):
         b |= conditionMapping['AL'] << 28
 
     checkTokensCount(dictSeen)
-    return struct.pack("=I", b)
+    return struct.pack("<I", b)
 
 
 def MemInstructionToBytecode(asmtokens):
@@ -266,7 +302,7 @@ def MemInstructionToBytecode(asmtokens):
         b |= conditionMapping['AL'] << 28
 
     checkTokensCount(dictSeen)
-    return struct.pack("=I", b)
+    return struct.pack("<I", b)
 
 
 def MultipleMemInstructionToBytecode(asmtokens):
@@ -300,7 +336,7 @@ def MultipleMemInstructionToBytecode(asmtokens):
         b |= conditionMapping['AL'] << 28
 
     checkTokensCount(dictSeen)
-    return struct.pack("=I", b)
+    return struct.pack("<I", b)
 
 def BranchInstructionToBytecode(asmtokens):
     mnemonic = asmtokens[0].value
@@ -332,7 +368,7 @@ def BranchInstructionToBytecode(asmtokens):
         b += conditionMapping['AL'] << 28
 
     checkTokensCount(dictSeen)
-    return struct.pack("=I", b)
+    return struct.pack("<I", b)
 
 
 def MultiplyInstructionToBytecode(asmtokens):
@@ -364,7 +400,7 @@ def MultiplyInstructionToBytecode(asmtokens):
         b |= conditionMapping['AL'] << 28
 
     checkTokensCount(dictSeen)
-    return struct.pack("=I", b)
+    return struct.pack("<I", b)
 
 
 def SwapInstructionToBytecode(asmtokens):
@@ -382,12 +418,13 @@ def DeclareInstructionToBytecode(asmtokens):
     info = asmtokens[0].value
 
     formatletter = "B" if info.nbits == 8 else "H" if info.nbits == 16 else "I" # 32
-    return struct.pack("="+formatletter*info.dim, *([0]*info.dim if len(info.vals) == 0 else info.vals))
+    return struct.pack("<"+formatletter*info.dim, *([0]*info.dim if len(info.vals) == 0 else info.vals))
 
 
 
 def InstructionToBytecode(asmtokens):
     assert asmtokens[0].type in ('INSTR', 'DECLARATION')
+    print(asmtokens)
     tp = globalInstrInfo[asmtokens[0].value if asmtokens[0].type == 'INSTR' else asmtokens[0].value.type]
     return InstrType.getEncodeFunction(tp)(asmtokens)
 
@@ -420,7 +457,7 @@ def BytecodeToInstrInfos(bc):
     will, amongst other things, contain the opcode of the request operation.
     """
     assert len(bc) == 4 # 32 bits
-    instrInt = int(bc.hex, 16)      # It's easier to work with integer objects when it comes to bit manipulation
+    instrInt = int(bc.hex(), 16)      # It's easier to work with integer objects when it comes to bit manipulation
 
     affectedRegs = ()
     condition = conditionMappingR[instrInt >> 28]
@@ -549,7 +586,7 @@ def BytecodeToInstrInfos(bc):
         if not 7 < opcodeNum < 12:
             affectedRegs = (rd,)
 
-        misc = {'opcode': opcode,
+        miscInfo = {'opcode': opcode,
                 'rd': rd,
                 'setflags': flags,
                 'imm': imm,

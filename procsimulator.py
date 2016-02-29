@@ -176,50 +176,58 @@ class Simulator:
             # Get second operand value
             if misc['imm']:
                 op2 = misc['op2'][0]
+                if misc['op2'][1][2] != 0:
+                    _, op2 = self._shiftVal(op2, misc['op2'][1])
             else:
                 op2 = self.regs[misc['op2'][0]].get()
-            carry, op2 = self._shiftVal(op2, misc['op2'][1])
-            workingFlags['C'] = bool(carry)
+                carry, op2 = self._shiftVal(op2, misc['op2'][1])
+                workingFlags['C'] = bool(carry)
 
             # Get destination register and write the result
             destrd = misc['rd']
 
             if misc['opcode'] in ("AND", "TST"):
-                destrd = op1 & op2
+                res = op1 & op2
             elif misc['opcode'] in ("EOR", "TEQ"):
-                destrd = op1 ^ op2
+                res = op1 ^ op2
             elif misc['opcode'] in ("SUB", "CMP"):
-                destrd = op1 - op2
+                res = op1 - op2
             elif misc['opcode'] == "RSB":
-                destrd = op2 - op1
+                res = op2 - op1
             elif misc['opcode'] in ("ADD", "CMN"):
-                destrd = op1 + op2
+                res = op1 + op2
                 workingFlags['C'] = bool(destrd & (1 << 32))
             elif misc['opcode'] == "ADC":
-                destrd = op1 + op2 + int(self.flags['C'])
+                res = op1 + op2 + int(self.flags['C'])
                 workingFlags['C'] = bool(destrd & (1 << 32))
             elif misc['opcode'] == "SBC":
-                destrd = op1 - op2 + int(self.flags['C']) - 1
+                res = op1 - op2 + int(self.flags['C']) - 1
             elif misc['opcode'] == "RSC":
-                destrd = op2 - op1 + int(self.flags['C']) - 1
+                res = op2 - op1 + int(self.flags['C']) - 1
             elif misc['opcode'] == "ORR":
-                destrd = op1 | op2
+                res = op1 | op2
             elif misc['opcode'] == "MOV":
-                destrd = op1 & ~op2     # Bit clear?
+                res = op2
+            elif misc['opcode'] == "BIC":
+                res = op1 & ~op2     # Bit clear?
             elif misc['opcode'] == "MVN":
-                destrd = ~op2
+                res = ~op2
 
-            if destrd == 0:
+            if res == 0:
                 workingFlags['Z'] = True
-            if destrd < 0:
+            if res < 0:
                 workingFlags['N'] = True
 
             # TODO Flag V
 
             if misc['setflags']:
                 self.flags = workingFlags
+            if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
+                # We actually write the result
+                self.regs[destrd].set(res)
 
     def nextInstr(self):
         self.execInstr(self.regs[15].get())
-        self.regs[15].set(self.regs[15].get()+4)
+        self.regs[15].set(self.regs[15].get()+4)        # PC = PC + 4
+
 

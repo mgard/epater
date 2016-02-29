@@ -53,13 +53,15 @@ def parse(code):
 
     # Second pass : assign memory and define labels
     assignedAddr = [-1]*len(parsedCode)
+    addrToLine = defaultdict(list)
     currentAddr, currentSection = -1, None
     labelsAddr = {}
     maxAddrBySection = {"INTVEC": BASE_ADDR_INTVEC, "CODE": BASE_ADDR_CODE, "DATA": BASE_ADDR_DATA}
     for i,pline in enumerate(parsedCode):
+        assignedAddr[i] = currentAddr
+        addrToLine[currentAddr].append(i)
         if len(pline) == 0:
             # We have to keep these empty lines in order to keep track of the line numbers
-            assignedAddr[i] = currentAddr
             continue
         idxToken = 0
 
@@ -87,11 +89,9 @@ def parse(code):
 
         if pline[idxToken].type == "DECLARATION":
             assert currentAddr != -1
-            assignedAddr[i] = currentAddr
             currentAddr += pline[idxToken].value.nbits // 8 * pline[idxToken].value.dim
         elif pline[idxToken].type == "INSTR":
             assert currentAddr != -1
-            assignedAddr[i] = currentAddr
             currentAddr += 4        # Size of an instruction
     maxAddrBySection[currentSection] = currentAddr
 
@@ -132,7 +132,6 @@ def parse(code):
     # We add a special field in the bytecode info to tell the simulator the start address of each section
     bytecode = {'__MEMINFOSTART': {"INTVEC": BASE_ADDR_INTVEC, "CODE": BASE_ADDR_CODE, "DATA": BASE_ADDR_DATA},
                 '__MEMINFOEND': maxAddrBySection}
-    matchBytecodeASM = []
     currentSection = None
     bc = bytes()
     for i,pline in enumerate(parsedCode):
@@ -143,18 +142,15 @@ def parse(code):
         if pline[0].type == "SECTION":
             if currentSection is not None:
                 for val in labelsAddrBySection[currentSection]:
-                    bc += struct.pack("=I", val)[::-1]                  # Convert in little endian
+                    bc += struct.pack("<I", val)
                 bytecode[currentSection] = bc
                 bc = bytes()
             currentSection = pline[0].value
 
         for j,token in enumerate(pline):
             if token.type in ("INSTR", "DECLARATION"):
-                print(pline)
-                tmp = InstructionToBytecode(pline[j:])[::-1]            # Convert in little endian
-                bc += tmp
-                matchBytecodeASM += [i]*len(tmp)
+                bc += InstructionToBytecode(pline[j:])
     bytecode[currentSection] = bc
 
-    return bytecode, matchBytecodeASM
+    return bytecode, addrToLine
 

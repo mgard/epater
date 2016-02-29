@@ -35,3 +35,8 @@ class BCInterpreter:
     def getRegisters(self):
         return list(r.get() for r in self.sim.regs)
 
+    def getCurrentLine(self):
+        pc = self.sim.regs[15].get()
+        assert pc in self.dbginf, "Line outside of linked memory!"
+        return self.dbginf[pc][-1]
+
