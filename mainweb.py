@@ -138,7 +138,7 @@ def process(ws, msg_in):
             pass
         elif data[0] == 'memchange':
             val = bytearray([int(data[2], 16)])
-            interpreters[ws].sim.mem.set(data[1], val)
+            interpreters[ws].sim.mem.set(data[1], val, 1)
             retval.extend(generateUpdate(interpreters[ws]))
         else:
             print("<{}> Unknown message: {}".format(ws, data))

@@ -309,8 +309,7 @@ variablemem DS32 10
              
             editableGrid = new EditableGrid("DemoGridJsData", {
                 modelChanged: function(rowIndex, columnIndex, oldValue, newValue, row) { 
-                     console.log(rowIndex, columnIndex, row, newValue);
-                     var addr = rowIndex*10 +columnIndex;
+                     var addr = rowIndex*10 + columnIndex;
                      ws.send(JSON.stringify(['memchange', addr, newValue]));
                 },
                 enableSort: false,

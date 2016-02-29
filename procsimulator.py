@@ -83,7 +83,7 @@ class Memory:
         return self.data[sec][offset:offset+size]
 
     def set(self, addr, val, size=4):
-        resolvedAddr = self._getRelativeAddr(addr)
+        resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
             raise SimulatorError("Adresse 0x{:X} invalide".format(addr))
         if self.breakpoints[addr] & 2:
