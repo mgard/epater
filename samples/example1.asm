@@ -1,9 +1,9 @@
 SECTION INTVEC
 
 etiquette
+B main
 MOV R1, #0xA
 LDR R7, mavariable
-B main
 
 mavariable DC32 0x22, 0x1
 monautrevariable DC32 0xFFEEDDCC, 0x11223344

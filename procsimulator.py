@@ -209,9 +209,10 @@ class Simulator:
             if misc['L']:       # Link
                 self.regs[14].set(self.regs[15].get()+4)
             if misc['mode'] == 'imm':
-                self.regs[15].set(self.regs[15].get() + misc['offset'])
+                print(misc['offset'])
+                self.regs[15].set(self.regs[15].get() + misc['offset'] - 4)
             else:   # BX
-                self.regs[15].set(self.regs[misc['offset']].get())
+                self.regs[15].set(self.regs[misc['offset']].get() - 4)
 
         elif t == InstrType.memop:
             baseval = self.regs[misc['base']].get()

@@ -110,7 +110,7 @@ def parse(code):
         for j,token in enumerate(pline):
             if token.type == "REFLABEL":
                 addrToReach = labelsAddr[token.value]
-                diff = assignedAddr[i] - addrToReach
+                diff = addrToReach - assignedAddr[i]
                 pline[j] = DummyToken("MEMACCESSPRE",
                                       MemAccessPreInfo(15, "imm", abs(diff), diff // abs(diff), ShiftInfo("LSL", 0)))
             elif token.type == "REFLABELADDR":
@@ -121,7 +121,7 @@ def parse(code):
                     labelsAddrBySection[currentSection].append(labelsAddr[token.value])
                     maxAddrBySection[currentSection] += 4
                 addrToReach = labelsAddrAddr[token.value]
-                diff = assignedAddr[i] - addrToReach
+                diff = addrToReach - assignedAddr[i]
                 pline[j] = DummyToken("MEMACCESSPRE",
                                       MemAccessPreInfo(15, "imm", abs(diff), diff // abs(diff), ShiftInfo("LSL", 0)))
 
