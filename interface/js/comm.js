@@ -9,7 +9,7 @@ ws.onmessage = function (event) {
 
     var element = document.getElementById(obj[0]);
     if (element != null) {
-        element.innerHTML = obj[key];
+        element.innerHTML = obj[1];
     } else if (obj[0] == 'codeerror') {
         // row indices are 0-indexed
         editor.session.setAnnotations([{row: obj[1], text: obj[2], type: "error"}]);
@@ -17,7 +17,10 @@ ws.onmessage = function (event) {
         if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
         if (obj[1] >= 0) {
             aceRange = ace.require('ace/range').Range;
-            editor.session.addMarker(new aceRange(obj[1] - 1, 0, obj[1], 0), "debug_line", "text");
+            debug_marker = editor.session.addMarker(new aceRange(obj[1], 0, obj[1] + 1, 0), "debug_line", "text");
+            // TODO: Ajouter une annotation? Gutter decoration?
+        } else {
+            debug_marker = null;
         }
     } else if (obj[0] == 'mem') {
         editableGrid.load({"data": obj[1]});
