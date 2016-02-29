@@ -183,8 +183,37 @@ class Simulator:
         t, regs, cond, misc = BytecodeToInstrInfos(bc)
         workingFlags = self.flags.copy()
 
+        # Check condition
+        # Warning : here we check if the condition is NOT met, hence we use the
+        # INVERSE of the actual condition
+        # See Table 4-2 of ARM7TDMI data sheet as reference of these conditions
+        if cond == "EQ" and not self.flags['Z'] or \
+            cond == "NE" and self.flags['Z'] or \
+            cond == "CS" and not self.flags['C'] or \
+            cond == "CC" and self.flags['C'] or \
+            cond == "MI" and not self.flags['N'] or \
+            cond == "PI" and self.flags['N'] or \
+            cond == "VS" and not self.flags['V'] or \
+            cond == "VC" and self.flags['V'] or \
+            cond == "HI" and (not self.flags['C'] or self.flags['Z']) or \
+            cond == "LS" and (self.flags['C'] and not self.flags['Z']) or \
+            cond == "GE" and not self.flags['V'] == self.flags['N'] or \
+            cond == "LT" and self.flags['V'] == self.flags['N'] or \
+            cond == "GT" and (self.flags['Z'] or not self.flags['V'] == self.flags['N']) or \
+            cond == "LE" and (not self.flags['Z'] and self.flags['V'] == self.flags['N']):
+            # Condition not met, return
+            return
+
         # Execute it
-        if t == InstrType.dataop:
+        if t == InstrType.branch:
+            if misc['L']:       # Link
+                self.regs[14].set(self.regs[15].get()+4)
+            if misc['mode'] == 'imm':
+                self.regs[15].set(self.regs[15].get() + misc['offset'])
+            else:   # BX
+                self.regs[15].set(self.regs[misc['offset']].get())
+
+        elif t == InstrType.dataop:
             # Get first operand value
             op1 = self.regs[misc['rn']].get()
             # Get second operand value
