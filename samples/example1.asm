@@ -1,5 +1,8 @@
 SECTION INTVEC
 
+MOV R1, #0xA
+B main
+
 mavariable DC32 0x22, 0x1
 monautrevariable DC32 0xFFEEDDCC, 0x11223344
 
