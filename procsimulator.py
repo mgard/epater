@@ -1,3 +1,4 @@
+import operator
 import struct
 from enum import Enum
 from collections import defaultdict
