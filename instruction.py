@@ -358,7 +358,7 @@ def BranchInstructionToBytecode(asmtokens):
             # When we find a label in the previous parsing stage,
             # we replace it with a MEMACCESSPRE token, even if this
             # token cannot appear in actual code
-            b |= tok.value.offset
+            b |= tok.value.offset if tok.value.direction >= 0 else (~tok.value.offset + 1) & 0xFFFFFF
         elif tok.type == 'CONSTANT':
             b |= tok.value
         dictSeen[tok.type] += 1
@@ -474,9 +474,12 @@ def BytecodeToInstrInfos(bc):
         setlr = bool(instrInt & (1 << 24))
         if setlr:
             affectedRegs = (14,)
+        offset = instrInt & 0xFFFFFF
+        if offset & 0x800000:   # Negative offset
+            offset = -2**24 + offset
         miscInfo = {'mode': 'imm',
                     'L': setlr,
-                    'offset': instrInt & 0xFFFFFF}
+                    'offset': offset}
 
     elif checkMask(instrInt, (27,), (26, 25)):       # Block data transfer
         category = InstrType.multiplememop
