@@ -108,3 +108,12 @@ img {
     border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1);
     border-radius: 5px;
 }
+
+#registers tr:nth-child(odd) td {
+    background-color: #f9f9f9;
+}
+#registers th, #registers td {
+    text-align: right;
+    font-family: "Lucida Console", Monaco, monospace;
+    font-size: 0.8em;
+}
