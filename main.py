@@ -15,11 +15,15 @@ if __name__ == '__main__':
         bytecode, bcinfos = ASMparser(f)
 
     interpreter = BCInterpreter(bytecode, bcinfos)
-    print(interpreter.getRegisters())
-    print(interpreter.getCurrentLine())
+    print(interpreter.getCurrentLine(), interpreter.getRegisters())
     interpreter.stepforward()
-    print(interpreter.getRegisters())
-    print(interpreter.getCurrentLine())
+    print(interpreter.getCurrentLine(), interpreter.getRegisters())
+    interpreter.stepforward()
+    print(interpreter.getCurrentLine(), interpreter.getRegisters())
+    interpreter.stepforward()
+    print(interpreter.getCurrentLine(), interpreter.getRegisters())
+    interpreter.stepforward()
+    print(interpreter.getCurrentLine(), interpreter.getRegisters())
 
 
 

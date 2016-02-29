@@ -126,7 +126,7 @@ def t_SECTION(t):
     return t
 
 def t_REGISTER(t):
-    r'(R[0-9]{1})|(R1[0-5]{1})|SP|LR|PC'
+    r'(R1[0-5]{1}|R[0-9]{1})|SP|LR|PC'
     t.value = int(t.value[1:]) if t.value[0] == "R" else ["SP","LR","PC"].index(t.value)+13
     return t
 
@@ -195,12 +195,12 @@ def t_REFLABELADDR(t):
     t.value = t.value[1:]
     return t
 
-def t_REFLABEL(t):
-    r'(?<=,)\s*\w+'
+def t_LABEL(t):
+    r'^\s*\w+'
     t.value = t.value.strip()
     return t
 
-def t_LABEL(t):
+def t_REFLABEL(t):
     r'\s*\w+'
     t.value = t.value.strip()
     return t

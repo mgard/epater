@@ -143,7 +143,6 @@ def immediateToBytecode(imm):
 
     mostSignificantOne = int(math.log2(imm))
     leastSignificantOne = int(math.log2((1 + (imm ^ (imm-1))) >> 1))
-    #print(mostSignificantOne, leastSignificantOne)
     if mostSignificantOne < 8:
         # Are we already able to fit the value in the immediate field?
         return imm & 0xFF, 0, False
@@ -424,7 +423,7 @@ def DeclareInstructionToBytecode(asmtokens):
 
 def InstructionToBytecode(asmtokens):
     assert asmtokens[0].type in ('INSTR', 'DECLARATION')
-    print(asmtokens)
+    #print(asmtokens)
     tp = globalInstrInfo[asmtokens[0].value if asmtokens[0].type == 'INSTR' else asmtokens[0].value.type]
     return InstrType.getEncodeFunction(tp)(asmtokens)
 

@@ -1,5 +1,6 @@
 SECTION INTVEC
 
+etiquette
 MOV R1, #0xA
 B main
 
@@ -9,6 +10,7 @@ monautrevariable DC32 0xFFEEDDCC, 0x11223344
 SECTION CODE
 
 main
+B etiquette
 B testmov
 
 testmov
