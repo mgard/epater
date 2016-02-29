@@ -199,6 +199,25 @@ class Simulator:
             else:   # BX
                 self.regs[15].set(self.regs[misc['offset']].get())
 
+        elif t == InstrType.memop:
+            baseval = self.regs[misc['base']].get()
+            addr = baseval
+            if misc['imm']:
+                addr += misc['sign'] * misc['offset']
+            else:
+                sval, _ = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
+                addr += misc['sign'] * sval
+
+            realAddr = addr if misc['pre'] else baseval
+            if misc['mode'] == 'LDR':
+                res = self.mem.get(realAddr, size=1 if misc['byte'] else 4)
+                self.regs[misc['rd']].set(int(res.hex(), 16))
+            else:       # STR
+                self.mem.set(realAddr, self.regs[misc['rd']].get(), size=1 if misc['byte'] else 4)
+
+            if misc['writeback']:
+                self.regs[misc['base']].set(addr)
+
         elif t == InstrType.dataop:
             # Get first operand value
             op1 = self.regs[misc['rn']].get()

@@ -2,6 +2,7 @@ SECTION INTVEC
 
 etiquette
 MOV R1, #0xA
+LDR R7, mavariable
 B main
 
 mavariable DC32 0x22, 0x1
