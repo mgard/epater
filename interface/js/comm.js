@@ -1,12 +1,8 @@
 var ws = new WebSocket("ws://127.0.0.1:31415/");
 
-// Code errors
-var codeerrors = {};
-var codetooltips = [];
-
-
-// Breakpoints
+// Breakpoints and markers
 var asm_breakpoints = [];
+var debug_marker = null;
 
 ws.onmessage = function (event) {
 	obj = JSON.parse(event.data);
@@ -15,9 +11,14 @@ ws.onmessage = function (event) {
     if (element != null) {
         element.innerHTML = obj[key];
     } else if (obj[0] == 'codeerror') {
-        // Record code error tooltips
-        codeerrors[obj[1]] = obj[2];
-        updateCodeErrors();
+        // row indices are 0-indexed
+        editor.session.setAnnotations([{row: obj[1], text: obj[2], type: "error"}]);
+    } else if (obj[0] == 'debugline') {
+        if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
+        if (obj[1] >= 0) {
+            aceRange = ace.require('ace/range').Range;
+            editor.session.addMarker(new aceRange(obj[1] - 1, 0, obj[1], 0), "debug_line", "text");
+        }
     } else if (obj[0] == 'mem') {
         editableGrid.load({"data": obj[1]});
         editableGrid.renderGrid("memoryview", "testgrid");
@@ -26,30 +27,8 @@ ws.onmessage = function (event) {
 
 
 function removeCodeErrors() {
-    //$(".ace_gutter-cell").each(function(index){
-    for (var idx in codetooltips) {
-        codetooltips[idx].tooltipster('destroy');
-    };
-    codetooltips = [];
+    editor.session.clearAnnotations();
 }
-
-function updateCodeErrors() {
-    removeCodeErrors();
-
-    // Apply tooltip
-    for (var key in codeerrors) {
-        var el = $(".ace_gutter-cell:contains('" + key + "')").filter(function(index) { return $(this).text() === key; });
-        el.tooltipster({
-            content: codeerrors[key],
-            position: 'left',
-            trigger: 'manual',
-            theme: 'ts-error'
-        });
-        el.tooltipster('show');
-        codetooltips.push(el);
-    }
-}
-
 
 function assemble() {
     ws.send(JSON.stringify(['assemble', editor.getValue()]));

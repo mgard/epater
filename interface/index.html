@@ -234,19 +234,15 @@ variablemem DS32 10
         var editableGrid = null;
         $(document).ready(function() {
 
-            editor.session.on("changeScrollTop", function(scroll) {
+            /*editor.session.on("changeScrollTop", function(scroll) {
                 setTimeout(function() {
                     updateCodeErrors();
                 }, 100);
-            });
+            });*/
 
 			editor.on("guttermousedown", function(e) {
 				var target = e.domEvent.target;
 				if (target.className.indexOf("ace_gutter-cell") == -1)
-					return;
-				/*if (!editor.isFocused())
-					return;*/
-				if (e.clientX > 25 + target.getBoundingClientRect().left)
 					return;
 
 				var row = e.getDocumentPosition().row ;

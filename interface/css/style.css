@@ -75,6 +75,12 @@ img {
 }
 
 .ace_gutter-cell {
-    padding-left: 0 !important;
+    /* padding-left: 0 !important; */
     /* this makes the Breakpoints work. */
+}
+
+.debug_line {
+    position: absolute;
+    background: rgba(100,200,100,0.5);
+    z-index: 20;
 }
