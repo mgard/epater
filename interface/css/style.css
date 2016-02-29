@@ -49,8 +49,8 @@ body {
 }
 
 img {
-    height: 30px;
-    width: auto;
+    /* height: 30px;
+    width: auto;*/
 }
 
 /* This is how you would create a theme called "my-custom-theme": */
@@ -91,4 +91,20 @@ img {
 
 #memoryview td {
     text-align: center;
+}
+
+#assemble {
+    color: #ffffff;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+    background-color: #5bb75b;
+    background-image: -moz-linear-gradient(top, #62c462, #51a351);
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#62c462), to(#51a351));
+    background-image: -webkit-linear-gradient(top, #62c462, #51a351);
+    background-image: -o-linear-gradient(top, #62c462, #51a351);
+    background-image: linear-gradient(to bottom, #62c462, #51a351);
+    background-repeat: repeat-x;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff62c462', endColorstr='#ff51a351', GradientType=0);
+    border-color: #51a351 #51a351 #387038;
+    border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
 }
