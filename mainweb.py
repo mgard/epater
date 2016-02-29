@@ -10,7 +10,7 @@ import websockets
 
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
-from procsimulator import Simulator
+from procsimulator import Simulator, Register
 
 
 interpreters = {}
@@ -20,9 +20,9 @@ connected = set()
 async def producer(data_list):
     # Simuler des interruptions externes
     while True:
-        await asyncio.sleep(0.1)
         if data_list:
             return json.dumps(data_list.pop(0))
+        await asyncio.sleep(0.1)
 
 
 async def handler(websocket, path):
@@ -81,10 +81,11 @@ def generateUpdate(inter):
         # web interface is 1-indexed in this case
         vallist.append({"id": i + 1, "values": cols})
     retval.append(["mem", vallist])
-    
+
     # Registers
     regs = inter.getRegisters()
-    retval.extend(zip(list("r{}".format(i) for i in range(16)), regs))
+    retval.extend(zip(list("r{}".format(i) for i in range(16)),
+                      list("{:08x}".format(i).upper() for i in regs)))
     return retval
 
 
@@ -112,7 +113,7 @@ def process(ws, msg_in):
             retval.append(["debugline", interpreters[ws].getCurrentLine()])
             retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'stepout':
-            pass
+            interpreters[ws].stepout()
             retval.append(["debugline", interpreters[ws].getCurrentLine()])
             retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'reset':
@@ -129,12 +130,18 @@ def process(ws, msg_in):
             # Faire step into à chaque intervalle
             pass
         elif data[0] == 'update':
-            pass
+            if data[1][0].upper() == 'R':
+                reg_id = int(data[1][1:])
+                interpreters[ws].sim.regs[reg_id].set(int(data[2], 16))
             retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'breakpoints':
             pass
+        elif data[0] == 'memchange':
+            val = bytearray([int(data[2], 16)])
+            interpreters[ws].sim.mem.set(data[1], val)
+            retval.extend(generateUpdate(interpreters[ws]))
         else:
-            print("Unknown message: ", data)
+            print("<{}> Unknown message: {}".format(ws, data))
     del msg_in[:]
     return retval
 

@@ -9,7 +9,7 @@ ws.onmessage = function (event) {
 
     var element = document.getElementById(obj[0]);
     if (element != null) {
-        element.innerHTML = obj[1];
+        $(element).val(obj[1]);
     } else if (obj[0] == 'codeerror') {
         // row indices are 0-indexed
         editor.session.setAnnotations([{row: obj[1], text: obj[2], type: "error"}]);
