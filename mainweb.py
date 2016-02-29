@@ -73,16 +73,17 @@ def generateUpdate(inter):
     """
     retval = []
     # Memory View
-    # web interface is 1-indexed
-    cols = {"c{}".format(i): "00" for i in range(10)}
+    mem = inter.getMemory()
+    chunks = [mem[x:x+10] for x in range(0, len(mem), 10)]
     vallist = []
-    for i in range(20):
-        vallist.append({"id": i+1, "values": cols})
+    for i, line in enumerate(chunks):
+        cols = {"c{}".format(j): "{:02x}".format(char).upper() for j, char in enumerate(line)}
+        # web interface is 1-indexed in this case
+        vallist.append({"id": i + 1, "values": cols})
     retval.append(["mem", vallist])
     
     # Registers
     regs = inter.getRegisters()
-    #retval.extend([["r{}".format(i), "0"] for i in range(16)])
     retval.extend(zip(list("r{}".format(i) for i in range(16)), regs))
     return retval
 
@@ -95,23 +96,28 @@ def process(ws, msg_in):
     for msg in msg_in:
         data = json.loads(msg)
         if data[0] == 'assemble':
-            # TODO: Afficher les erreurs à l'écran
+            # TODO: Afficher les erreurs à l'écran "codeerror"
             bytecode, bcinfos = ASMparser(data[1].split("\n"))
             interpreters[ws] = BCInterpreter(bytecode, bcinfos)
 
+            retval.append(["debugline", interpreters[ws].getCurrentLine()])
             retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'stepinto':
             interpreters[ws].stepinto()
+            retval.append(["debugline", interpreters[ws].getCurrentLine()])
             retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'stepforward':
             print("stepforward")
             interpreters[ws].stepforward()
+            retval.append(["debugline", interpreters[ws].getCurrentLine()])
             retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'stepout':
             pass
+            retval.append(["debugline", interpreters[ws].getCurrentLine()])
             retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'reset':
             interpreters[ws].reset()
+            retval.append(["debugline", interpreters[ws].getCurrentLine()])
             retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'breakpointsinst':
             interpreters[ws].setBreakpoints(data[1])
