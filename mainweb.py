@@ -38,7 +38,9 @@ async def handler(websocket, path):
             producer_task = asyncio.ensure_future(producer(to_send))
             done, pending = await asyncio.wait(
                 [listener_task, producer_task],
+                #timeout=0.001,
                 return_when=asyncio.FIRST_COMPLETED)
+            print(done, pending)
 
             if listener_task in done:
                 try:
@@ -47,6 +49,11 @@ async def handler(websocket, path):
                     break
                 if message:
                     received.append(message)
+
+                # TODO: Try là-dessus?
+                data = process(websocket, received)
+                if data:
+                    to_send.extend(data)
             else:
                 listener_task.cancel()
 
@@ -56,10 +63,14 @@ async def handler(websocket, path):
             else:
                 producer_task.cancel()
 
-            # TODO: Try là-dessus?
-            data = process(websocket, received)
-            if data:
-                to_send.extend(data)
+            # Continue executions of "run", "step out" and "step forward"1
+            if not done:
+                for ws, interp in interpreters.items():
+                    if not interp.shouldStop:
+                        interp.step()
+                        print("RUNNING!")
+                        to_send.extend(updateDisplay(interp))
+
     finally:
         if websocket in interpreters:
             del interpreters[websocket]
@@ -83,9 +94,20 @@ def generateUpdate(inter):
     retval.append(["mem", vallist])
 
     # Registers
-    regs = inter.getRegisters()
-    retval.extend(zip(list("r{}".format(i) for i in range(16)),
-                      list("{:08x}".format(i).upper() for i in regs)))
+    retval.extend(tuple({k.lower(): "{:08x}".format(v) for k,v in inter.getRegisters().items()}.items()))
+    retval.extend(tuple({k.lower(): "{}".format(v) for k,v in inter.getFlags().items()}.items()))
+    print(retval)
+    return retval
+
+
+def updateDisplay(interp, force_all=False):
+    # TODO: Update only required (MAG a dit que ca serait simple)
+    force_all = True # TODO: TEMPORAIRE
+    if force_all:
+        retval = [["debugline", interp.getCurrentLine()],]
+        retval.extend(generateUpdate(interp))
+    else:
+        retval = interp.getChanges()
     return retval
 
 
@@ -93,49 +115,43 @@ def process(ws, msg_in):
     """
     Output: List of messages to send.
     """
-    retval = []
+    force_update_all = False
     for msg in msg_in:
         data = json.loads(msg)
         if data[0] == 'assemble':
             # TODO: Afficher les erreurs à l'écran "codeerror"
             bytecode, bcinfos = ASMparser(data[1].split("\n"))
             interpreters[ws] = BCInterpreter(bytecode, bcinfos)
-
-            retval.append(["debugline", interpreters[ws].getCurrentLine()])
-            retval.extend(generateUpdate(interpreters[ws]))
+            force_update_all = True
         elif data[0] == 'stepinto':
-            interpreters[ws].stepinto()
-            retval.append(["debugline", interpreters[ws].getCurrentLine()])
-            retval.extend(generateUpdate(interpreters[ws]))
+            interpreters[ws].step()
         elif data[0] == 'stepforward':
-            print("stepforward")
-            interpreters[ws].stepforward()
-            retval.append(["debugline", interpreters[ws].getCurrentLine()])
-            retval.extend(generateUpdate(interpreters[ws]))
+            interpreters[ws].step('forward')
         elif data[0] == 'stepout':
-            interpreters[ws].stepout()
-            retval.append(["debugline", interpreters[ws].getCurrentLine()])
-            retval.extend(generateUpdate(interpreters[ws]))
+            interpreters[ws].step('out')
+        elif data[0] == 'run':
+            interpreters[ws].step(data[1])
         elif data[0] == 'reset':
             interpreters[ws].reset()
-            retval.append(["debugline", interpreters[ws].getCurrentLine()])
-            retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'breakpointsinst':
-            interpreters[ws].setBreakpoints(data[1])
+            interpreters[ws].setBreakpointInstr(data[1])
         elif data[0] == 'breakpointsmem':
-            interpreters[ws].setBreakpointsMem(data[1])
-        elif data[0] == 'run':
-            pass
-        elif data[0] == 'animate':
-            # Faire step into à chaque intervalle
-            pass
+            # addr, mode [r,w,rw]
+            interpreters[ws].setBreakpointMem(data[1], data[2])
+        elif data[0] == 'breakpointsregister':
+            # reg name, mode [r,w,rw]
+            interpreters[ws].setBreakpointRegister(data[1], data[2])
         elif data[0] == 'update':
             if data[1][0].upper() == 'R':
                 reg_id = int(data[1][1:])
-                interpreters[ws].sim.regs[reg_id].set(int(data[2], 16))
+                interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
+            elif data[1].upper() in ('N', 'Z', 'C', 'V'):
+                interpreters[ws].setFlags({data[1]: int(data[2], 16)})
+            elif data[1].upper() == 'INTERRUPT_CYCLES':
+                pass
+            elif data[1].upper() == 'INTERRUPT_ID':
+                pass
             retval.extend(generateUpdate(interpreters[ws]))
-        elif data[0] == 'breakpoints':
-            pass
         elif data[0] == 'memchange':
             val = bytearray([int(data[2], 16)])
             interpreters[ws].sim.mem.set(data[1], val, 1)
@@ -143,7 +159,9 @@ def process(ws, msg_in):
         else:
             print("<{}> Unknown message: {}".format(ws, data))
     del msg_in[:]
-    return retval
+    if ws in interpreters:
+        return updateDisplay(interpreters[ws], force_update_all)
+    return []
 
 
 if __name__ == '__main__':

@@ -29,11 +29,12 @@
                 <input id="hex" type="radio" name="representation" value="hex" onclick="changeBase(16);"/> hex <br> -->
                 <br>
                 <b>Registers View</b> <br>
-                >> <i id="gp">General Purpose</i>
+                >> <i id="gp">Registre G&eacute;n&eacute;raux</i>
                 <table id="registers">
                     <tr>
                         <td>r0</td>
                         <td><input class="regVal" id="r0" type="text" name="r0"/></td>
+                        <td><input type="checkbox" name="r0_r" value="1"/></td>
                     </tr>
                     <tr>
                         <td>r1</td>
@@ -96,10 +97,10 @@
                         <td><input class="regVal" id="r15" type="text" name="r15"/></td>
                     </tr>
                 </table>
-                <div>>> <i>Current Program Status</i></div>
+                <div>>> <i>&Eacute;tat courant</i></div>
                 <table>
                     <tr>
-                        <td>Negative (N)</td>
+                        <td>Negatif (N)</td>
                         <td><input class="regVal" id="n" type="text" name="n"/></td>
                     </tr>
                     <tr>
@@ -107,14 +108,19 @@
                         <td><input class="regVal" id="z" type="text" name="z"/></td>
                     </tr>
                     <tr>
-                        <td>Carry (C)</td>
+                        <td>Emprunt (C)</td>
                         <td><input class="regVal" id="c" type="text" name="c"/></td>
                     </tr>
                     <tr>
-                        <td>Overflow (V)</td>
+                        <td>D&eacute;passement (V)</td>
                         <td><input class="regVal" id="v" type="text" name="v"/></td>
                     </tr>
                 </table>
+                <div>>> <i>Interruptions</i></div>
+                <input type="checkbox" name="interrupt_active" value="activate"/>Activate<br/>
+                <input class="regVal" id="interrupt_id" type="text" name="interrupt_id"/>&nbsp;num&eacute;ro<br/>
+                <input class="regVal" id="interrupt_cycles" type="text" name="interrupt_cycles"/>&nbsp;cycles<br/>
+                <input class="regVal" id="interrupt_cycles_first" type="text" name="interrupt_cycles_first"/>&nbsp;cycles (first)
             </td>
             <td id="editorPanel">
                 <div id="editor">
@@ -205,8 +211,6 @@ variablemem DS32 10
                 <div id="memoryview"></div>
                 D&eacute;but:
                 <div id="paginator"></div>
-                <hr/>
-                <b>Interruptions</b>
                 <hr/>
                 <div>
                     <button onclick="assemble()" id="assemble">Assemble</button><br/><br/>

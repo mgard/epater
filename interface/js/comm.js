@@ -41,6 +41,10 @@ function assemble() {
     $(".ace_content").css("background-color", "#FFF");
 }
 
+function simulate() {
+    ws.send(JSON.stringify(['run']));
+}
+
 function sendBreakpoints() {
     ws.send(JSON.stringify(['breakpointsinst', asm_breakpoints]));
 }

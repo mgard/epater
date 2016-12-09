@@ -37,15 +37,19 @@ class Register:
         self.history = []
         self.breakpoint = 0
 
+    @property
+    def name(self):
+        return "R{}".format(self.id)
+
     def get(self, mayTriggerBkpt=True):
         if self.breakpoint & 4:
-            raise Breakpoint("R{}".format(self.id))
+            raise Breakpoint(self.name)
         return self.val
 
     def set(self, val, mayTriggerBkpt=True):
         val = wrapAroundUint32(val)
         if mayTriggerBkpt and self.breakpoint & 2:
-            raise Breakpoint("R{}".format(self.id))
+            raise Breakpoint(self.name)
         self.history.append(val)
         self.val = val
 

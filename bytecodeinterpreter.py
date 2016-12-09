@@ -37,14 +37,14 @@ class BCInterpreter:
         return self.sim.mem.serialize()
 
     def getRegisters(self):
-        return {"r{}".format(r): r.get(mayTriggerBkpt=False) for r in self.sim.regs}
+        return {r.name: r.get(mayTriggerBkpt=False) for r in self.sim.regs}
 
     def setRegisters(self, regsDict):
         for r,v in regsDict:
             self.sim.regs[r].set(v, mayTriggerBkpt=False)
 
     def getFlags(self):
-        return {"r{}".format(r): r.get(mayTriggerBkpt=False) for r in self.sim.regs}
+        return {k: v.get(mayTriggerBkpt=False) for k,v in self.sim.flags.items()}
 
     def setFlags(self, flagsDict):
         for f,v in flagsDict:
