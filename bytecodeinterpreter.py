@@ -11,23 +11,27 @@ class BCInterpreter:
     def reset(self):
         self.sim.reset()
 
-    def setBreakpoints(self, lineno):
+    def setBreakpointInstr(self, lineno):
         pass
 
-    def setBreakpointsMem(self, addr):
+    def setBreakpointMem(self, addr, mode):
+        # Mode = 'r' | 'w' | 'rw'
         pass
 
-    def stepforward(self):
+    def setBreakpointRegister(self, reg, mode):
+        # Mode = 'r' | 'w' | 'rw'
+        pass
+
+    @property
+    def shouldStop(self):
+        # TODO : add breakpoint handling
+        return self.sim.isStepDone()
+
+    def step(self, stepMode="into"):
+        # stepMode= "into" | "forward" | "out"
+        if stepMode != "into":
+            self.sim.setStepCondition(stepMode)
         self.sim.nextInstr()
-
-    def stepinto(self):
-        self.sim.nextInstr()
-
-    def stepout(self):
-        pass
-
-    def run(self):
-        pass
 
     def getMemory(self):
         return self.sim.mem.serialize()
@@ -39,4 +43,9 @@ class BCInterpreter:
         pc = self.sim.regs[15].get()
         assert pc in self.dbginf, "Line outside of linked memory!"
         return self.dbginf[pc][-1]
+
+    def getProcessorState(self):
+        r = []
+
+        return r
 

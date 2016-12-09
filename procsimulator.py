@@ -31,13 +31,31 @@ class Register:
 
     def get(self):
         if self.breakpoint & 4:
-            raise Breakpoint("R{}".format(id))
+            raise Breakpoint("R{}".format(self.id))
         return self.val
 
     def set(self, val):
         if self.breakpoint & 2:
-            raise Breakpoint("R{}".format(id))
+            raise Breakpoint("R{}".format(self.id))
         self.history.append(val)
+        self.val = val
+
+
+class Flag:
+
+    def __init__(self, name):
+        self.name = name
+        self.val = False
+        self.breakpoint = 0
+
+    def __bool__(self):
+        if self.breakpoint & 4:
+            raise Breakpoint(self.name)
+        return self.val
+
+    def set(self, val):
+        if self.breakpoint & 2:
+            raise Breakpoint(self.name)
         self.val = val
 
 
@@ -59,6 +77,7 @@ class Memory:
         # used or not, in the same way of Unix permissions.
         # If n & 4, then it is active for each read operation
         # If n & 2, then it is active for each write operation
+        # If n & 1, then it is active for each exec operation (namely, an instruction load)
         self.breakpoints = defaultdict(int)
 
     def _getRelativeAddr(self, addr, size):
@@ -76,11 +95,11 @@ class Memory:
                 return sec, addr - self.startAddr[sec]
         return None
 
-    def get(self, addr, size=4):
+    def get(self, addr, size=4, execMode=False):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
             raise SimulatorError("Adresse 0x{:X} invalide".format(addr))
-        if self.breakpoints[addr] & 4:
+        if (execMode and self.breakpoints[addr]) & 1 or self.breakpoints[addr] & 4:
             raise Breakpoint(addr)
         sec, offset = resolvedAddr
         return self.data[sec][offset:offset+size]
@@ -131,10 +150,13 @@ class Simulator:
         self.regs[14].altname = "LR"
         self.regs[15].altname = "PC"
 
-        self.flags = {'Z': False,
-                      'V': False,
-                      'C': False,
-                      'N': False}
+        self.stepMode = None
+        self.stepCondition = 0
+
+        self.flags = {'Z': Flag('Z'),
+                      'V': Flag('V'),
+                      'C': Flag('C'),
+                      'N': Flag('N')}
 
     def reset(self):
         self.regs[15].set(0)
@@ -146,6 +168,27 @@ class Simulator:
         :return:
         """
         pass
+
+    def isStepDone(self):
+        # TODO : a breakpoint always reset this
+        if self.stepMode == "forward":
+            if self.stepCondition == 2:
+                # The instruction was a function call
+                # Now the step forward becomes a step out
+                self.stepMode = "out"
+                self.stepCondition = 1
+            else:
+                return True
+        if self.stepMode == "out":
+            return self.stepCondition == 0
+        return True
+
+
+    def setStepCondition(self, stepMode):
+        assert stepMode in ("out", "forward")
+        self.stepMode = stepMode
+        self.stepCondition = 1
+
 
     def _shiftVal(self, val, shiftInfo):
         shiftamount = self.regs[shiftInfo[2]].get() & 0xF if shiftInfo[1] == 'reg' else shiftInfo[2]
@@ -181,11 +224,11 @@ class Simulator:
         in which case it is not an error but rather a Breakpoint reached.
         """
         # Retrieve instruction from memory
-        bc = bytes(self.mem.get(addr))    # Memory is little endian, so we convert it back to a more usable form
+        bc = bytes(self.mem.get(addr, execMode=True))    # Memory is little endian, so we convert it back to a more usable form
 
         # Decode it
         t, regs, cond, misc = BytecodeToInstrInfos(bc)
-        workingFlags = self.flags.copy()
+        workingFlags = {}
 
         # Check condition
         # Warning : here we check if the condition is NOT met, hence we use the
@@ -212,11 +255,13 @@ class Simulator:
         if t == InstrType.branch:
             if misc['L']:       # Link
                 self.regs[14].set(self.regs[15].get()+4)
+                self.stepCondition += 1         # We are entering a function, we log it (useful for stepForward and stepOut)
             if misc['mode'] == 'imm':
                 print(misc['offset'])
                 self.regs[15].set(self.regs[15].get() + misc['offset'] - 4)
             else:   # BX
                 self.regs[15].set(self.regs[misc['offset']].get() - 4)
+                self.stepCondition -= 1         # We are returning from a function, we log it (useful for stepForward and stepOut)
 
         elif t == InstrType.memop:
             baseval = self.regs[misc['base']].get()
@@ -283,6 +328,8 @@ class Simulator:
                 res = op1 & ~op2     # Bit clear?
             elif misc['opcode'] == "MVN":
                 res = ~op2
+            else:
+                assert False, "Bad data opcode : " + misc['opcode']
 
             if res == 0:
                 workingFlags['Z'] = True
@@ -290,7 +337,8 @@ class Simulator:
                 workingFlags['N'] = True
 
             if misc['setflags']:
-                self.flags = workingFlags
+                for flag in workingFlags:
+                    self.flags[flag].set(workingFlags[flag])
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
                 # We actually write the result
                 self.regs[destrd].set(res)
