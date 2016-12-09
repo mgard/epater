@@ -37,7 +37,7 @@ class Register:
         self.history = []
         self.breakpoint = 0
 
-    def get(self):
+    def get(self, mayTriggerBkpt=True):
         if self.breakpoint & 4:
             raise Breakpoint("R{}".format(self.id))
         return self.val
@@ -58,12 +58,12 @@ class Flag:
         self.breakpoint = 0
 
     def __bool__(self):
-        if self.breakpoint & 4:
+        return self.get()
+
+    def get(self, mayTriggerBkpt=True):
+        if mayTriggerBkpt and self.breakpoint & 4:
             raise Breakpoint(self.name)
         return self.val
-
-    def get(self):
-        return
 
     def set(self, val, mayTriggerBkpt=True):
         if mayTriggerBkpt and self.breakpoint & 2:
