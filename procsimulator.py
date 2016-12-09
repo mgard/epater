@@ -7,6 +7,14 @@ from settings import getSetting
 from instruction import BytecodeToInstrInfos, InstrType
 
 
+def wrapAroundUint32(val):
+    if val > 2**32-1:
+        val -= 2**32
+    elif val < 0:
+        val += 2**32
+    return val
+
+
 class SimulatorError(Exception):
     def __init__(self, desc):
         self.desc = desc
@@ -34,8 +42,9 @@ class Register:
             raise Breakpoint("R{}".format(self.id))
         return self.val
 
-    def set(self, val):
-        if self.breakpoint & 2:
+    def set(self, val, mayTriggerBkpt=True):
+        val = wrapAroundUint32(val)
+        if mayTriggerBkpt and self.breakpoint & 2:
             raise Breakpoint("R{}".format(self.id))
         self.history.append(val)
         self.val = val
@@ -53,8 +62,11 @@ class Flag:
             raise Breakpoint(self.name)
         return self.val
 
-    def set(self, val):
-        if self.breakpoint & 2:
+    def get(self):
+        return
+
+    def set(self, val, mayTriggerBkpt=True):
+        if mayTriggerBkpt and self.breakpoint & 2:
             raise Breakpoint(self.name)
         self.val = val
 
@@ -99,8 +111,11 @@ class Memory:
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
             raise SimulatorError("Adresse 0x{:X} invalide".format(addr))
-        if (execMode and self.breakpoints[addr]) & 1 or self.breakpoints[addr] & 4:
-            raise Breakpoint(addr)
+
+        for offset in range(size):
+            if (execMode and self.breakpoints[addr+offset]) & 1 or self.breakpoints[addr+offset] & 4:
+                raise Breakpoint(addr+offset)
+
         sec, offset = resolvedAddr
         return self.data[sec][offset:offset+size]
 
@@ -108,9 +123,13 @@ class Memory:
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
             raise SimulatorError("Adresse 0x{:X} invalide".format(addr))
-        if self.breakpoints[addr] & 2:
-            raise Breakpoint(addr)
+
+        for offset in range(size):
+            if self.breakpoints[addr+offset] & 2:
+                raise Breakpoint(addr+offset)
+
         sec, offset = resolvedAddr
+        val = wrapAroundUint32(val)
         self.history.append((sec, offset, size, val))
         self.data[sec][offset:offset+size] = val
 
@@ -300,20 +319,23 @@ class Simulator:
 
             if misc['opcode'] in ("AND", "TST"):
                 res = op1 & op2
+                # TODO : update flags
             elif misc['opcode'] in ("EOR", "TEQ"):
                 res = op1 ^ op2
+                # TODO : update flags
             elif misc['opcode'] in ("SUB", "CMP"):
                 res = op1 - op2
+                # TODO : update flags
             elif misc['opcode'] == "RSB":
                 res = op2 - op1
             elif misc['opcode'] in ("ADD", "CMN"):
                 res = op1 + op2
-                workingFlags['C'] = bool(destrd & (1 << 32))
+                workingFlags['C'] = bool(res & (1 << 32))
                 if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
                     workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
             elif misc['opcode'] == "ADC":
                 res = op1 + op2 + int(self.flags['C'])
-                workingFlags['C'] = bool(destrd & (1 << 32))
+                workingFlags['C'] = bool(res & (1 << 32))
                 if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
                     workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
             elif misc['opcode'] == "SBC":

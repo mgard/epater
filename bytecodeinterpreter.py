@@ -37,7 +37,22 @@ class BCInterpreter:
         return self.sim.mem.serialize()
 
     def getRegisters(self):
-        return list(r.get() for r in self.sim.regs)
+        return {"r{}".format(r): r.get(mayTriggerBkpt=False) for r in self.sim.regs}
+
+    def setRegisters(self, regsDict):
+        for r,v in regsDict:
+            self.sim.regs[r].set(v, mayTriggerBkpt=False)
+
+    def getFlags(self):
+        return {"r{}".format(r): r.get(mayTriggerBkpt=False) for r in self.sim.regs}
+
+    def setFlags(self, flagsDict):
+        for f,v in flagsDict:
+            self.sim.flags[f.upper()].set(v, mayTriggerBkpt=False)
+
+    def getChanges(self):
+        # Return the modified registers, memory, flags
+        return
 
     def getCurrentLine(self):
         pc = self.sim.regs[15].get()
