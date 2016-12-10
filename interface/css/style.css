@@ -102,11 +102,22 @@ img {
 }
 
 #memoryview th {
-    width: 26px;
+    width: 16px;
 }
 
 #memoryview td {
     text-align: center;
+    font-size: 0.9em;
+}
+
+.mem_r {
+    background-color: red;
+}
+.mem_w {
+    background-color: green;
+}
+.mem_rw {
+    background-color: yellow;
 }
 
 #assemble {

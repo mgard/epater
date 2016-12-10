@@ -81,17 +81,14 @@ CellEditor.prototype.edit = function(rowIndex, columnIndex, element, value)
 	};
 
 	// if simultaneous edition is not allowed, we cancel edition when focus is lost
-	if (!this.editablegrid.allowSimultaneousEdition) editorInput.onblur = this.editablegrid.saveOnBlur ?
-			function(event) { 
+	if (!this.editablegrid.allowSimultaneousEdition) editorInput.onblur = this.editablegrid.saveOnBlur ? function(event) { 
 
 		// backup onblur then remove it: it will be restored if editing could not be applied
 		this.onblur_backup = this.onblur; 
 		this.onblur = null;
 		if (this.celleditor.applyEditing(this.element, this.celleditor.getEditorValue(this)) === false) this.onblur = this.onblur_backup; 
 	}
-	:
-		function(event) { 
-
+	: function(event) { 
 		this.onblur = null; 
 		this.celleditor.cancelEditing(this.element); 
 	};
@@ -100,6 +97,10 @@ CellEditor.prototype.edit = function(rowIndex, columnIndex, element, value)
 	this.displayEditor(element, editorInput);
 
 	// give focus to the created editor
+	this.autoFocus(editorInput);
+};
+
+CellEditor.prototype.autoFocus = function(editorInput) {
 	editorInput.focus();
 };
 
@@ -158,6 +159,10 @@ CellEditor.prototype.displayEditor = function(element, editorInput, adjustX, adj
 		var editorzone = _$(this.editablegrid.editorzoneid);
 		while (editorzone.hasChildNodes()) editorzone.removeChild(editorzone.firstChild);
 		editorzone.appendChild(editorInput);
+	}
+
+	if (element && element.isEditing && this.editablegrid.openedCellEditor) {
+		this.editablegrid.openedCellEditor(element.rowIndex, element.columnIndex);
 	}
 };
 
@@ -326,11 +331,13 @@ SelectCellEditor.prototype = new CellEditor();
 SelectCellEditor.prototype.isValueSelected = function(htmlInput, optionValue, value) { return (!optionValue && !value) || (optionValue == value); };
 SelectCellEditor.prototype.getEditor = function(element, value)
 {
+	var self = this;
+
 	// create select list
 	var htmlInput = document.createElement("select");
 
 	// auto adapt dimensions to cell, with a min width
-	if (this.adaptWidth) htmlInput.style.width = Math.max(this.minWidth, this.editablegrid.autoWidth(element)) + 'px'; 
+	if (this.adaptWidth && typeof jQuery.fn.select2 == 'undefined') htmlInput.style.width = Math.max(this.minWidth, this.editablegrid.autoWidth(element)) + 'px'; 
 	if (this.adaptHeight && typeof jQuery.fn.select2 == 'undefined') htmlInput.style.height = Math.max(this.minHeight, this.editablegrid.autoHeight(element)) + 'px';
 
 	// get column option values for this row 
@@ -370,10 +377,11 @@ SelectCellEditor.prototype.getEditor = function(element, value)
 		}
 	}
 
-	// if the current value is not in the list add it to the front
+	// if the current value is not in the list add it to the front, using display value as label
 	if (!valueFound) {
 		var option = document.createElement('option');
-		option.text = value ? value : "";
+		var value_label = this.editablegrid.getDisplayValueAt(element.rowIndex, element.columnIndex);
+		option.text = value_label ? value_label : "";
 		option.value = value ? value : "";
 		// add does not work as expected in IE7 (cf. second arg)
 		try { htmlInput.add(option, htmlInput.options[0]); } catch (e) { htmlInput.add(option); } 
@@ -381,7 +389,7 @@ SelectCellEditor.prototype.getEditor = function(element, value)
 	}
 
 	// when a new value is selected we apply it
-	htmlInput.onchange = function(event) { this.onblur = null; this.celleditor.applyEditing(this.element, this.value); };
+	htmlInput.onchange = function(event) { this.onblur = null; this.celleditor.applyEditing(this.element, self.getEditorValue(this)); };
 
 	return htmlInput; 
 };
@@ -395,17 +403,51 @@ SelectCellEditor.prototype.displayEditor = function(element, htmlInput)
 	// use select2 if loaded
 	if (typeof jQuery.fn.select2 != 'undefined') {
 
+		// select2 v4 calls onblur before onchange, when the value is not changed yet
+		htmlInput.onblur = null;
+		htmlInput.onchange = null;
+
 		// setup and open
-		jQuery(htmlInput).select2({
-			dropdownAutoWidth: true,
-			minimumResultsForSearch: 10
-		}).select2('open');
+		this.select2(element, htmlInput);
+
+		// select2 v4 does not position right in X: do it then open so that drodown is also positioned correctly
+		jQuery(htmlInput).siblings('span.select2-container').css('position', 'absolute').css('left', htmlInput.style.left);
+		jQuery(htmlInput).select2('open');
 
 		// catches select2-blur and select2-close to apply (or cancel) editing
 		jQuery(htmlInput)
-		.on('select2-blur', function() { if (this.onblur) this.onblur(); })
-		.on('select2-close', function() { if (this.onblur) this.onblur(); });
+		.on('select2:close', function() { this.celleditor.applyEditing(this.element, this.celleditor.getEditorValue(this)); }) // v4
+		.on('select2-blur', function() { this.celleditor.applyEditing(this.element, this.celleditor.getEditorValue(this)); }) // v3
+		.on('select2-close', function() { this.celleditor.applyEditing(this.element, this.celleditor.getEditorValue(this)); }); // v3
 	}
+};
+
+SelectCellEditor.prototype.select2 = function(element, htmlInput) 
+{
+	jQuery(htmlInput).select2({
+		dropdownAutoWidth: true,
+		minimumResultsForSearch: 10 // since Select2 v4, escape and arrow keys will not work correctly if no search box present... cf. TODO in autoFocus below
+	});
+};
+
+SelectCellEditor.prototype.autoFocus = function(editorInput)
+{
+	// no autofocus on original select otherwise this select appears when hitting arrow
+	if (typeof jQuery.fn.select2 != 'undefined') {
+
+		// TODO: select2('open') does not give focus as when the user clicks... side effects = escape does not work and arrows scroll the whole body... unless a search box is present!
+		return true;
+	}
+
+	return CellEditor.prototype.autoFocus.call(this, editorInput);
+};
+
+SelectCellEditor.prototype.getEditorValue = function(editorInput)
+{
+	// use select2 if loaded
+	if (typeof jQuery.fn.select2 != 'undefined') return jQuery(editorInput).val();
+
+	return CellEditor.prototype.getEditorValue.call(this, editorInput);
 };
 
 SelectCellEditor.prototype.cancelEditing = function(element) 

@@ -2,6 +2,9 @@ var ws = new WebSocket("ws://127.0.0.1:31415/");
 
 // Breakpoints and markers
 var asm_breakpoints = [];
+var mem_breakpoints_r = [];
+var mem_breakpoints_w = [];
+var mem_breakpoints_rw = [];
 var debug_marker = null;
 
 ws.onmessage = function (event) {
@@ -25,6 +28,12 @@ ws.onmessage = function (event) {
     } else if (obj[0] == 'mem') {
         editableGrid.load({"data": obj[1]});
         editableGrid.renderGrid("memoryview", "testgrid");
+    } else if (obj[0] == 'membp_r') {
+        mem_breakpoints_r = obj[1];
+    } else if (obj[0] == 'membp_w') {
+        mem_breakpoints_w = obj[1];
+    } else if (obj[0] == 'membp_rw') {
+        mem_breakpoints_rw = obj[1];
     }
 };
 

@@ -14,6 +14,14 @@ class BCInterpreter:
     def setBreakpointInstr(self, lineno):
         pass
 
+    def getBreakpointsMem(self):
+        return {
+            'r': [k for k,v in self.sim.mem.breakpoints.items() if (v & 6) == 4],
+            'w': [k for k,v in self.sim.mem.breakpoints.items() if (v & 6) == 2],
+            'rw': [k for k,v in self.sim.mem.breakpoints.items() if (v & 6) == 6],
+            'e': [k for k,v in self.sim.mem.breakpoints.items() if bool(v & 1)],
+        }
+
     def setBreakpointMem(self, addr, mode):
         # Mode = 'r' | 'w' | 'rw'
         pass
