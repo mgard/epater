@@ -31,6 +31,10 @@ body {
     width: 65px;
 }
 
+.flag_btn, .pointer {
+    cursor: pointer;
+}
+
 #content {
     height: 100%;
     margin: 0 auto;

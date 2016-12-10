@@ -28,8 +28,7 @@
                 <input id="dec" type="radio" name="representation" value="dec" onclick="changeBase(10);" checked="checked" /> dec
                 <input id="hex" type="radio" name="representation" value="hex" onclick="changeBase(16);"/> hex <br> -->
                 <br>
-                <b>Registers View</b> <br>
-                >> <i id="gp">Registre G&eacute;n&eacute;raux</i>
+                <h4 id="gp">Registre G&eacute;n&eacute;raux</h4>
                 <table id="registers">
                     <thead>
                     <tr>
@@ -136,26 +135,26 @@
                         <td><input class="reg_w_cb" type="checkbox" name="bp_w_r15" id="bp_w_r15"/></td>
                     </tr>
                 </table>
-                <div>>> <i>&Eacute;tat courant</i></div>
+                <div><h4>&Eacute;tat courant</h4></div>
                 <table>
                     <tr>
                         <td>Negatif (N)</td>
-                        <td><button class="flag_btn" name="n"><input class="regVal" id="n" type="text" name="n" readonly/></button></td>
+                        <td><button class="flag_btn" name="n"><input class="regVal pointer" id="n" type="text" name="n" readonly/></button></td>
                     </tr>
                     <tr>
                         <td>Zero (Z)</td>
-                        <td><button class="flag_btn" name="z"><input class="regVal" id="z" type="text" name="z" readonly/></button></td>
+                        <td><button class="flag_btn" name="z"><input class="regVal pointer" id="z" type="text" name="z" readonly/></button></td>
                     </tr>
                     <tr>
                         <td>Emprunt (C)</td>
-                        <td><button class="flag_btn" name="c"><input class="regVal" id="c" type="text" name="c" readonly/></button></td>
+                        <td><button class="flag_btn" name="c"><input class="regVal pointer" id="c" type="text" name="c" readonly/></button></td>
                     </tr>
                     <tr>
                         <td>D&eacute;passement (V)</td>
-                        <td><button class="flag_btn" name="v"><input class="regVal" id="v" type="text" name="v" readonly/></button></td>
+                        <td><button class="flag_btn" name="v"><input class="regVal pointer" id="v" type="text" name="v" readonly/></button></td>
                     </tr>
                 </table>
-                <div>>> <i>Interruptions</i></div>
+                <div><h4>Interruptions</h4></div>
                 <input type="checkbox" name="interrupt_active" value="activate"/>Activate<br/>
                 <input class="regVal" id="interrupt_id" type="text" name="interrupt_id"/>&nbsp;num&eacute;ro<br/>
                 <input class="regVal" id="interrupt_cycles" type="text" name="interrupt_cycles"/>&nbsp;cycles<br/>
@@ -245,8 +244,11 @@ variablemem DS32 10
                 <div id="lable"></div>
                 <div id="data"></div>
                 <br>
-                <b>M&eacute;moire</b>
-                TODO: Coloriser les cellules?
+                <h4>M&eacute;moire</h4>
+                Breakpoints:
+                <span class="mem_r">R</span>
+                <span class="mem_w">W</span>
+                <span class="mem_rw">RW</span><br/>
                 <div id="memoryview"></div>
                 D&eacute;but:
                 <div id="paginator"></div>
