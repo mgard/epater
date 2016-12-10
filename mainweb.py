@@ -96,7 +96,10 @@ def generateUpdate(inter):
     # Registers
     retval.extend(tuple({k.lower(): "{:08x}".format(v) for k,v in inter.getRegisters().items()}.items()))
     retval.extend(tuple({k.lower(): "{}".format(v) for k,v in inter.getFlags().items()}.items()))
-    print(retval)
+    
+    # Breakpoints
+    #retval.extend(tuple({k.lower(): v.breakpoint for k,v in inter.getRegisters().items()}.items()))
+
     return retval
 
 
@@ -133,32 +136,35 @@ def process(ws, msg_in):
             interpreters[ws].step(data[1])
         elif data[0] == 'reset':
             interpreters[ws].reset()
-        elif data[0] == 'breakpointsinst':
+        elif data[0] == 'breakpointsinstr':
             interpreters[ws].setBreakpointInstr(data[1])
         elif data[0] == 'breakpointsmem':
             # addr, mode [r,w,rw]
             interpreters[ws].setBreakpointMem(data[1], data[2])
-        elif data[0] == 'breakpointsregister':
-            # reg name, mode [r,w,rw]
-            interpreters[ws].setBreakpointRegister(data[1], data[2])
         elif data[0] == 'update':
             if data[1][0].upper() == 'R':
                 reg_id = int(data[1][1:])
                 interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
             elif data[1].upper() in ('N', 'Z', 'C', 'V'):
-                interpreters[ws].setFlags({data[1]: int(data[2], 16)})
+                flag_id = data[1].upper()
+                val = not interpreters[ws].getFlags()[flag_id]
+                interpreters[ws].setFlags({flag_id: val})
+            elif data[1][:2].upper() == 'BP':
+                _, mode, reg_id = data[1].split('_')
+                # reg name, mode [r,w,rw]
+                interpreters[ws].setBreakpointRegister(reg_id, mode)
             elif data[1].upper() == 'INTERRUPT_CYCLES':
                 pass
             elif data[1].upper() == 'INTERRUPT_ID':
                 pass
-            retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'memchange':
             val = bytearray([int(data[2], 16)])
             interpreters[ws].sim.mem.set(data[1], val, 1)
-            retval.extend(generateUpdate(interpreters[ws]))
         else:
             print("<{}> Unknown message: {}".format(ws, data))
+
     del msg_in[:]
+
     if ws in interpreters:
         return updateDisplay(interpreters[ws], force_update_all)
     return []

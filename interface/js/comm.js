@@ -45,8 +45,8 @@ function simulate() {
     ws.send(JSON.stringify(['run']));
 }
 
-function sendBreakpoints() {
-    ws.send(JSON.stringify(['breakpointsinst', asm_breakpoints]));
+function sendBreakpointsInstr() {
+    ws.send(JSON.stringify(['breakpointsinstr', asm_breakpoints]));
 }
 
 function sendMsg(msg) {

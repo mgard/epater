@@ -47,7 +47,7 @@ class BCInterpreter:
         return {k: v.get(mayTriggerBkpt=False) for k,v in self.sim.flags.items()}
 
     def setFlags(self, flagsDict):
-        for f,v in flagsDict:
+        for f,v in flagsDict.items():
             self.sim.flags[f.upper()].set(v, mayTriggerBkpt=False)
 
     def getChanges(self):

@@ -11,6 +11,22 @@ body {
     vertical-align: top;
 }
 
+.regh_r, .regh_w {
+    width: 5px;
+    padding: 0;
+    text-align: center !important;
+}
+
+.regh_val {
+    text-align: center !important;
+}
+
+.reg_r_cb, .reg_w_cb {
+    width: 12px;
+    margin: 3px 0;
+    padding: 0;
+}
+
 .regVal {
     width: 65px;
 }
