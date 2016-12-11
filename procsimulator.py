@@ -57,33 +57,119 @@ class Register:
         self.val = val
 
 
-class Flag:
+class ControlRegister:
+    flag2index = {'N': 31, 'Z': 30, 'C': 29, 'V': 28, 'I': 7, 'F': 6}
+    index2flag = {v:k for k,v in flag2index.items()}
+    mode2bits = {'User': 16, 'FIQ': 17, 'IRQ': 18, 'SVC': 19}       # Other modes are not supported
+    bits2mode = {v:k for k,v in mode2bits.items()}
 
     def __init__(self, name, breakpointHandler):
-        self.name = name
-        self.val = False
+        self.regname = name
         self.bkpt = breakpointHandler
-        self.breakpoint = 0
+        self.val = 0
+        self.breakpoints = {flag:0 for flag in self.flag2index.keys()}
 
-    def __bool__(self):
-        return self.get()
+    @property
+    def name(self):
+        return self.regname
 
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.val == other.val
-        else:
-            # Just assume it is a boolean
-            return self.val == other
+    def setMode(self, mode):
+        if mode not in self.mode2bits:
+            raise KeyError
+        self.val |= self.mode2bits[mode]
+        self.val &= 0xFFFFFFE0 + self.mode2bits[mode]
 
-    def get(self, mayTriggerBkpt=True):
-        if mayTriggerBkpt and self.breakpoint & 4:
-            self.bkpt.throw(BkptInfo("flag", 4, self.name))
+    def getMode(self):
+        return self.bits2mode[self.val & 0x1F]
+
+    def __getitem__(self, flag):
+        flag = flag.upper()
+        if flag not in self.flag2index:      # Thumb and Jazelle mode are not implemented
+            raise KeyError
+
+        if self.breakpoints[flag] & 4:
+            self.bkpt.throw(BkptInfo("flag", 4, flag))
+
+        return bool((self.val >> self.flag2index[flag]) & 0x1)
+
+    def __setitem__(self, flag, value):
+        flag = flag.upper()
+        if flag not in self.flag2index:
+            raise KeyError
+
+        if self.breakpoints[flag] & 2:
+            self.bkpt.throw(BkptInfo("flag", 2, flag))
+
+        if value:   # We set the flag
+            self.val |= 1 << self.flag2index[flag]
+        else:       # We clear the flag
+            self.val &= 0xFFFFFFFF - (1 << self.flag2index[flag])
+
+    def get(self):
+        # Return the content of the PSR as an integer
         return self.val
 
-    def set(self, val, mayTriggerBkpt=True):
-        if mayTriggerBkpt and self.breakpoint & 2:
-            self.bkpt.throw(BkptInfo("flag", 2, self.name))
+    def getAllFlags(self):
+        # This function never triggers a breakpoint
+        return {flag: bool((self.val >> self.flag2index[flag]) & 0x1) for flag in self.flag2index.keys()}
+
+    def set(self, val):
+        # Be careful with this method, many values are illegal
+        # Use setMode and __setitem__ whenever possible!
         self.val = val
+
+
+class BankedRegisters:
+
+    def __init__(self, breakpointHandler):
+        # Create regular registers
+        self.banks = {}
+        regs = [Register(i, breakpointHandler) for i in range(16)]
+        regs[13].altname = "SP"
+        regs[14].altname = "LR"
+        regs[15].altname = "PC"
+        # We add the flags
+        # No SPSR in user mode
+        flags = (ControlRegister("CPSR", breakpointHandler), None)
+        self.banks['User'] = (regs, flags)
+
+        # Create FIQ registers
+        regsFIQ = regs[:8]          # R0-R7 are shared
+        regsFIQ.extend(Register(i, breakpointHandler) for i in range(8, 15))        # R8-R14 are exclusive
+        regsFIQ.append(regs[15])    # PC is shared
+        flagsFIQ = (flags[0], ControlRegister("SPSR_fiq", breakpointHandler))
+        self.banks['FIQ'] = (regsFIQ, flagsFIQ)
+
+        # Create IRQ registers
+        regsIRQ = regs[:13]         # R0-R12 are shared
+        regsIRQ.extend(Register(i, breakpointHandler) for i in range(13, 15))        # R13-R14 are exclusive
+        regsIRQ.append(regs[15])    # PC is shared
+        flagsIRQ = (flags[0], ControlRegister("SPSR_irq", breakpointHandler))
+        self.banks['IRQ'] = (regsIRQ, flagsIRQ)
+
+        # Create SVC registers (used with software interrupts)
+        regsSVC = regs[:13]  # R0-R12 are shared
+        regsSVC.extend(Register(i, breakpointHandler) for i in range(13, 15))  # R13-R14 are exclusive
+        regsSVC.append(regs[15])  # PC is shared
+        flagsSVC = (flags[0], ControlRegister("SPSR_svc", breakpointHandler))
+        self.banks['SVC'] = (regsSVC, flagsSVC)
+
+        # By default, we are in user mode
+        self.setCurrentBank("User")
+
+    def setCurrentBank(self, bankname):
+        self.currentBank = bankname
+
+    def __getitem__(self, item):
+        if not isinstance(item, int) or item < 0 or item > 15:
+            raise IndexError
+        return self.banks[self.currentBank][0][item]
+
+    def getCPSR(self):
+        return self.banks[self.currentBank][1][0]
+
+    def getSPSR(self):
+        return self.banks[self.currentBank][1][1]
 
 
 class Memory:
@@ -93,7 +179,6 @@ class Memory:
         self.initval = initval
         self.history = []
         self.bkpt = breakpointHandler
-        print(memcontent)
         self.startAddr = memcontent['__MEMINFOSTART']
         self.endAddr = memcontent['__MEMINFOEND']
         self.maxAddr = max(self.endAddr.values())
@@ -192,18 +277,16 @@ class Simulator:
         self.breakpointHandler = BreakPointHandler()
         self.mem = Memory(memorycontent, self.breakpointHandler)
 
-        self.regs = [Register(i, self.breakpointHandler) for i in range(16)]
-        self.regs[13].altname = "SP"
-        self.regs[14].altname = "LR"
-        self.regs[15].altname = "PC"
+        self.interruptActive = False
+        self.interruptParams = [0, 0, 0]       # Number of cycles before the first interrupt, period of the interrupt thereafter, reference cycle
+        self.lastInterruptCycle = 0
+
+        self.regs = BankedRegisters(self.breakpointHandler)
 
         self.stepMode = None
         self.stepCondition = 0
 
-        self.flags = {'Z': Flag('Z', self.breakpointHandler),
-                      'V': Flag('V', self.breakpointHandler),
-                      'C': Flag('C', self.breakpointHandler),
-                      'N': Flag('N', self.breakpointHandler)}
+        self.flags = self.regs.getCPSR()
 
         self.fetchedInstr = None
 
