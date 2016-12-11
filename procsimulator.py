@@ -15,13 +15,14 @@ class SimulatorError(Exception):
 
 
 BkptInfo = namedtuple("BkptInfo", ['source', 'mode', 'infos'])
-class BreakPointHandler:
-    def __init__(self):
+class SystemHandler:
+    def __init__(self, initCountCycles=0):
         self.breakpointTrigged = None
         self.breakpointInfo = None
-        self.reset()
+        self.countCycles = initCountCycles
+        self.clearBreakpoint()
 
-    def reset(self):
+    def clearBreakpoint(self):
         self.breakpointTrigged = False
         self.breakpointInfo = None
 
@@ -32,13 +33,13 @@ class BreakPointHandler:
 
 class Register:
 
-    def __init__(self, n, breakpointHandler, val=0, altname=None):
+    def __init__(self, n, systemHandle, val=0, altname=None):
         self.id = n
         self.val = val
-        self.bkpt = breakpointHandler
+        self.sys = systemHandle
         self.altname = altname
-        self.history = []
         self.breakpoint = 0
+        self.history = []
 
     @property
     def name(self):
@@ -46,15 +47,21 @@ class Register:
 
     def get(self, mayTriggerBkpt=True):
         if mayTriggerBkpt and self.breakpoint & 4:
-            self.bkpt.throw(BkptInfo("register", 4, self.id))
+            self.sys.throw(BkptInfo("register", 4, self.id))
         return self.val
 
     def set(self, val, mayTriggerBkpt=True):
         val &= 0xFFFFFFFF
         if mayTriggerBkpt and self.breakpoint & 2:
-            self.bkpt.throw(BkptInfo("register", 2, self.id))
-        self.history.append(val)
+            self.sys.throw(BkptInfo("register", 2, self.id))
+        self.history.append((self.sys.countCycles, val))
         self.val = val
+
+    def stepBack(self):
+        # Set the register as it was one step back
+        while self.history[-1][0] >= self.sys.countCycles:
+            self.history.pop()
+            self.val = self.history[-1][1]
 
 
 class ControlRegister:
@@ -63,11 +70,12 @@ class ControlRegister:
     mode2bits = {'User': 16, 'FIQ': 17, 'IRQ': 18, 'SVC': 19}       # Other modes are not supported
     bits2mode = {v:k for k,v in mode2bits.items()}
 
-    def __init__(self, name, breakpointHandler):
+    def __init__(self, name, systemHandle):
         self.regname = name
-        self.bkpt = breakpointHandler
+        self.sys = systemHandle
         self.val = 0x100
         self.breakpoints = {flag:0 for flag in self.flag2index.keys()}
+        self.history = []
 
     @property
     def name(self):
@@ -78,6 +86,7 @@ class ControlRegister:
             raise KeyError
         self.val |= self.mode2bits[mode]
         self.val &= 0xFFFFFFE0 + self.mode2bits[mode]
+        self.history.append((self.sys.countCycles, self.val))
 
     def getMode(self):
         return self.bits2mode[self.val & 0x1F]
@@ -88,7 +97,7 @@ class ControlRegister:
             raise KeyError
 
         if self.breakpoints[flag] & 4:
-            self.bkpt.throw(BkptInfo("flag", 4, flag))
+            self.sys.throw(BkptInfo("flag", 4, flag))
 
         return bool((self.val >> self.flag2index[flag]) & 0x1)
 
@@ -98,12 +107,13 @@ class ControlRegister:
             raise KeyError
 
         if self.breakpoints[flag] & 2:
-            self.bkpt.throw(BkptInfo("flag", 2, flag))
+            self.sys.throw(BkptInfo("flag", 2, flag))
 
         if value:   # We set the flag
             self.val |= 1 << self.flag2index[flag]
         else:       # We clear the flag
             self.val &= 0xFFFFFFFF - (1 << self.flag2index[flag])
+        self.history.append((self.sys.countCycles, self.val))
 
     def get(self):
         # Return the content of the PSR as an integer
@@ -114,45 +124,54 @@ class ControlRegister:
         return {flag: bool((self.val >> self.flag2index[flag]) & 0x1) for flag in self.flag2index.keys()}
 
     def set(self, val):
-        # Be careful with this method, many values are illegal
+        # Be careful with this method, many PSR values are illegal
         # Use setMode and __setitem__ whenever possible!
         # Mostly use for internal purposes like saving the CPSR in SPSR when an interrupt arises
         self.val = val
+        self.history.append((self.sys.countCycles, self.val))
+
+    def stepBack(self):
+        # Set the program status registers as they were one step back
+        while self.history[-1][0] >= self.sys.countCycles:
+            self.history.pop()
+            self.val = self.history[-1][1]
 
 
 class BankedRegisters:
 
-    def __init__(self, breakpointHandler):
+    def __init__(self, systemHandle):
+        self.sys = systemHandle
+        self.history = []
         # Create regular registers
         self.banks = {}
-        regs = [Register(i, breakpointHandler) for i in range(16)]
+        regs = [Register(i, systemHandle) for i in range(16)]
         regs[13].altname = "SP"
         regs[14].altname = "LR"
         regs[15].altname = "PC"
         # We add the flags
         # No SPSR in user mode
-        flags = (ControlRegister("CPSR", breakpointHandler), None)
+        flags = (ControlRegister("CPSR", systemHandle),)
         self.banks['User'] = (regs, flags)
 
         # Create FIQ registers
         regsFIQ = regs[:8]          # R0-R7 are shared
-        regsFIQ.extend(Register(i, breakpointHandler) for i in range(8, 15))        # R8-R14 are exclusive
+        regsFIQ.extend(Register(i, systemHandle) for i in range(8, 15))        # R8-R14 are exclusive
         regsFIQ.append(regs[15])    # PC is shared
-        flagsFIQ = (flags[0], ControlRegister("SPSR_fiq", breakpointHandler))
+        flagsFIQ = (flags[0], ControlRegister("SPSR_fiq", systemHandle))
         self.banks['FIQ'] = (regsFIQ, flagsFIQ)
 
         # Create IRQ registers
         regsIRQ = regs[:13]         # R0-R12 are shared
-        regsIRQ.extend(Register(i, breakpointHandler) for i in range(13, 15))        # R13-R14 are exclusive
+        regsIRQ.extend(Register(i, systemHandle) for i in range(13, 15))        # R13-R14 are exclusive
         regsIRQ.append(regs[15])    # PC is shared
-        flagsIRQ = (flags[0], ControlRegister("SPSR_irq", breakpointHandler))
+        flagsIRQ = (flags[0], ControlRegister("SPSR_irq", systemHandle))
         self.banks['IRQ'] = (regsIRQ, flagsIRQ)
 
         # Create SVC registers (used with software interrupts)
         regsSVC = regs[:13]  # R0-R12 are shared
-        regsSVC.extend(Register(i, breakpointHandler) for i in range(13, 15))  # R13-R14 are exclusive
+        regsSVC.extend(Register(i, systemHandle) for i in range(13, 15))  # R13-R14 are exclusive
         regsSVC.append(regs[15])  # PC is shared
-        flagsSVC = (flags[0], ControlRegister("SPSR_svc", breakpointHandler))
+        flagsSVC = (flags[0], ControlRegister("SPSR_svc", systemHandle))
         self.banks['SVC'] = (regsSVC, flagsSVC)
 
         # By default, we are in user mode
@@ -160,6 +179,7 @@ class BankedRegisters:
 
     def setCurrentBank(self, bankname):
         self.currentBank = bankname
+        self.history.append((self.sys.countCycles, bankname))
 
     def __getitem__(self, item):
         if not isinstance(item, int) or item < 0 or item > 15:
@@ -170,21 +190,33 @@ class BankedRegisters:
         return self.banks[self.currentBank][1][0]
 
     def getSPSR(self):
+        if self.currentBank == "User":
+            assert False, "No SPSR register in user mode!"
         return self.banks[self.currentBank][1][1]
 
     def getAllRegisters(self):
         # Helper function to get all registers from all banks at once
         # The result is returned as a dictionary of dictionary
-        return {bname: {bank[0][ridx].name: bank[0][ridx].get(mayTriggerBkpt=False) for ridx in range(len(bank[0]))} for bname, bank in self.banks.items()}
+        return {bname: {reg.name: reg.get(mayTriggerBkpt=False) for reg in bank[0]} for bname, bank in self.banks.items()}
+
+    def stepBack(self):
+        # Set the registers and flags as they were one step back
+        for bank in self.banks.values():
+            for reg in bank:
+                reg.stepBack()
+
+        while self.history[-1][0] >= self.sys.countCycles:
+            self.history.pop()
+            self.currentBank = self.history[-1][1]
 
 
 class Memory:
 
-    def __init__(self, memcontent, breakpointHandler, initval=0):
+    def __init__(self, memcontent, systemHandle, initval=0):
         self.size = sum(len(b) for b in memcontent)
         self.initval = initval
         self.history = []
-        self.bkpt = breakpointHandler
+        self.sys = systemHandle
         self.startAddr = memcontent['__MEMINFOSTART']
         self.endAddr = memcontent['__MEMINFOEND']
         self.maxAddr = max(self.endAddr.values())
@@ -199,6 +231,8 @@ class Memory:
         # If n & 2, then it is active for each write operation
         # If n & 1, then it is active for each exec operation (namely, an instruction load)
         self.breakpoints = defaultdict(int)
+
+        self.history = []
 
     def _getRelativeAddr(self, addr, size):
         """
@@ -218,14 +252,14 @@ class Memory:
     def get(self, addr, size=4, execMode=False):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
-            self.bkpt.throw(BkptInfo("memory", 8, addr))
+            self.sys.throw(BkptInfo("memory", 8, addr))
             return None
 
         for offset in range(size):
             if execMode and self.breakpoints[addr+offset] & 1:
-                self.bkpt.throw(BkptInfo("memory", 1, addr+offset))
+                self.sys.throw(BkptInfo("memory", 1, addr + offset))
             if self.breakpoints[addr+offset] & 4:
-                self.bkpt.throw(BkptInfo("memory", 4, addr+offset))
+                self.sys.throw(BkptInfo("memory", 4, addr + offset))
 
         sec, offset = resolvedAddr
         return self.data[sec][offset:offset+size]
@@ -233,16 +267,16 @@ class Memory:
     def set(self, addr, val, size=4):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
-            self.bkpt.throw(BkptInfo("memory", 8, addr))
+            self.sys.throw(BkptInfo("memory", 8, addr))
             return
 
         for offset in range(size):
             if self.breakpoints[addr+offset] & 2:
-                self.bkpt.throw(BkptInfo("memory", 2, addr+offset))
+                self.sys.throw(BkptInfo("memory", 2, addr + offset))
 
         sec, offset = resolvedAddr
         val &= 0xFFFFFFFF
-        self.history.append((sec, offset, size, val))
+        self.history.append((self.sys.countCycles, sec, offset, size, val, self.data[sec][offset:offset+size]))
         self.data[sec][offset:offset+size] = val
 
     def serialize(self):
@@ -267,6 +301,13 @@ class Memory:
     def removeBreakpoint(self, addr):
         self.breakpoints[addr] = 0
 
+    def stepBack(self):
+        # Set the memory as it was one step back in the past
+        while self.history[-1][0] >= self.sys.countCycles:
+            _, sec, offset, size, val, previousVal = self.history.pop()
+            self.data[sec][offset:offset+size] = previousVal
+
+
 
 class SimState(Enum):
     undefined = -1
@@ -280,14 +321,15 @@ class Simulator:
 
     def __init__(self, memorycontent):
         self.state = SimState.uninitialized
-        self.breakpointHandler = BreakPointHandler()
-        self.mem = Memory(memorycontent, self.breakpointHandler)
+        self.sysHandle = SystemHandler()
+        self.mem = Memory(memorycontent, self.sysHandle)
+        self.pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
 
         self.interruptActive = False
         self.interruptParams = {'b': 0, 'a': 0, 't0': 0, 'type': "FIQ"}       # Interrupt trigged at each a*(t-t0) + b cycles
         self.lastInterruptCycle = -1
 
-        self.regs = BankedRegisters(self.breakpointHandler)
+        self.regs = BankedRegisters(self.sysHandle)
 
         self.stepMode = None
         self.stepCondition = 0
@@ -298,10 +340,10 @@ class Simulator:
 
     def reset(self):
         self.state = SimState.ready
-        self.countCycle = 0
-        self.regs[15].set(0)
+        self.sysHandle.countCycle = 0
+        self.regs[15].set(self.pcoffset)
         # We fetch the first instruction
-        self.fetchedInstr = bytes(self.mem.get(self.regs[15].get(), execMode=True))
+        self.fetchedInstr = bytes(self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True))
 
     def _printState(self):
         """
@@ -330,6 +372,13 @@ class Simulator:
         assert stepMode in ("out", "forward")
         self.stepMode = stepMode
         self.stepCondition = 1
+
+
+    def stepBack(self, count):
+        for i in range(count):
+            self.mem.stepBack()
+            self.regs.stepBack()
+            self.sysHandle.countCycles -= 1             # We decrement the cycle counter
 
 
     def _shiftVal(self, val, shiftInfo):
@@ -393,21 +442,22 @@ class Simulator:
         # Execute it
         if t == InstrType.softinterrupt:
             # We enter a software interrupt
-            self.regs.setCurrentBank("SVC")  # Set the register bank
+            self.regs.setCurrentBank("SVC")                     # Set the register bank
             self.regs.getSPSR().set(self.regs.getCPSR().get())  # Save the CPSR in the current SPSR
-            self.regs.getCPSR().setMode("SVC")  # Set the interrupt mode in CPSR
-            # Does entering SVC interrupt deactivates IRQ and/or FIQ?
-            self.regs[14].set(self.regs[15].get() + 8)  # Save PC in LR_svc
-            self.regs[15].set(0x08)  # Set PC to enter the interrupt
+            self.regs.getCPSR().setMode("SVC")                  # Set the interrupt mode in CPSR
+            # Does entering SVC interrupt deactivate IRQ and/or FIQ?
+            self.regs[14].set(self.regs[15].get() + 8)          # Save PC in LR_svc
+            self.regs[15].set(self.pcoffset + 0x08)             # Set PC to enter the interrupt
+
         elif t == InstrType.branch:
             if misc['L']:       # Link
                 self.regs[14].set(self.regs[15].get()+4)
                 self.stepCondition += 1         # We are entering a function, we log it (useful for stepForward and stepOut)
             if misc['mode'] == 'imm':
                 print(misc['offset'])
-                self.regs[15].set(self.regs[15].get() + misc['offset'] - 4)
+                self.regs[15].set(self.pcoffset + self.regs[15].get() + misc['offset'] - 4)
             else:   # BX
-                self.regs[15].set(self.regs[misc['offset']].get() - 4)
+                self.regs[15].set(self.pcoffset + self.regs[misc['offset']].get() - 4)
                 self.stepCondition -= 1         # We are returning from a function, we log it (useful for stepForward and stepOut)
 
         elif t == InstrType.memop:
@@ -531,10 +581,22 @@ class Simulator:
 
     def nextInstr(self):
         # We clear an eventual breakpoint
-        self.breakpointHandler.reset()
+        self.sysHandle.clearBreakpoint()
 
-        if self.interruptActive and (self.lastInterruptCycle == -1 and self.countCycle - self.interruptParams['b'] >= self.interruptParams['t0'] or
-                                        self.lastInterruptCycle >= 0 and self.countCycle - self.lastInterruptCycle >= self.interruptParams['a']):
+        # The instruction should have been fetched by the last instruction
+        self.execInstr()
+        self.regs[15].set(self.regs[15].get()+4)        # PC = PC + 4
+
+        # Retrieve instruction from memory
+        nextInstrBytes = self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True)
+        if nextInstrBytes is not None:          # We did not make an illegal memory access
+            self.fetchedInstr = bytes(nextInstrBytes)
+
+        # We look for interrupts
+        # The current instruction is always finished before the interrupt
+        # TODO Handle special cases for LDR and STR multiples
+        if self.interruptActive and (self.lastInterruptCycle == -1 and self.sysHandle.countCycles - self.interruptParams['b'] >= self.interruptParams['t0'] or
+                                        self.lastInterruptCycle >= 0 and self.sysHandle.countCycles - self.lastInterruptCycle >= self.interruptParams['a']):
             if (self.interruptParams['type'] == "FIQ" and not self.regs.getCPSR()['F'] or
                     self.interruptParams['type'] == "IRQ" and not self.regs.getCPSR()['I']):        # Is the interrupt masked?
                 # Interruption!
@@ -543,24 +605,16 @@ class Simulator:
                 self.regs.getSPSR().set(self.regs.getCPSR().get())                      # Save the CPSR in the current SPSR
                 self.regs.getCPSR().setMode(self.interruptParams['type'])               # Set the interrupt mode in CPSR
                 self.regs.getCPSR()[self.interruptParams['type'][0]] = True             # Disable interrupts
-                self.regs[14].set(self.regs[15].get() + 8)                              # Save PC in LR (on the FIQ or IRQ bank)
-                self.regs[15].set(0x18 if self.interruptParams['type'] == "IRQ" else 0x1C)      # Set PC to enter the interrupt
-                self.lastInterruptCycle = self.countCycle
+                self.regs[14].set(self.pcoffset + self.regs[15].get())                  # Save PC in LR (on the FIQ or IRQ bank)
+                self.regs[15].set(self.pcoffset + (0x18 if self.interruptParams['type'] == "IRQ" else 0x1C))      # Set PC to enter the interrupt
+                self.lastInterruptCycle = self.sysHandle.countCycles
 
-        # The instruction should have been fetched by the last instruction
-        self.execInstr()
-        self.regs[15].set(self.regs[15].get()+4)        # PC = PC + 4
-
-        # Retrieve instruction from memory
-        nextInstrBytes = self.mem.get(self.regs[15].get(), execMode=True)
-        if nextInstrBytes is not None:          # We did not make an illegal memory access
-            self.fetchedInstr = bytes(nextInstrBytes)
-
+        # Question : if we hit a breakpoint for the _next_ instruction, should we enter the interrupt anyway?
         # Did we hit a breakpoint?
         # A breakpoint always stop the simulator
-        if self.breakpointHandler.breakpointTrigged:
+        if self.sysHandle.breakpointTrigged:
             self.stepMode = None
 
         # One more cycle done!
-        self.countCycle += 1
+        self.sysHandle.countCycles += 1
 

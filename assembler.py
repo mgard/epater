@@ -32,6 +32,9 @@ def parse(code):
     provided ARM assembly
     """
     listErrors = []
+    if getSetting("PCbehavior") == "real":
+        raise NotImplementedError("Actual PC behavior not implemented yet")
+    pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
 
     # First pass : lexical parsing
     parsedCode = []
@@ -110,9 +113,10 @@ def parse(code):
         for j,token in enumerate(pline):
             if token.type == "REFLABEL":
                 addrToReach = labelsAddr[token.value]
-                diff = addrToReach - assignedAddr[i]
+                diff = addrToReach - (assignedAddr[i] + pcoffset)
+                sign = diff // abs(diff) if diff != 0 else 1
                 pline[j] = DummyToken("MEMACCESSPRE",
-                                      MemAccessPreInfo(15, "imm", abs(diff), diff // abs(diff), ShiftInfo("LSL", 0)))
+                                      MemAccessPreInfo(15, "imm", abs(diff), sign, ShiftInfo("LSL", 0)))
             elif token.type == "REFLABELADDR":
                 if token.value not in labelsAddrAddr:
                     # We must put the address at the end of the current section
@@ -121,9 +125,10 @@ def parse(code):
                     labelsAddrBySection[currentSection].append(labelsAddr[token.value])
                     maxAddrBySection[currentSection] += 4
                 addrToReach = labelsAddrAddr[token.value]
-                diff = addrToReach - assignedAddr[i]
+                diff = addrToReach - (assignedAddr[i] + pcoffset)
+                sign = diff // abs(diff) if diff != 0 else 1
                 pline[j] = DummyToken("MEMACCESSPRE",
-                                      MemAccessPreInfo(15, "imm", abs(diff), diff // abs(diff), ShiftInfo("LSL", 0)))
+                                      MemAccessPreInfo(15, "imm", abs(diff), sign, ShiftInfo("LSL", 0)))
 
     # Fourth pass : create bytecode
     # At this point, we should have only valid ARM instructions, so let's parse them

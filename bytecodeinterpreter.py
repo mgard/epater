@@ -59,7 +59,7 @@ class BCInterpreter:
         self.sim.interruptActive = not clearinterrupt
         self.sim.interruptParams['b'] = ncyclesbefore
         self.sim.interruptParams['a'] = ncyclesperiod
-        self.sim.interruptParams['t0'] = begincountat if begincountat >= 0 else self.sim.countCycle
+        self.sim.interruptParams['t0'] = begincountat if begincountat >= 0 else self.sim.sysHandle.countCycles
         self.sim.interruptParams['type'] = type.upper()
         self.sim.lastInterruptCycle = -1
 
@@ -76,13 +76,17 @@ class BCInterpreter:
         #                   if source='memory' then mode can also be 8 : it means that we're trying to access an uninitialized memory address
         # 'infos' = supplemental information (register index if source='register', flag name if source='flag', address if source='memory'
         # If no breakpoint has been trigged in the last instruction, then return None
-        return self.sim.breakpointHandler.breakpointInfo if self.sim.breakpointHandler.breakpointTrigged else None
+        return self.sim.sysHandle.breakpointInfo if self.sim.sysHandle.breakpointTrigged else None
 
     def step(self, stepMode="into"):
         # stepMode= "into" | "forward" | "out"
         if stepMode != "into":
             self.sim.setStepCondition(stepMode)
         self.sim.nextInstr()
+
+    def stepBack(self, count=1):
+        # step back 'count' times
+        self.sim.stepBack(count)
 
     def getMemory(self):
         return self.sim.mem.serialize()
