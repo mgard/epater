@@ -374,25 +374,32 @@ class Simulator:
         # Warning : here we check if the condition is NOT met, hence we use the
         # INVERSE of the actual condition
         # See Table 4-2 of ARM7TDMI data sheet as reference of these conditions
-        if cond == "EQ" and not self.flags['Z'] or \
-            cond == "NE" and self.flags['Z'] or \
-            cond == "CS" and not self.flags['C'] or \
-            cond == "CC" and self.flags['C'] or \
-            cond == "MI" and not self.flags['N'] or \
-            cond == "PI" and self.flags['N'] or \
-            cond == "VS" and not self.flags['V'] or \
-            cond == "VC" and self.flags['V'] or \
-            cond == "HI" and (not self.flags['C'] or self.flags['Z']) or \
-            cond == "LS" and (self.flags['C'] and not self.flags['Z']) or \
-            cond == "GE" and not self.flags['V'] == self.flags['N'] or \
-            cond == "LT" and self.flags['V'] == self.flags['N'] or \
-            cond == "GT" and (self.flags['Z'] or not self.flags['V'] == self.flags['N']) or \
-            cond == "LE" and (not self.flags['Z'] and self.flags['V'] == self.flags['N']):
+        if (cond == "EQ" and not self.flags['Z'] or
+            cond == "NE" and self.flags['Z'] or
+            cond == "CS" and not self.flags['C'] or
+            cond == "CC" and self.flags['C'] or
+            cond == "MI" and not self.flags['N'] or
+            cond == "PI" and self.flags['N'] or
+            cond == "VS" and not self.flags['V'] or
+            cond == "VC" and self.flags['V'] or
+            cond == "HI" and (not self.flags['C'] or self.flags['Z']) or
+            cond == "LS" and (self.flags['C'] and not self.flags['Z']) or
+            cond == "GE" and not self.flags['V'] == self.flags['N'] or
+            cond == "LT" and self.flags['V'] == self.flags['N'] or
+            cond == "LE" and (not self.flags['Z'] and self.flags['V'] == self.flags['N'])):
             # Condition not met, return
             return
 
         # Execute it
-        if t == InstrType.branch:
+        if t == InstrType.softinterrupt:
+            # We enter a software interrupt
+            self.regs.setCurrentBank("SVC")  # Set the register bank
+            self.regs.getSPSR().set(self.regs.getCPSR().get())  # Save the CPSR in the current SPSR
+            self.regs.getCPSR().setMode("SVC")  # Set the interrupt mode in CPSR
+            # Does entering SVC interrupt deactivates IRQ and/or FIQ?
+            self.regs[14].set(self.regs[15].get() + 8)  # Save PC in LR_svc
+            self.regs[15].set(0x08)  # Set PC to enter the interrupt
+        elif t == InstrType.branch:
             if misc['L']:       # Link
                 self.regs[14].set(self.regs[15].get()+4)
                 self.stepCondition += 1         # We are entering a function, we log it (useful for stepForward and stepOut)
@@ -441,7 +448,7 @@ class Simulator:
                 else:
                     self.regs.getCPSR().set(valToSet)
             else:       # Read
-                self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())                                    
+                self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
 
         elif t == InstrType.dataop:
             # Get first operand value

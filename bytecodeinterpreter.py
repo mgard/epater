@@ -10,6 +10,7 @@ class BCInterpreter:
         for addr,lines in mappingInfo.items():
             for line in lines:
                 self.line2addr[line] = addr
+        self.lineBreakpoints = []
         self.sim = Simulator(bytecode)
         self.reset()
 
@@ -22,6 +23,7 @@ class BCInterpreter:
         # If there is no such line (we are asked to put a breakpoint after the last line of code) then no breakpoint is set
         if lineno in self.line2addr:
             self.sim.mem.setBreakpoint(self.line2addr[lineno], 1)
+            self.lineBreakpoints.append(lineno)
 
     def getBreakpointsMem(self):
         return {
