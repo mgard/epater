@@ -41,6 +41,27 @@ class BCInterpreter:
         modeOctal = 4*('r' in mode) + 2*('w' in mode)
         self.sim.regs[reg].breakpoint = modeOctal
 
+    def setBreakpointFlag(self, flag, mode):
+        # Mode = 'r' | 'w' | 'rw' | '' (passing an empty string removes the breakpoint)
+        modeOctal = 4*('r' in mode) + 2*('w' in mode)
+        self.sim.flags.breakpoints[flag.upper()] = modeOctal
+
+    def setInterrupt(self, type, ncyclesbefore, ncyclesperiod, clearinterrupt, begincountat=0):
+        # type is either "FIQ" or "IRQ"
+        # ncyclesbefore is the number of cycles to wait before the first interrupt
+        # ncyclesperiod the number of cycles between two interrupts
+        # clearinterrupt must be set to True if one wants to clear the interrupt
+        # begincountat gives the t=0 as a cycle number. If it is 0, then the first interrupt will happen at time t=ncyclesbefore
+        #   if it is > 0, then it will be at t = ncyclesbefore + begincountat
+        #   if < 0, then the begin cycle is set at the current cycle
+        self.sim.interruptActive = not clearinterrupt
+        self.sim.interruptParams['b'] = ncyclesbefore
+        self.sim.interruptParams['a'] = ncyclesperiod
+        self.sim.interruptParams['t0'] = begincountat if begincountat >= 0 else self.sim.countCycle
+        self.sim.interruptParams['type'] = type.upper()
+        self.sim.lastInterruptCycle = -1
+
+
     @property
     def shouldStop(self):
         return self.sim.isStepDone()
@@ -65,14 +86,17 @@ class BCInterpreter:
         return self.sim.mem.serialize()
 
     def getRegisters(self):
-        return {r.name: r.get(mayTriggerBkpt=False) for r in self.sim.regs}
+        return self.sim.regs.getAllRegisters()
 
     def setRegisters(self, regsDict):
         for r,v in regsDict:
             self.sim.regs[r].set(v, mayTriggerBkpt=False)
 
     def getFlags(self):
-        return {k: v.get(mayTriggerBkpt=False) for k,v in self.sim.flags.items()}
+        return self.sim.flags.getAllFlags()
+
+    def getProcessorMode(self):
+        return self.sim.flags.getMode()
 
     def setFlags(self, flagsDict):
         for f,v in flagsDict.items():

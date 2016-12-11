@@ -66,7 +66,7 @@ class ControlRegister:
     def __init__(self, name, breakpointHandler):
         self.regname = name
         self.bkpt = breakpointHandler
-        self.val = 0
+        self.val = 0x100
         self.breakpoints = {flag:0 for flag in self.flag2index.keys()}
 
     @property
@@ -116,6 +116,7 @@ class ControlRegister:
     def set(self, val):
         # Be careful with this method, many values are illegal
         # Use setMode and __setitem__ whenever possible!
+        # Mostly use for internal purposes like saving the CPSR in SPSR when an interrupt arises
         self.val = val
 
 
@@ -170,6 +171,11 @@ class BankedRegisters:
 
     def getSPSR(self):
         return self.banks[self.currentBank][1][1]
+
+    def getAllRegisters(self):
+        # Helper function to get all registers from all banks at once
+        # The result is returned as a dictionary of dictionary
+        return {bname: {bank[0][ridx].name: bank[0][ridx].get(mayTriggerBkpt=False) for ridx in range(len(bank[0]))} for bname, bank in self.banks.items()}
 
 
 class Memory:
@@ -278,8 +284,8 @@ class Simulator:
         self.mem = Memory(memorycontent, self.breakpointHandler)
 
         self.interruptActive = False
-        self.interruptParams = [0, 0, 0]       # Number of cycles before the first interrupt, period of the interrupt thereafter, reference cycle
-        self.lastInterruptCycle = 0
+        self.interruptParams = {'b': 0, 'a': 0, 't0': 0, 'type': "FIQ"}       # Interrupt trigged at each a*(t-t0) + b cycles
+        self.lastInterruptCycle = -1
 
         self.regs = BankedRegisters(self.breakpointHandler)
 
@@ -436,15 +442,16 @@ class Simulator:
             destrd = misc['rd']
 
             if misc['opcode'] in ("AND", "TST"):
+                # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
                 res = op1 & op2
-                # TODO : update carry and overflow flags
             elif misc['opcode'] in ("EOR", "TEQ"):
+                # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
                 res = op1 ^ op2
-                # TODO : update carry and overflow flags
             elif misc['opcode'] in ("SUB", "CMP"):
-                res = op1 - op2
                 # TODO : update carry and overflow flags
+                res = op1 - op2
             elif misc['opcode'] == "RSB":
+                # TODO : update carry and overflow flags
                 res = op2 - op1
             elif misc['opcode'] in ("ADD", "CMN"):
                 res = op1 + op2
@@ -457,8 +464,10 @@ class Simulator:
                 if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
                     workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
             elif misc['opcode'] == "SBC":
+                # TODO : update carry and overflow flags
                 res = op1 - op2 + int(self.flags['C'].get()) - 1
             elif misc['opcode'] == "RSC":
+                # TODO : update carry and overflow flags
                 res = op2 - op1 + int(self.flags['C'].get()) - 1
             elif misc['opcode'] == "ORR":
                 res = op1 | op2
@@ -474,11 +483,23 @@ class Simulator:
             if res == 0:
                 workingFlags['Z'] = True
             if res & 0x80000000:
-                workingFlags['N'] = True
+                workingFlags['N'] = True            # "N flag will be set to the value of bit 31 of the result" (4.5.1)
 
             if misc['setflags']:
-                for flag in workingFlags:
-                    self.flags[flag].set(workingFlags[flag])
+                if destrd == 15:
+                    # Combining writing to PC and the S flag is a special case (see ARM Instr. set, 4.5.5)
+                    # "When Rd is R15 and the S flag is set the result of the operation is placed in R15 and
+                    # the SPSR corresponding to the current mode is moved to the CPSR. This allows state
+                    # changes which atomically restore both PC and CPSR. This form of instruction should
+                    # not be used in User mode."
+                    #
+                    # Globally, it tells out to get out of an interrupt
+                    if self.regs.getCPSR().getMode() == "User":
+                        assert False, "Error, using S flag and PC as destination register in user mode!"
+                    self.regs.getCPSR().set(self.regs.getSPSR().get())          # Put back the saved SPSR in CPSR
+                else:
+                    for flag in workingFlags:
+                        self.flags[flag].set(workingFlags[flag])
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
                 # We actually write the result
                 self.regs[destrd].set(res)
@@ -486,6 +507,20 @@ class Simulator:
     def nextInstr(self):
         # We clear an eventual breakpoint
         self.breakpointHandler.reset()
+
+        if self.interruptActive and (self.lastInterruptCycle == -1 and self.countCycle - self.interruptParams['b'] >= self.interruptParams['t0'] or
+                                        self.lastInterruptCycle >= 0 and self.countCycle - self.lastInterruptCycle >= self.interruptParams['a']):
+            if (self.interruptParams['type'] == "FIQ" and not self.regs.getCPSR()['F'] or
+                    self.interruptParams['type'] == "IRQ" and not self.regs.getCPSR()['I']):        # Is the interrupt masked?
+                # Interruption!
+                # We enter it (the entry point is 0x18 for IRQ and 0x1C for FIQ)
+                self.regs.setCurrentBank(self.interruptParams['type'])                  # Set the register bank
+                self.regs.getSPSR().set(self.regs.getCPSR().get())                      # Save the CPSR in the current SPSR
+                self.regs.getCPSR().setMode(self.interruptParams['type'])               # Set the interrupt mode in CPSR
+                self.regs.getCPSR()[self.interruptParams['type'][0]] = True             # Disable interrupts
+                self.regs[14].set(self.regs[15].get() + 8)                              # Save PC in LR (on the FIQ or IRQ bank)
+                self.regs[15].set(0x18 if self.interruptParams['type'] == "IRQ" else 0x1C)      # Set PC to enter the interrupt
+                self.lastInterruptCycle = self.countCycle
 
         # The instruction should have been fetched by the last instruction
         self.execInstr()
