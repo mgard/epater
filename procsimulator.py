@@ -1,18 +1,10 @@
 import operator
 import struct
 from enum import Enum
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from settings import getSetting
 from instruction import BytecodeToInstrInfos, InstrType
-
-
-def wrapAroundUint32(val):
-    if val > 2**32-1:
-        val -= 2**32
-    elif val < 0:
-        val += 2**32
-    return val
 
 
 class SimulatorError(Exception):
@@ -21,18 +13,29 @@ class SimulatorError(Exception):
     def __str__(self):
         return self.desc
 
-class Breakpoint(Exception):
-    def __init__(self, addr):
-        self.a = addr
-    def __str__(self):
-        return "Breakpoint {} atteint!".format(self.a)
+
+BkptInfo = namedtuple("BkptInfo", ['source', 'mode', 'infos'])
+class BreakPointHandler:
+    def __init__(self):
+        self.breakpointTrigged = None
+        self.breakpointInfo = None
+        self.reset()
+
+    def reset(self):
+        self.breakpointTrigged = False
+        self.breakpointInfo = None
+
+    def throw(self, infos):
+        self.breakpointTrigged = True
+        self.breakpointInfo = infos
 
 
 class Register:
 
-    def __init__(self, n, val=0, altname=None):
+    def __init__(self, n, breakpointHandler, val=0, altname=None):
         self.id = n
         self.val = val
+        self.bkpt = breakpointHandler
         self.altname = altname
         self.history = []
         self.breakpoint = 0
@@ -42,45 +45,55 @@ class Register:
         return "R{}".format(self.id)
 
     def get(self, mayTriggerBkpt=True):
-        if self.breakpoint & 4:
-            raise Breakpoint(self.name)
+        if mayTriggerBkpt and self.breakpoint & 4:
+            self.bkpt.throw(BkptInfo("register", 4, self.id))
         return self.val
 
     def set(self, val, mayTriggerBkpt=True):
-        val = wrapAroundUint32(val)
+        val &= 0xFFFFFFFF
         if mayTriggerBkpt and self.breakpoint & 2:
-            raise Breakpoint(self.name)
+            self.bkpt.throw(BkptInfo("register", 2, self.id))
         self.history.append(val)
         self.val = val
 
 
 class Flag:
 
-    def __init__(self, name):
+    def __init__(self, name, breakpointHandler):
         self.name = name
         self.val = False
+        self.bkpt = breakpointHandler
         self.breakpoint = 0
 
     def __bool__(self):
         return self.get()
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.val == other.val
+        else:
+            # Just assume it is a boolean
+            return self.val == other
+
     def get(self, mayTriggerBkpt=True):
         if mayTriggerBkpt and self.breakpoint & 4:
-            raise Breakpoint(self.name)
+            self.bkpt.throw(BkptInfo("flag", 4, self.name))
         return self.val
 
     def set(self, val, mayTriggerBkpt=True):
         if mayTriggerBkpt and self.breakpoint & 2:
-            raise Breakpoint(self.name)
+            self.bkpt.throw(BkptInfo("flag", 2, self.name))
         self.val = val
 
 
 class Memory:
 
-    def __init__(self, memcontent, initval=0):
+    def __init__(self, memcontent, breakpointHandler, initval=0):
         self.size = sum(len(b) for b in memcontent)
         self.initval = initval
         self.history = []
+        self.bkpt = breakpointHandler
+        print(memcontent)
         self.startAddr = memcontent['__MEMINFOSTART']
         self.endAddr = memcontent['__MEMINFOEND']
         self.maxAddr = max(self.endAddr.values())
@@ -114,11 +127,14 @@ class Memory:
     def get(self, addr, size=4, execMode=False):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
-            raise SimulatorError("Adresse 0x{:X} invalide".format(addr))
+            self.bkpt.throw(BkptInfo("memory", 8, addr))
+            return None
 
         for offset in range(size):
-            if (execMode and self.breakpoints[addr+offset]) & 1 or self.breakpoints[addr+offset] & 4:
-                raise Breakpoint(addr+offset)
+            if execMode and self.breakpoints[addr+offset] & 1:
+                self.bkpt.throw(BkptInfo("memory", 1, addr+offset))
+            if self.breakpoints[addr+offset] & 4:
+                self.bkpt.throw(BkptInfo("memory", 4, addr+offset))
 
         sec, offset = resolvedAddr
         return self.data[sec][offset:offset+size]
@@ -126,14 +142,15 @@ class Memory:
     def set(self, addr, val, size=4):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
-            raise SimulatorError("Adresse 0x{:X} invalide".format(addr))
+            self.bkpt.throw(BkptInfo("memory", 8, addr))
+            return
 
         for offset in range(size):
             if self.breakpoints[addr+offset] & 2:
-                raise Breakpoint(addr+offset)
+                self.bkpt.throw(BkptInfo("memory", 2, addr+offset))
 
         sec, offset = resolvedAddr
-        val = wrapAroundUint32(val)
+        val &= 0xFFFFFFFF
         self.history.append((sec, offset, size, val))
         self.data[sec][offset:offset+size] = val
 
@@ -153,6 +170,12 @@ class Memory:
             ret_val += bytearray('\0' * padding_size, 'utf-8')
         return ret_val
 
+    def setBreakpoint(self, addr, modeOctal):
+        self.breakpoints[addr] = modeOctal
+
+    def removeBreakpoint(self, addr):
+        self.breakpoints[addr] = 0
+
 
 class SimState(Enum):
     undefined = -1
@@ -166,9 +189,10 @@ class Simulator:
 
     def __init__(self, memorycontent):
         self.state = SimState.uninitialized
-        self.mem = Memory(memorycontent)
+        self.breakpointHandler = BreakPointHandler()
+        self.mem = Memory(memorycontent, self.breakpointHandler)
 
-        self.regs = [Register(i) for i in range(16)]
+        self.regs = [Register(i, self.breakpointHandler) for i in range(16)]
         self.regs[13].altname = "SP"
         self.regs[14].altname = "LR"
         self.regs[15].altname = "PC"
@@ -176,14 +200,19 @@ class Simulator:
         self.stepMode = None
         self.stepCondition = 0
 
-        self.flags = {'Z': Flag('Z'),
-                      'V': Flag('V'),
-                      'C': Flag('C'),
-                      'N': Flag('N')}
+        self.flags = {'Z': Flag('Z', self.breakpointHandler),
+                      'V': Flag('V', self.breakpointHandler),
+                      'C': Flag('C', self.breakpointHandler),
+                      'N': Flag('N', self.breakpointHandler)}
+
+        self.fetchedInstr = None
 
     def reset(self):
-        self.regs[15].set(0)
         self.state = SimState.ready
+        self.countCycle = 0
+        self.regs[15].set(0)
+        # We fetch the first instruction
+        self.fetchedInstr = bytes(self.mem.get(self.regs[15].get(), execMode=True))
 
     def _printState(self):
         """
@@ -193,7 +222,6 @@ class Simulator:
         pass
 
     def isStepDone(self):
-        # TODO : a breakpoint always reset this
         if self.stepMode == "forward":
             if self.stepCondition == 2:
                 # The instruction was a function call
@@ -204,6 +232,8 @@ class Simulator:
                 return True
         if self.stepMode == "out":
             return self.stepCondition == 0
+
+        # We are doing a step into, we always stop
         return True
 
 
@@ -238,7 +268,7 @@ class Simulator:
         return carryOut, val
 
 
-    def execInstr(self, addr):
+    def execInstr(self):
         """
         Execute one instruction
         :param addr: Address of the instruction in memory
@@ -246,11 +276,9 @@ class Simulator:
         This function may throw a SimulatorError exception if there's an error, or a Breakpoint exception,
         in which case it is not an error but rather a Breakpoint reached.
         """
-        # Retrieve instruction from memory
-        bc = bytes(self.mem.get(addr, execMode=True))    # Memory is little endian, so we convert it back to a more usable form
 
         # Decode it
-        t, regs, cond, misc = BytecodeToInstrInfos(bc)
+        t, regs, cond, misc = BytecodeToInstrInfos(self.fetchedInstr)
         workingFlags = {}
 
         # Check condition
@@ -297,7 +325,10 @@ class Simulator:
 
             realAddr = addr if misc['pre'] else baseval
             if misc['mode'] == 'LDR':
-                res = struct.unpack("<I", self.mem.get(realAddr, size=1 if misc['byte'] else 4))[0]
+                m = self.mem.get(realAddr, size=1 if misc['byte'] else 4)
+                if m is None:       # No such address in the mapped memory, we cannot continue
+                    return
+                res = struct.unpack("<I", m)[0]
                 self.regs[misc['rd']].set(res)
             else:       # STR
                 self.mem.set(realAddr, self.regs[misc['rd']].get(), size=1 if misc['byte'] else 4)
@@ -323,13 +354,13 @@ class Simulator:
 
             if misc['opcode'] in ("AND", "TST"):
                 res = op1 & op2
-                # TODO : update flags
+                # TODO : update carry and overflow flags
             elif misc['opcode'] in ("EOR", "TEQ"):
                 res = op1 ^ op2
-                # TODO : update flags
+                # TODO : update carry and overflow flags
             elif misc['opcode'] in ("SUB", "CMP"):
                 res = op1 - op2
-                # TODO : update flags
+                # TODO : update carry and overflow flags
             elif misc['opcode'] == "RSB":
                 res = op2 - op1
             elif misc['opcode'] in ("ADD", "CMN"):
@@ -338,14 +369,14 @@ class Simulator:
                 if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
                     workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
             elif misc['opcode'] == "ADC":
-                res = op1 + op2 + int(self.flags['C'])
+                res = op1 + op2 + int(self.flags['C'].get())
                 workingFlags['C'] = bool(res & (1 << 32))
                 if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
                     workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
             elif misc['opcode'] == "SBC":
-                res = op1 - op2 + int(self.flags['C']) - 1
+                res = op1 - op2 + int(self.flags['C'].get()) - 1
             elif misc['opcode'] == "RSC":
-                res = op2 - op1 + int(self.flags['C']) - 1
+                res = op2 - op1 + int(self.flags['C'].get()) - 1
             elif misc['opcode'] == "ORR":
                 res = op1 | op2
             elif misc['opcode'] == "MOV":
@@ -359,7 +390,7 @@ class Simulator:
 
             if res == 0:
                 workingFlags['Z'] = True
-            if res < 0:
+            if res & 0x80000000:
                 workingFlags['N'] = True
 
             if misc['setflags']:
@@ -370,7 +401,23 @@ class Simulator:
                 self.regs[destrd].set(res)
 
     def nextInstr(self):
-        self.execInstr(self.regs[15].get())
+        # We clear an eventual breakpoint
+        self.breakpointHandler.reset()
+
+        # The instruction should have been fetched by the last instruction
+        self.execInstr()
         self.regs[15].set(self.regs[15].get()+4)        # PC = PC + 4
 
+        # Retrieve instruction from memory
+        nextInstrBytes = self.mem.get(self.regs[15].get(), execMode=True)
+        if nextInstrBytes is not None:          # We did not make an illegal memory access
+            self.fetchedInstr = bytes(nextInstrBytes)
+
+        # Did we hit a breakpoint?
+        # A breakpoint always stop the simulator
+        if self.breakpointHandler.breakpointTrigged:
+            self.stepMode = None
+
+        # One more cycle done!
+        self.countCycle += 1
 

@@ -4,7 +4,12 @@ class BCInterpreter:
 
     def __init__(self, bytecode, mappingInfo):
         self.bc = bytecode
-        self.dbginf = mappingInfo
+        self.addr2line = mappingInfo
+        # Useful to set line breakpoints
+        self.line2addr = {}
+        for addr,lines in mappingInfo.items():
+            for line in lines:
+                self.line2addr[line] = addr
         self.sim = Simulator(bytecode)
         self.reset()
 
@@ -12,7 +17,11 @@ class BCInterpreter:
         self.sim.reset()
 
     def setBreakpointInstr(self, lineno):
-        pass
+        # The easy case is when the line is directly mapped to a memory address (e.g. it is an instruction)
+        # When it's not, we have to find the closest next line which is mapped
+        # If there is no such line (we are asked to put a breakpoint after the last line of code) then no breakpoint is set
+        if lineno in self.line2addr:
+            self.sim.mem.setBreakpoint(self.line2addr[lineno], 1)
 
     def getBreakpointsMem(self):
         return {
@@ -23,17 +32,28 @@ class BCInterpreter:
         }
 
     def setBreakpointMem(self, addr, mode):
-        # Mode = 'r' | 'w' | 'rw'
-        pass
+        # Mode = 'r' | 'w' | 'rw' | '' (passing an empty string removes the breakpoint)
+        modeOctal = 4*('r' in mode) + 2*('w' in mode)
+        self.sim.mem.setBreakpoint(addr, modeOctal)
 
     def setBreakpointRegister(self, reg, mode):
-        # Mode = 'r' | 'w' | 'rw'
-        pass
+        # Mode = 'r' | 'w' | 'rw' | '' (passing an empty string removes the breakpoint)
+        modeOctal = 4*('r' in mode) + 2*('w' in mode)
+        self.sim.regs[reg].breakpoint = modeOctal
 
     @property
     def shouldStop(self):
-        # TODO : add breakpoint handling
         return self.sim.isStepDone()
+
+    @property
+    def currentBreakpoint(self):
+        # Returns a namedTuple with the fields
+        # 'source' = 'register' | 'memory' | ' flag'
+        # 'mode' = integer (same interpretation as Unix permissions)
+        #                   if source='memory' then mode can also be 8 : it means that we're trying to access an uninitialized memory address
+        # 'infos' = supplemental information (register index if source='register', flag name if source='flag', address if source='memory'
+        # If no breakpoint has been trigged in the last instruction, then return None
+        return self.sim.breakpointHandler.breakpointInfo if self.sim.breakpointHandler.breakpointTrigged else None
 
     def step(self, stepMode="into"):
         # stepMode= "into" | "forward" | "out"
@@ -64,8 +84,9 @@ class BCInterpreter:
 
     def getCurrentLine(self):
         pc = self.sim.regs[15].get()
-        assert pc in self.dbginf, "Line outside of linked memory!"
-        return self.dbginf[pc][-1]
+        # TODO : this assert will be a problem if we execute data...
+        assert pc in self.addr2line, "Line outside of linked memory!"
+        return self.addr2line[pc][-1]
 
     def getProcessorState(self):
         r = []
