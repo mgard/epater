@@ -425,6 +425,24 @@ class Simulator:
             if misc['writeback']:
                 self.regs[misc['base']].set(addr)
 
+        elif t == InstrType.psrtransfer:
+            if misc['write']:
+                if misc['flagsOnly']:
+                    if misc['imm']:
+                        valToSet = misc['op2'][0]
+                        if misc['op2'][1][2] != 0:
+                            _, valToSet = self._shiftVal(valToSet, misc['op2'][1])
+                    else:
+                        valToSet = self.regs[misc['op2'][0]] & 0xF0000000   # We only keep the condition flag bits
+                else:
+                    valToSet = self.regs[misc['op2'][0]]
+                if misc['usespsr']:
+                    self.regs.getSPSR().set(valToSet)
+                else:
+                    self.regs.getCPSR().set(valToSet)
+            else:       # Read
+                self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())                                    
+
         elif t == InstrType.dataop:
             # Get first operand value
             op1 = self.regs[misc['rn']].get()

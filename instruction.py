@@ -47,6 +47,9 @@ exportInstrInfo = {# DATA OPERATIONS
                    'MOV': InstrType.dataop,
                    'BIC': InstrType.dataop,
                    'MVN': InstrType.dataop,
+                    # PROGRAM STATUS REGISTER OPERATIONS
+                   'MRS': InstrType.psrtransfer,
+                   'MSR': InstrType.psrtransfer,
                     # MEMORY OPERATIONS
                    'LDR': InstrType.memop,
                    'STR': InstrType.memop,
@@ -405,6 +408,15 @@ def MultiplyInstructionToBytecode(asmtokens):
 
 
 def SwapInstructionToBytecode(asmtokens):
+    mnemonic = asmtokens[0].value
+    if mnemonic == 'MSR':
+        # Read the PSR
+        pass
+    else:
+        # Write the PSR
+        pass
+
+
     # Todo
     raise NotImplementedError()
 
