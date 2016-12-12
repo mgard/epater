@@ -469,7 +469,7 @@ class Simulator:
             self.regs.getSPSR().set(self.regs.getCPSR().get())  # Save the CPSR in the current SPSR
             self.regs.getCPSR().setMode("SVC")                  # Set the interrupt mode in CPSR
             # Does entering SVC interrupt deactivate IRQ and/or FIQ?
-            self.regs[14].set(self.regs[15].get() + 8)          # Save PC in LR_svc
+            self.regs[14].set(self.regs[15].get())              # Save PC in LR_svc
             self.regs[15].set(self.pcoffset + 0x08 - 4)         # Set PC to enter the interrupt
 
         elif t == InstrType.branch:
@@ -628,7 +628,7 @@ class Simulator:
                 self.regs.getSPSR().set(self.regs.getCPSR().get())                      # Save the CPSR in the current SPSR
                 self.regs.getCPSR().setMode(self.interruptParams['type'])               # Set the interrupt mode in CPSR
                 self.regs.getCPSR()[self.interruptParams['type'][0]] = True             # Disable interrupts
-                self.regs[14].set(self.pcoffset + self.regs[15].get())                  # Save PC in LR (on the FIQ or IRQ bank)
+                self.regs[14].set(self.regs[15].get() - 4)                              # Save PC in LR (on the FIQ or IRQ bank)
                 self.regs[15].set(self.pcoffset + (0x18 if self.interruptParams['type'] == "IRQ" else 0x1C))      # Set PC to enter the interrupt
                 self.lastInterruptCycle = self.sysHandle.countCycles
 
