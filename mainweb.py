@@ -88,9 +88,6 @@ def generateUpdate(inter):
     # Breakpoints
     #retval.extend(tuple({k.lower(): v.breakpoint for k,v in inter.getRegisters().items()}.items()))
     bpm = inter.getBreakpointsMem()
-    bpm["r"].append(5)
-    bpm["w"].append(24)
-    bpm["rw"].append(42)
     retval.extend([["membp_r", bpm['r']],
                    ["membp_w", bpm['w']],
                    ["membp_rw", bpm['rw']]])
@@ -108,7 +105,11 @@ def generateUpdate(inter):
     retval.append(["mem", vallist])
 
     # Registers
-    retval.extend(tuple({k.lower(): "{:08x}".format(v) for k,v in inter.getRegisters().items()}.items()))
+    registers_types = inter.getRegisters()
+    retval.extend(tuple({k.lower(): "{:08x}".format(v) for k,v in registers_types['User'].items()}.items()))
+    retval.extend(tuple({"FIQ_{}".format(k.lower()): "{:08x}".format(v) for k,v in registers_types['FIQ'].items()}.items()))
+    retval.extend(tuple({"IRQ_{}".format(k.lower()): "{:08x}".format(v) for k,v in registers_types['IRQ'].items()}.items()))
+    retval.extend(tuple({"SVC_{}".format(k.lower()): "{:08x}".format(v) for k,v in registers_types['SVC'].items()}.items()))
     retval.extend(tuple({k.lower(): "{}".format(v) for k,v in inter.getFlags().items()}.items()))
 
     return retval
@@ -117,8 +118,12 @@ def generateUpdate(inter):
 def updateDisplay(interp, force_all=False):
     print("IMPLEMENT getChanges()!")
     force_all = True
+    retval = []
     if force_all:
-        retval = [["debugline", interp.getCurrentLine()],]
+        try:
+            retval.append(["debugline", interp.getCurrentLine()])
+        except AssertionError:
+            pass
         retval.extend(generateUpdate(interp))
     else:
         retval = interp.getChanges()
@@ -161,6 +166,7 @@ def process(ws, msg_in):
                 interpreters[ws].setFlags({flag_id: val})
             elif data[1][:2].upper() == 'BP':
                 _, mode, reg_id = data[1].split('_')
+                reg_id = int(reg_id[1:])
                 # reg name, mode [r,w,rw]
                 interpreters[ws].setBreakpointRegister(reg_id, mode)
             elif data[1].upper() == 'INTERRUPT_CYCLES':
