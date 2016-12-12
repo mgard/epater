@@ -507,7 +507,10 @@
                 </div>
                 <div class="border_container"><h4>Interruptions</h4>
                     <input type="checkbox" id="interrupt_active" name="interrupt_active" value="activate"/>Activer<br/>
-                    <input class="regVal" id="interrupt_id" type="text" name="interrupt_id"/>&nbsp;num&eacute;ro<br/>
+                    Type <select id="interrupt_type">
+                        <option value="FIQ">FIQ</option>
+                        <option value="IRQ">IRQ</option>
+                    </select><br/>
                     <input class="regVal" id="interrupt_cycles" type="text" name="interrupt_cycles"/>&nbsp;cycles<br/>
                     <input class="regVal" id="interrupt_cycles_first" type="text" name="interrupt_cycles_first"/>&nbsp;cycles (first)
                 </div>
@@ -682,9 +685,9 @@ variablemem DS32 10</div>
                     ws.send(JSON.stringify(["update",  $(this).attr("id"),  $(this).val()]));
                 } else {
                     if (document.getElementById('interrupt_active').checked) {
-                        ws.send(JSON.stringify(["interrupt_on",  $("#interrupt_id").val(), $("#interrupt_cycles").val(), $("#interrupt_cycles_first").val()]));
+                        ws.send(JSON.stringify(["interrupt", true, $("#interrupt_type").val(), parseInt($("#interrupt_cycles").val()), parseInt($("#interrupt_cycles_first").val())]));
                     } else {
-                        ws.send(JSON.stringify(["interrupt_off",  $("#interrupt_id").val(), $("#interrupt_cycles").val(), $("#interrupt_cycles_first").val()]));
+                        ws.send(JSON.stringify(["interrupt", false, $("#interrupt_type").val(), parseInt($("#interrupt_cycles").val()), parseInt($("#interrupt_cycles_first").val())]));
                     }
                 }
             });
