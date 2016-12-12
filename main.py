@@ -16,13 +16,13 @@ if __name__ == '__main__':
 
     interpreter = BCInterpreter(bytecode, bcinfos)
     print(interpreter.getCurrentLine(), interpreter.getRegisters())
-    interpreter.stepforward()
+    interpreter.step()
     print(interpreter.getCurrentLine(), interpreter.getRegisters())
-    interpreter.stepforward()
+    interpreter.step()
     print(interpreter.getCurrentLine(), interpreter.getRegisters())
-    interpreter.stepforward()
+    interpreter.step()
     print(interpreter.getCurrentLine(), interpreter.getRegisters())
-    interpreter.stepforward()
+    interpreter.step()
     print(interpreter.getCurrentLine(), interpreter.getRegisters())
 
 

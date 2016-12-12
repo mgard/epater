@@ -28,95 +28,133 @@
                 <input id="dec" type="radio" name="representation" value="dec" onclick="changeBase(10);" checked="checked" /> dec
                 <input id="hex" type="radio" name="representation" value="hex" onclick="changeBase(16);"/> hex <br> -->
                 <br>
-                <b>Registers View</b> <br>
-                >> <i id="gp">Registre G&eacute;n&eacute;raux</i>
+                <h4 id="gp">Registre G&eacute;n&eacute;raux</h4>
                 <table id="registers">
+                    <thead>
+                    <tr>
+                        <th class="regh_name">Nom</th>
+                        <th class="regh_val">Valeur</th>
+                        <th class="regh_r">R</th>
+                        <th class="regh_w">W</th>
+                    </tr>
+                    </thead>
                     <tr>
                         <td>r0</td>
                         <td><input class="regVal" id="r0" type="text" name="r0"/></td>
-                        <td><input type="checkbox" name="r0_r" value="1"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r0" id="bp_r_r0"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r0" id="bp_w_r0"/></td>
                     </tr>
                     <tr>
                         <td>r1</td>
                         <td><input class="regVal" id="r1" type="text" name="r1"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r1" id="bp_r_r1"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r1" id="bp_w_r1"/></td>
                     </tr>
                     <tr>
                         <td>r2</td>
                         <td><input class="regVal" id="r2" type="text" name="r2"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r2" id="bp_r_r2"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r2" id="bp_w_r2"/></td>
                     </tr>
                     <tr>
                         <td>r3</td>
                         <td><input class="regVal" id="r3" type="text" name="r3"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r3" id="bp_r_r3"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r3" id="bp_w_r3"/></td>
                     </tr>
                     <tr>
                         <td>r4</td>
                         <td><input class="regVal" id="r4" type="text" name="r4"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r4" id="bp_r_r4"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r4" id="bp_w_r4"/></td>
                     </tr>
                     <tr>
                         <td>r5</td>
                         <td><input class="regVal" id="r5" type="text" name="r5"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r5" id="bp_r_r5"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r5" id="bp_w_r5"/></td>
                     </tr>
                     <tr>
                         <td>r6</td>
                         <td><input class="regVal" id="r6" type="text" name="r6"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r6" id="bp_r_r6"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r6" id="bp_w_r6"/></td>
                     </tr>
                     <tr>
                         <td>r7</td>
                         <td><input class="regVal" id="r7" type="text" name="r7"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r7" id="bp_r_r7"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r7" id="bp_w_r7"/></td>
                     </tr>
                     <tr>
                         <td>r8</td>
                         <td><input class="regVal" id="r8" type="text" name="r8"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r8" id="bp_r_r8"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r8" id="bp_w_r8"/></td>
                     </tr>
                     <tr>
                         <td>r9</td>
                         <td><input class="regVal" id="r9" type="text" name="r9"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r9" id="bp_r_r19"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r9" id="bp_w_r19"/></td>
                     </tr>
                     <tr>
                         <td>r10 (sl)</td>
                         <td><input class="regVal" id="r10" type="text" name="r10"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r10" id="bp_r_r10"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r10" id="bp_w_r10"/></td>
                     </tr>
                     <tr>
                         <td>r11 (fp)</td>
                         <td><input class="regVal" id="r11" type="text" name="r11"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r11" id="bp_r_r11"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r11" id="bp_w_r11"/></td>
                     </tr>
                     <tr>
                         <td>r12 (ip)</td>
                         <td><input class="regVal" id="r12" type="text" name="r12"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r12" id="bp_r_r12"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r12" id="bp_w_r12"/></td>
                     </tr>
                     <tr>
                         <td>r13 (sp)</td>
                         <td><input class="regVal" id="r13" type="text" name="r13"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r13" id="bp_r_r13"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r13" id="bp_w_r13"/></td>
                     </tr>
                     <tr>
                         <td>r14 (lr)</td>
                         <td><input class="regVal" id="r14" type="text" name="r14"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r14" id="bp_r_r14"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r14" id="bp_w_r14"/></td>
                     </tr>
                     <tr>
                         <td>r15 (pc)</td>
                         <td><input class="regVal" id="r15" type="text" name="r15"/></td>
+                        <td><input class="reg_r_cb" type="checkbox" name="bp_r_r15" id="bp_r_r15"/></td>
+                        <td><input class="reg_w_cb" type="checkbox" name="bp_w_r15" id="bp_w_r15"/></td>
                     </tr>
                 </table>
-                <div>>> <i>&Eacute;tat courant</i></div>
+                <div><h4>&Eacute;tat courant</h4></div>
                 <table>
                     <tr>
                         <td>Negatif (N)</td>
-                        <td><input class="regVal" id="n" type="text" name="n"/></td>
+                        <td><button class="flag_btn" name="n"><input class="regVal pointer" id="n" type="text" name="n" readonly/></button></td>
                     </tr>
                     <tr>
                         <td>Zero (Z)</td>
-                        <td><input class="regVal" id="z" type="text" name="z"/></td>
+                        <td><button class="flag_btn" name="z"><input class="regVal pointer" id="z" type="text" name="z" readonly/></button></td>
                     </tr>
                     <tr>
                         <td>Emprunt (C)</td>
-                        <td><input class="regVal" id="c" type="text" name="c"/></td>
+                        <td><button class="flag_btn" name="c"><input class="regVal pointer" id="c" type="text" name="c" readonly/></button></td>
                     </tr>
                     <tr>
                         <td>D&eacute;passement (V)</td>
-                        <td><input class="regVal" id="v" type="text" name="v"/></td>
+                        <td><button class="flag_btn" name="v"><input class="regVal pointer" id="v" type="text" name="v" readonly/></button></td>
                     </tr>
                 </table>
-                <div>>> <i>Interruptions</i></div>
+                <div><h4>Interruptions</h4></div>
                 <input type="checkbox" name="interrupt_active" value="activate"/>Activate<br/>
                 <input class="regVal" id="interrupt_id" type="text" name="interrupt_id"/>&nbsp;num&eacute;ro<br/>
                 <input class="regVal" id="interrupt_cycles" type="text" name="interrupt_cycles"/>&nbsp;cycles<br/>
@@ -128,8 +166,8 @@ SECTION INTVEC
 
 B main
 
-mavariable DC32 0x22, 0x1
-monautrevariable DC32 0xFFEEDDCC, 0x11223344
+mavariable DC32 0x22,  0x1
+monautrevariable DC32 0xFFEEDDCC,  0x11223344
 
 SECTION CODE
 
@@ -137,46 +175,46 @@ main
 B testmov
 
 testmov
-MOV R0, #0
-MOV R1, #0xA
-MOV R2, #1 LSL R1
-MOV R3, #0xF0000000
-MOV R4, #0x1000 ASR #3
-MOV R5, PC
+MOV R0,  #0
+MOV R1,  #0xA
+MOV R2,  #1 LSL R1
+MOV R3,  #0xF0000000
+MOV R4,  #0x1000 ASR #3
+MOV R5,  PC
 
 testop
-MOV R0, #4
-MOV R1, #0xB
-ADD R2, R0, R1
-SUB R3, R0, R1
-SUB R4, R1, R0
-AND R5, R0, R1
-ORR R6, R0, R1
-XOR R7, R6, R1
+MOV R0,  #4
+MOV R1,  #0xB
+ADD R2,  R0,  R1
+SUB R3,  R0,  R1
+SUB R4,  R1,  R0
+AND R5,  R0,  R1
+ORR R6,  R0,  R1
+XOR R7,  R6,  R1
 
 testmem
-LDR R3, mavariable
-LDR R4, =mavariable
-LDR R10, [R4, #8]
-SUB R6, PC, #8
-LDR R7, =variablemem
-STR R6, [R7]
+LDR R3,  mavariable
+LDR R4,  =mavariable
+LDR R10,  [R4,  #8]
+SUB R6,  PC,  #8
+LDR R7,  =variablemem
+STR R6,  [R7]
 
 testloop
-MOV R0, #0
-MOV R1, #0xF
-loop ADD R0, R0, #1
-CMP R0, R1
+MOV R0,  #0
+MOV R1,  #0xF
+loop ADD R0,  R0,  #1
+CMP R0,  R1
 BNE loop
 BEQ skip
-MOV R11, #0xEF
+MOV R11,  #0xEF
 skip
-MOV R2, #0xFF
-MOV R3, #255
-SUBS R4, R2, R3
-MOVGT R5, #1
-MOVLE R5, #2
-MOVEQ R6, #3
+MOV R2,  #0xFF
+MOV R3,  #255
+SUBS R4,  R2,  R3
+MOVGT R5,  #1
+MOVLE R5,  #2
+MOVEQ R6,  #3
 
 SECTION DATA
 
@@ -206,8 +244,11 @@ variablemem DS32 10
                 <div id="lable"></div>
                 <div id="data"></div>
                 <br>
-                <b>M&eacute;moire</b>
-                TODO: Coloriser les cellules?
+                <h4>M&eacute;moire</h4>
+                Breakpoints:
+                <span class="mem_r">R</span>
+                <span class="mem_w">W</span>
+                <span class="mem_rw">RW</span><br/>
                 <div id="memoryview"></div>
                 D&eacute;but:
                 <div id="paginator"></div>
@@ -239,36 +280,45 @@ variablemem DS32 10
     <script src="js/comm.js" type="text/javascript" charset="utf-8"></script>
 
     <script type="text/javascript">
+
+        function formatHexUnsigned32Bits(i) {
+            return "0x" + ("00000000" + i.toString(16)).slice(-8);
+        }
+
         var editableGrid = null;
         $(document).ready(function() {
 
-			editor.on("guttermousedown", function(e) {
+			editor.on("guttermousedown",  function(e) {
 				var target = e.domEvent.target;
 				if (target.className.indexOf("ace_gutter-cell") == -1)
 					return;
 
 				var row = e.getDocumentPosition().row ;
                  
-                var index = $.inArray(row, asm_breakpoints);
+                var index = $.inArray(row,  asm_breakpoints);
                 if (index >= 0) {
                     e.editor.session.clearBreakpoint(row);
-                    asm_breakpoints.splice(index, 1);
+                    asm_breakpoints.splice(index,  1);
                 } else {
                     e.editor.session.setBreakpoint(row);
                     asm_breakpoints.push(row);
                 }
-                sendBreakpoints();
+                sendBreakpointsInstr();
 			})
 
-            editor.on("change", function() {
+            editor.on("change",  function() {
                 //removeCodeErrors();
                 if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
-                $(".ace_content").css("background-color", "#FFF6F6");
+                $(".ace_content").css("background-color",  "#FFF6F6");
             });
 
             $("input").change(function () {
-                ws.send(JSON.stringify(["update", $(this).attr("id"), $(this).val()]));
+                ws.send(JSON.stringify(["update",  $(this).attr("id"),  $(this).val()]));
             });
+
+            $(".flag_btn").click(function() {
+                ws.send(JSON.stringify(["update",  $(this).attr("name")]));
+            })
 
             $('#gp').tooltipster({
                 content: $('<table border="1"> \
@@ -283,47 +333,88 @@ variablemem DS32 10
                                 <tr><td>0</td></tr>\
                                 <tr><td>1</td></tr>\
                                 </tbody>\
-                            </table>'),
+                            </table>'), 
                 position: 'bottom'
             });
 
             // Memory viewer
             var metadata = [];
-            metadata.push({ name: "c0", label: "00", datatype: "string", editable: true});
-            metadata.push({ name: "c1", label: "01", datatype: "string", editable: true});
-            metadata.push({ name: "c2", label: "02", datatype: "string", editable: true});
-            metadata.push({ name: "c3", label: "03", datatype: "string", editable: true});
-            metadata.push({ name: "c4", label: "04", datatype: "string", editable: true});
-            metadata.push({ name: "c5", label: "05", datatype: "string", editable: true});
-            metadata.push({ name: "c6", label: "06", datatype: "string", editable: true});
-            metadata.push({ name: "c7", label: "07", datatype: "string", editable: true});
-            metadata.push({ name: "c8", label: "08", datatype: "string", editable: true});
-            metadata.push({ name: "c9", label: "09", datatype: "string", editable: true});
+            metadata.push({ name: "ch",  label: "addr",  datatype: "string",  editable: false});
+            metadata.push({ name: "c0",  label: "00",  datatype: "string",  editable: true});
+            metadata.push({ name: "c1",  label: "01",  datatype: "string",  editable: true});
+            metadata.push({ name: "c2",  label: "02",  datatype: "string",  editable: true});
+            metadata.push({ name: "c3",  label: "03",  datatype: "string",  editable: true});
+            metadata.push({ name: "c4",  label: "04",  datatype: "string",  editable: true});
+            metadata.push({ name: "c5",  label: "05",  datatype: "string",  editable: true});
+            metadata.push({ name: "c6",  label: "06",  datatype: "string",  editable: true});
+            metadata.push({ name: "c7",  label: "07",  datatype: "string",  editable: true});
+            metadata.push({ name: "c8",  label: "08",  datatype: "string",  editable: true});
+            metadata.push({ name: "c9",  label: "09",  datatype: "string",  editable: true});
+            metadata.push({ name: "c10",  label: "0A",  datatype: "string",  editable: true});
+            metadata.push({ name: "c11",  label: "0B",  datatype: "string",  editable: true});
+            metadata.push({ name: "c12",  label: "0C",  datatype: "string",  editable: true});
+            metadata.push({ name: "c13",  label: "0D",  datatype: "string",  editable: true});
+            metadata.push({ name: "c14",  label: "0E",  datatype: "string",  editable: true});
+            metadata.push({ name: "c15",  label: "0F",  datatype: "string",  editable: true});
 
             // Not necessary?
             var data = [];
-            data.push({id: 1, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
-            data.push({id: 2, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
-            data.push({id: 3, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
-            data.push({id: 4, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
-            data.push({id: 5, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
-            data.push({id: 6, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
-            data.push({id: 7, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
-            data.push({id: 8, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
-            data.push({id: 9, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
-            data.push({id: 10, values: {"c0": "00", "c1": "00", "c2": "00", "c3": "00", "c4": "00", "c5": "00", "c6": "00", "c7": "00", "c8": "00", "c9": "00"}});
+            for (var i = 0; i < 20; i++) {
+                data.push({id: i,  values: {"c0": "00",  "c1": "00",  "c2": "00",  "c3": "00",  "c4": "00",  "c5": "00",  "c6": "00",  "c7": "00",  "c8": "00",  "c9": "00",  "c10": "00",  "c11": "00",  "c12": "00",  "c13": "00",  "c14": "00",  "c15": "00"}});
+                data[i]["values"]["ch"] = formatHexUnsigned32Bits(i*16)
+            }
              
-            editableGrid = new EditableGrid("DemoGridJsData", {
-                modelChanged: function(rowIndex, columnIndex, oldValue, newValue, row) { 
+            editableGrid = new EditableGrid("DemoGridJsData",  {
+                modelChanged: function(rowIndex,  columnIndex,  oldValue,  newValue,  row) { 
                      var addr = rowIndex*10 + columnIndex;
-                     ws.send(JSON.stringify(['memchange', addr, newValue]));
-                },
-                enableSort: false,
-                pageSize: 10,
-                tableRendered: function() { this.updatePaginator(); }
+                     ws.send(JSON.stringify(['memchange',  addr,  newValue]));
+                }, 
+                enableSort: false, 
+                pageSize: 20, 
+                tableRendered: function() {
+                    this.updatePaginator();
+
+                    for (var i = 0; i < mem_breakpoints_r.length; i++) {
+                        tofind = formatHexUnsigned32Bits(mem_breakpoints_r[i]).slice(0, 9) + "0";
+                        var tableRow = $("td", $("#memoryview")).filter(function() {
+                            return $(this).text() == tofind;
+                        }).closest("tr");
+                        if (tableRow.length < 1) {
+                            continue;
+                        }
+                        col = mem_breakpoints_r[i] % 16;
+                        $('.editablegrid-c'+col.toString(16), tableRow).addClass('mem_r');
+                    }
+
+                    for (var i = 0; i < mem_breakpoints_w.length; i++) {
+                        tofind = formatHexUnsigned32Bits(mem_breakpoints_w[i]).slice(0, 9) + "0";
+                        var tableRow = $("td", $("#memoryview")).filter(function() {
+                            return $(this).text() == tofind;
+                        }).closest("tr");
+                        if (tableRow.length < 1) {
+                            continue;
+                        }
+                        col = mem_breakpoints_w[i] % 16;
+                        $('.editablegrid-c'+col.toString(16), tableRow).addClass('mem_w');
+                    }
+
+                    for (var i = 0; i < mem_breakpoints_rw.length; i++) {
+                        tofind = formatHexUnsigned32Bits(mem_breakpoints_rw[i]).slice(0, 9) + "0";
+                        var tableRow = $("td", $("#memoryview")).filter(function() {
+                            return $(this).text() == tofind;
+                        }).closest("tr");
+                        if (tableRow.length < 1) {
+                            continue;
+                        }
+                        col = mem_breakpoints_rw[i] % 16;
+                        $('.editablegrid-c'+col, tableRow).addClass('mem_rw');
+                        
+                    }
+                    //var addr = $('td:first', $(e.toElement).closest('tr')).text();
+                }
             });
-            editableGrid.load({"metadata": metadata, "data": data});
-            editableGrid.renderGrid("memoryview", "testgrid");
+            editableGrid.load({"metadata": metadata,  "data": data});
+            editableGrid.renderGrid("memoryview",  "testgrid");
 
         });
 
@@ -331,6 +422,7 @@ variablemem DS32 10
         function image(relativePath) {
             return "./editablegrid/images/" + relativePath;
         }
+
         EditableGrid.prototype.updatePaginator = function()
         {
             var paginator = $("#paginator").empty();
@@ -341,24 +433,23 @@ variablemem DS32 10
             if (interval == null) return;
 
             // get pages in interval (with links except for the current page)
-            var pages = this.getPagesInInterval(interval, function(pageIndex, isCurrent) {
-                if (isCurrent) return "0x" + (pageIndex * 10*10).toString(16);
-                console.log(pageIndex);
-                return $("<a>").css("cursor", "pointer").html("0x" + (pageIndex * 10*10).toString(16))
-                    .attr('rel', pageIndex + 1)
+            var pages = this.getPagesInInterval(interval,  function(pageIndex,  isCurrent) {
+                if (isCurrent) return "0x" + (pageIndex * 20*16).toString(16);
+                return $("<a>").css("cursor",  "pointer").html("0x" + (pageIndex * 20*16).toString(16))
+                    .attr('rel',  pageIndex + 1)
                     .click(function(event) { editableGrid.setPageIndex(parseInt($(this).attr('rel')) - 1); });
             });
 
             // "first" link
             /*var link = $("<a>").html("<img src='" + image("gofirst.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
-            if (!this.canGoBack()) link.css({ opacity : 0.4, filter: "alpha(opacity=40)" });
-            else link.css("cursor", "pointer").click(function(event) { editableGrid.firstPage(); });
+            if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
+            else link.css("cursor",  "pointer").click(function(event) { editableGrid.firstPage(); });
             paginator.append(link);
 
             // "prev" link
             link = $("<a>").html("<img src='" + image("prev.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
-            if (!this.canGoBack()) link.css({ opacity : 0.4, filter: "alpha(opacity=40)" });
-            else link.css("cursor", "pointer").click(function(event) { editableGrid.prevPage(); });
+            if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
+            else link.css("cursor",  "pointer").click(function(event) { editableGrid.prevPage(); });
             paginator.append(link);*/
 
             // pages
@@ -369,19 +460,34 @@ variablemem DS32 10
 
             // "next" link
             /*link = $("<a>").html("<img src='" + image("next.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
-            if (!this.canGoForward()) link.css({ opacity : 0.4, filter: "alpha(opacity=40)" });
-            else link.css("cursor", "pointer").click(function(event) { editableGrid.nextPage(); });
+            if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
+            else link.css("cursor",  "pointer").click(function(event) { editableGrid.nextPage(); });
             paginator.append(link);
 
             // "last" link
             link = $("<a>").html("<img src='" + image("golast.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
-            if (!this.canGoForward()) link.css({ opacity : 0.4, filter: "alpha(opacity=40)" });
-            else link.css("cursor", "pointer").click(function(event) { editableGrid.lastPage(); });
+            if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
+            else link.css("cursor",  "pointer").click(function(event) { editableGrid.lastPage(); });
             paginator.append(link);*/
+            $(".editablegrid-c0, .editablegrid-c1, .editablegrid-c2, .editablegrid-c3, .editablegrid-c4, .editablegrid-c5, .editablegrid-c6, .editablegrid-c7, .editablegrid-c8, .editablegrid-c9, .editablegrid-c10, .editablegrid-c11, .editablegrid-c12, .editablegrid-c13, .editablegrid-c14, .editablegrid-c15").click(function(e) {
+              var addr = $('td:first', $(e.toElement).closest('tr')).text();
+              if(e.shiftKey) {
+                ws.send(JSON.stringify(['breakpointsmem', addr, 'r']));
+              }
+              if(e.ctrlKey) {
+                ws.send(JSON.stringify(['breakpointsmem', addr, 'w']));
+              }
+              if(e.altKey) {
+                //ws.send(JSON.stringify(['breakpointsmem', addr, 'e']));
+              }
+            });
         };
+
+
+
         function saveTextAsFile() {
             var textToWrite = editor.getValue();
-            var textFileAsBlob = new Blob([textToWrite], {type: 'text/plain'});
+            var textFileAsBlob = new Blob([textToWrite],  {type: 'text/plain'});
             var fileNameToSaveAs = "prog.s";
             var downloadLink = document.createElement("a");
             downloadLink.download = fileNameToSaveAs;

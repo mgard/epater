@@ -49,6 +49,9 @@ CellRenderer.prototype.render = function(element, value, escapehtml)
 
 CellRenderer.prototype.getDisplayValue = function(rowIndex, value) 
 {
+	// for html data type, sort and filter after replacing html entities
+	if (this.column.datatype == 'html') return html_entity_decode(value);
+			
 	return value;
 };
 
@@ -62,17 +65,17 @@ function EnumCellRenderer(config) { this.init(config); }
 EnumCellRenderer.prototype = new CellRenderer();
 EnumCellRenderer.prototype.getLabel = function(rowIndex, value)
 {
-	var label = "";
+	var label = null;
 	if (typeof value != 'undefined') {
 		value = value ? value : '';
 		var optionValues = this.column.getOptionValuesForRender(rowIndex);
 		if (optionValues && value in optionValues) label = optionValues[value];
-		if (label == "") {
+		if (label === null) {
 			var isNAN = typeof value == 'number' && isNaN(value);
 			label = isNAN ? "" : value;
 		}
 	}
-	return label;
+	return label ? label : '';
 };
 
 EnumCellRenderer.prototype.render = function(element, value)
@@ -220,7 +223,7 @@ DateCellRenderer.prototype.render = function(cell, value)
 {
 	var date = this.editablegrid.checkDate(value);
 	if (typeof date == "object") cell.innerHTML = date.formattedDate;
-	else cell.innerHTML = value;
+	else cell.innerHTML = value ? value : "";
 	cell.style.whiteSpace = 'nowrap';
 };
 
@@ -283,7 +286,7 @@ SortHeaderRenderer.prototype.render = function(cell, value)
 		// add an arrow to indicate if sort is ascending or descending
 		if (this.editablegrid.sortedColumnName == this.columnName) {
 			cell.appendChild(document.createTextNode("\u00a0"));
-			cell.appendChild(this.editablegrid.sortDescending ? this.editablegrid.sortDownImage: this.editablegrid.sortUpImage);
+			cell.appendChild(this.editablegrid.sortDescending ? this.editablegrid.sortDownElement: this.editablegrid.sortUpElement);
 		}
 
 		// call user renderer if any

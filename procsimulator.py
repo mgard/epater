@@ -1,18 +1,10 @@
 import operator
 import struct
 from enum import Enum
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from settings import getSetting
 from instruction import BytecodeToInstrInfos, InstrType
-
-
-def wrapAroundUint32(val):
-    if val > 2**32-1:
-        val -= 2**32
-    elif val < 0:
-        val += 2**32
-    return val
 
 
 class SimulatorError(Exception):
@@ -21,66 +13,210 @@ class SimulatorError(Exception):
     def __str__(self):
         return self.desc
 
-class Breakpoint(Exception):
-    def __init__(self, addr):
-        self.a = addr
-    def __str__(self):
-        return "Breakpoint {} atteint!".format(self.a)
+
+BkptInfo = namedtuple("BkptInfo", ['source', 'mode', 'infos'])
+class SystemHandler:
+    def __init__(self, initCountCycles=0):
+        self.breakpointTrigged = None
+        self.breakpointInfo = None
+        self.countCycles = initCountCycles
+        self.clearBreakpoint()
+
+    def clearBreakpoint(self):
+        self.breakpointTrigged = False
+        self.breakpointInfo = None
+
+    def throw(self, infos):
+        self.breakpointTrigged = True
+        self.breakpointInfo = infos
 
 
 class Register:
 
-    def __init__(self, n, val=0, altname=None):
+    def __init__(self, n, systemHandle, val=0, altname=None):
         self.id = n
         self.val = val
+        self.sys = systemHandle
         self.altname = altname
-        self.history = []
         self.breakpoint = 0
+        self.history = []
 
     @property
     def name(self):
         return "R{}".format(self.id)
 
     def get(self, mayTriggerBkpt=True):
-        if self.breakpoint & 4:
-            raise Breakpoint(self.name)
-        return self.val
-
-    def set(self, val, mayTriggerBkpt=True):
-        val = wrapAroundUint32(val)
-        if mayTriggerBkpt and self.breakpoint & 2:
-            raise Breakpoint(self.name)
-        self.history.append(val)
-        self.val = val
-
-
-class Flag:
-
-    def __init__(self, name):
-        self.name = name
-        self.val = False
-        self.breakpoint = 0
-
-    def __bool__(self):
-        return self.get()
-
-    def get(self, mayTriggerBkpt=True):
         if mayTriggerBkpt and self.breakpoint & 4:
-            raise Breakpoint(self.name)
+            self.sys.throw(BkptInfo("register", 4, self.id))
         return self.val
 
     def set(self, val, mayTriggerBkpt=True):
+        val &= 0xFFFFFFFF
         if mayTriggerBkpt and self.breakpoint & 2:
-            raise Breakpoint(self.name)
+            self.sys.throw(BkptInfo("register", 2, self.id))
+        self.history.append((self.sys.countCycles, val))
         self.val = val
+
+    def stepBack(self):
+        # Set the register as it was one step back
+        while self.history[-1][0] >= self.sys.countCycles:
+            self.history.pop()
+            self.val = self.history[-1][1]
+
+
+class ControlRegister:
+    flag2index = {'N': 31, 'Z': 30, 'C': 29, 'V': 28, 'I': 7, 'F': 6}
+    index2flag = {v:k for k,v in flag2index.items()}
+    mode2bits = {'User': 16, 'FIQ': 17, 'IRQ': 18, 'SVC': 19}       # Other modes are not supported
+    bits2mode = {v:k for k,v in mode2bits.items()}
+
+    def __init__(self, name, systemHandle):
+        self.regname = name
+        self.sys = systemHandle
+        self.val = 0x100
+        self.breakpoints = {flag:0 for flag in self.flag2index.keys()}
+        self.history = []
+
+    @property
+    def name(self):
+        return self.regname
+
+    def setMode(self, mode):
+        if mode not in self.mode2bits:
+            raise KeyError
+        self.val |= self.mode2bits[mode]
+        self.val &= 0xFFFFFFE0 + self.mode2bits[mode]
+        self.history.append((self.sys.countCycles, self.val))
+
+    def getMode(self):
+        return self.bits2mode[self.val & 0x1F]
+
+    def __getitem__(self, flag):
+        flag = flag.upper()
+        if flag not in self.flag2index:      # Thumb and Jazelle mode are not implemented
+            raise KeyError
+
+        if self.breakpoints[flag] & 4:
+            self.sys.throw(BkptInfo("flag", 4, flag))
+
+        return bool((self.val >> self.flag2index[flag]) & 0x1)
+
+    def __setitem__(self, flag, value):
+        flag = flag.upper()
+        if flag not in self.flag2index:
+            raise KeyError
+
+        if self.breakpoints[flag] & 2:
+            self.sys.throw(BkptInfo("flag", 2, flag))
+
+        if value:   # We set the flag
+            self.val |= 1 << self.flag2index[flag]
+        else:       # We clear the flag
+            self.val &= 0xFFFFFFFF - (1 << self.flag2index[flag])
+        self.history.append((self.sys.countCycles, self.val))
+
+    def get(self):
+        # Return the content of the PSR as an integer
+        return self.val
+
+    def getAllFlags(self):
+        # This function never triggers a breakpoint
+        return {flag: bool((self.val >> self.flag2index[flag]) & 0x1) for flag in self.flag2index.keys()}
+
+    def set(self, val):
+        # Be careful with this method, many PSR values are illegal
+        # Use setMode and __setitem__ whenever possible!
+        # Mostly use for internal purposes like saving the CPSR in SPSR when an interrupt arises
+        self.val = val
+        self.history.append((self.sys.countCycles, self.val))
+
+    def stepBack(self):
+        # Set the program status registers as they were one step back
+        while self.history[-1][0] >= self.sys.countCycles:
+            self.history.pop()
+            self.val = self.history[-1][1]
+
+
+class BankedRegisters:
+
+    def __init__(self, systemHandle):
+        self.sys = systemHandle
+        self.history = []
+        # Create regular registers
+        self.banks = {}
+        regs = [Register(i, systemHandle) for i in range(16)]
+        regs[13].altname = "SP"
+        regs[14].altname = "LR"
+        regs[15].altname = "PC"
+        # We add the flags
+        # No SPSR in user mode
+        flags = (ControlRegister("CPSR", systemHandle),)
+        self.banks['User'] = (regs, flags)
+
+        # Create FIQ registers
+        regsFIQ = regs[:8]          # R0-R7 are shared
+        regsFIQ.extend(Register(i, systemHandle) for i in range(8, 15))        # R8-R14 are exclusive
+        regsFIQ.append(regs[15])    # PC is shared
+        flagsFIQ = (flags[0], ControlRegister("SPSR_fiq", systemHandle))
+        self.banks['FIQ'] = (regsFIQ, flagsFIQ)
+
+        # Create IRQ registers
+        regsIRQ = regs[:13]         # R0-R12 are shared
+        regsIRQ.extend(Register(i, systemHandle) for i in range(13, 15))        # R13-R14 are exclusive
+        regsIRQ.append(regs[15])    # PC is shared
+        flagsIRQ = (flags[0], ControlRegister("SPSR_irq", systemHandle))
+        self.banks['IRQ'] = (regsIRQ, flagsIRQ)
+
+        # Create SVC registers (used with software interrupts)
+        regsSVC = regs[:13]  # R0-R12 are shared
+        regsSVC.extend(Register(i, systemHandle) for i in range(13, 15))  # R13-R14 are exclusive
+        regsSVC.append(regs[15])  # PC is shared
+        flagsSVC = (flags[0], ControlRegister("SPSR_svc", systemHandle))
+        self.banks['SVC'] = (regsSVC, flagsSVC)
+
+        # By default, we are in user mode
+        self.setCurrentBank("User")
+
+    def setCurrentBank(self, bankname):
+        self.currentBank = bankname
+        self.history.append((self.sys.countCycles, bankname))
+
+    def __getitem__(self, item):
+        if not isinstance(item, int) or item < 0 or item > 15:
+            raise IndexError
+        return self.banks[self.currentBank][0][item]
+
+    def getCPSR(self):
+        return self.banks[self.currentBank][1][0]
+
+    def getSPSR(self):
+        if self.currentBank == "User":
+            assert False, "No SPSR register in user mode!"
+        return self.banks[self.currentBank][1][1]
+
+    def getAllRegisters(self):
+        # Helper function to get all registers from all banks at once
+        # The result is returned as a dictionary of dictionary
+        return {bname: {reg.name: reg.get(mayTriggerBkpt=False) for reg in bank[0]} for bname, bank in self.banks.items()}
+
+    def stepBack(self):
+        # Set the registers and flags as they were one step back
+        for bank in self.banks.values():
+            for reg in bank:
+                reg.stepBack()
+
+        while self.history[-1][0] >= self.sys.countCycles:
+            self.history.pop()
+            self.currentBank = self.history[-1][1]
 
 
 class Memory:
 
-    def __init__(self, memcontent, initval=0):
+    def __init__(self, memcontent, systemHandle, initval=0):
         self.size = sum(len(b) for b in memcontent)
         self.initval = initval
         self.history = []
+        self.sys = systemHandle
         self.startAddr = memcontent['__MEMINFOSTART']
         self.endAddr = memcontent['__MEMINFOEND']
         self.maxAddr = max(self.endAddr.values())
@@ -95,6 +231,8 @@ class Memory:
         # If n & 2, then it is active for each write operation
         # If n & 1, then it is active for each exec operation (namely, an instruction load)
         self.breakpoints = defaultdict(int)
+
+        self.history = []
 
     def _getRelativeAddr(self, addr, size):
         """
@@ -114,11 +252,14 @@ class Memory:
     def get(self, addr, size=4, execMode=False):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
-            raise SimulatorError("Adresse 0x{:X} invalide".format(addr))
+            self.sys.throw(BkptInfo("memory", 8, addr))
+            return None
 
         for offset in range(size):
-            if (execMode and self.breakpoints[addr+offset]) & 1 or self.breakpoints[addr+offset] & 4:
-                raise Breakpoint(addr+offset)
+            if execMode and self.breakpoints[addr+offset] & 1:
+                self.sys.throw(BkptInfo("memory", 1, addr + offset))
+            if self.breakpoints[addr+offset] & 4:
+                self.sys.throw(BkptInfo("memory", 4, addr + offset))
 
         sec, offset = resolvedAddr
         return self.data[sec][offset:offset+size]
@@ -126,15 +267,16 @@ class Memory:
     def set(self, addr, val, size=4):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
-            raise SimulatorError("Adresse 0x{:X} invalide".format(addr))
+            self.sys.throw(BkptInfo("memory", 8, addr))
+            return
 
         for offset in range(size):
             if self.breakpoints[addr+offset] & 2:
-                raise Breakpoint(addr+offset)
+                self.sys.throw(BkptInfo("memory", 2, addr + offset))
 
         sec, offset = resolvedAddr
-        val = wrapAroundUint32(val)
-        self.history.append((sec, offset, size, val))
+        val &= 0xFFFFFFFF
+        self.history.append((self.sys.countCycles, sec, offset, size, val, self.data[sec][offset:offset+size]))
         self.data[sec][offset:offset+size] = val
 
     def serialize(self):
@@ -153,6 +295,19 @@ class Memory:
             ret_val += bytearray('\0' * padding_size, 'utf-8')
         return ret_val
 
+    def setBreakpoint(self, addr, modeOctal):
+        self.breakpoints[addr] = modeOctal
+
+    def removeBreakpoint(self, addr):
+        self.breakpoints[addr] = 0
+
+    def stepBack(self):
+        # Set the memory as it was one step back in the past
+        while self.history[-1][0] >= self.sys.countCycles:
+            _, sec, offset, size, val, previousVal = self.history.pop()
+            self.data[sec][offset:offset+size] = previousVal
+
+
 
 class SimState(Enum):
     undefined = -1
@@ -166,24 +321,29 @@ class Simulator:
 
     def __init__(self, memorycontent):
         self.state = SimState.uninitialized
-        self.mem = Memory(memorycontent)
+        self.sysHandle = SystemHandler()
+        self.mem = Memory(memorycontent, self.sysHandle)
+        self.pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
 
-        self.regs = [Register(i) for i in range(16)]
-        self.regs[13].altname = "SP"
-        self.regs[14].altname = "LR"
-        self.regs[15].altname = "PC"
+        self.interruptActive = False
+        self.interruptParams = {'b': 0, 'a': 0, 't0': 0, 'type': "FIQ"}       # Interrupt trigged at each a*(t-t0) + b cycles
+        self.lastInterruptCycle = -1
+
+        self.regs = BankedRegisters(self.sysHandle)
 
         self.stepMode = None
         self.stepCondition = 0
 
-        self.flags = {'Z': Flag('Z'),
-                      'V': Flag('V'),
-                      'C': Flag('C'),
-                      'N': Flag('N')}
+        self.flags = self.regs.getCPSR()
+
+        self.fetchedInstr = None
 
     def reset(self):
-        self.regs[15].set(0)
         self.state = SimState.ready
+        self.sysHandle.countCycle = 0
+        self.regs[15].set(self.pcoffset)
+        # We fetch the first instruction
+        self.fetchedInstr = bytes(self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True))
 
     def _printState(self):
         """
@@ -193,7 +353,6 @@ class Simulator:
         pass
 
     def isStepDone(self):
-        # TODO : a breakpoint always reset this
         if self.stepMode == "forward":
             if self.stepCondition == 2:
                 # The instruction was a function call
@@ -204,6 +363,8 @@ class Simulator:
                 return True
         if self.stepMode == "out":
             return self.stepCondition == 0
+
+        # We are doing a step into, we always stop
         return True
 
 
@@ -211,6 +372,13 @@ class Simulator:
         assert stepMode in ("out", "forward")
         self.stepMode = stepMode
         self.stepCondition = 1
+
+
+    def stepBack(self, count):
+        for i in range(count):
+            self.mem.stepBack()
+            self.regs.stepBack()
+            self.sysHandle.countCycles -= 1             # We decrement the cycle counter
 
 
     def _shiftVal(self, val, shiftInfo):
@@ -238,7 +406,7 @@ class Simulator:
         return carryOut, val
 
 
-    def execInstr(self, addr):
+    def execInstr(self):
         """
         Execute one instruction
         :param addr: Address of the instruction in memory
@@ -246,44 +414,50 @@ class Simulator:
         This function may throw a SimulatorError exception if there's an error, or a Breakpoint exception,
         in which case it is not an error but rather a Breakpoint reached.
         """
-        # Retrieve instruction from memory
-        bc = bytes(self.mem.get(addr, execMode=True))    # Memory is little endian, so we convert it back to a more usable form
 
         # Decode it
-        t, regs, cond, misc = BytecodeToInstrInfos(bc)
+        t, regs, cond, misc = BytecodeToInstrInfos(self.fetchedInstr)
         workingFlags = {}
 
         # Check condition
         # Warning : here we check if the condition is NOT met, hence we use the
         # INVERSE of the actual condition
         # See Table 4-2 of ARM7TDMI data sheet as reference of these conditions
-        if cond == "EQ" and not self.flags['Z'] or \
-            cond == "NE" and self.flags['Z'] or \
-            cond == "CS" and not self.flags['C'] or \
-            cond == "CC" and self.flags['C'] or \
-            cond == "MI" and not self.flags['N'] or \
-            cond == "PI" and self.flags['N'] or \
-            cond == "VS" and not self.flags['V'] or \
-            cond == "VC" and self.flags['V'] or \
-            cond == "HI" and (not self.flags['C'] or self.flags['Z']) or \
-            cond == "LS" and (self.flags['C'] and not self.flags['Z']) or \
-            cond == "GE" and not self.flags['V'] == self.flags['N'] or \
-            cond == "LT" and self.flags['V'] == self.flags['N'] or \
-            cond == "GT" and (self.flags['Z'] or not self.flags['V'] == self.flags['N']) or \
-            cond == "LE" and (not self.flags['Z'] and self.flags['V'] == self.flags['N']):
+        if (cond == "EQ" and not self.flags['Z'] or
+            cond == "NE" and self.flags['Z'] or
+            cond == "CS" and not self.flags['C'] or
+            cond == "CC" and self.flags['C'] or
+            cond == "MI" and not self.flags['N'] or
+            cond == "PI" and self.flags['N'] or
+            cond == "VS" and not self.flags['V'] or
+            cond == "VC" and self.flags['V'] or
+            cond == "HI" and (not self.flags['C'] or self.flags['Z']) or
+            cond == "LS" and (self.flags['C'] and not self.flags['Z']) or
+            cond == "GE" and not self.flags['V'] == self.flags['N'] or
+            cond == "LT" and self.flags['V'] == self.flags['N'] or
+            cond == "LE" and (not self.flags['Z'] and self.flags['V'] == self.flags['N'])):
             # Condition not met, return
             return
 
         # Execute it
-        if t == InstrType.branch:
+        if t == InstrType.softinterrupt:
+            # We enter a software interrupt
+            self.regs.setCurrentBank("SVC")                     # Set the register bank
+            self.regs.getSPSR().set(self.regs.getCPSR().get())  # Save the CPSR in the current SPSR
+            self.regs.getCPSR().setMode("SVC")                  # Set the interrupt mode in CPSR
+            # Does entering SVC interrupt deactivate IRQ and/or FIQ?
+            self.regs[14].set(self.regs[15].get() + 8)          # Save PC in LR_svc
+            self.regs[15].set(self.pcoffset + 0x08)             # Set PC to enter the interrupt
+
+        elif t == InstrType.branch:
             if misc['L']:       # Link
                 self.regs[14].set(self.regs[15].get()+4)
                 self.stepCondition += 1         # We are entering a function, we log it (useful for stepForward and stepOut)
             if misc['mode'] == 'imm':
                 print(misc['offset'])
-                self.regs[15].set(self.regs[15].get() + misc['offset'] - 4)
+                self.regs[15].set(self.pcoffset + self.regs[15].get() + misc['offset'] - 4)
             else:   # BX
-                self.regs[15].set(self.regs[misc['offset']].get() - 4)
+                self.regs[15].set(self.pcoffset + self.regs[misc['offset']].get() - 4)
                 self.stepCondition -= 1         # We are returning from a function, we log it (useful for stepForward and stepOut)
 
         elif t == InstrType.memop:
@@ -297,13 +471,34 @@ class Simulator:
 
             realAddr = addr if misc['pre'] else baseval
             if misc['mode'] == 'LDR':
-                res = struct.unpack("<I", self.mem.get(realAddr, size=1 if misc['byte'] else 4))[0]
+                m = self.mem.get(realAddr, size=1 if misc['byte'] else 4)
+                if m is None:       # No such address in the mapped memory, we cannot continue
+                    return
+                res = struct.unpack("<I", m)[0]
                 self.regs[misc['rd']].set(res)
             else:       # STR
                 self.mem.set(realAddr, self.regs[misc['rd']].get(), size=1 if misc['byte'] else 4)
 
             if misc['writeback']:
                 self.regs[misc['base']].set(addr)
+
+        elif t == InstrType.psrtransfer:
+            if misc['write']:
+                if misc['flagsOnly']:
+                    if misc['imm']:
+                        valToSet = misc['op2'][0]
+                        if misc['op2'][1][2] != 0:
+                            _, valToSet = self._shiftVal(valToSet, misc['op2'][1])
+                    else:
+                        valToSet = self.regs[misc['op2'][0]] & 0xF0000000   # We only keep the condition flag bits
+                else:
+                    valToSet = self.regs[misc['op2'][0]]
+                if misc['usespsr']:
+                    self.regs.getSPSR().set(valToSet)
+                else:
+                    self.regs.getCPSR().set(valToSet)
+            else:       # Read
+                self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
 
         elif t == InstrType.dataop:
             # Get first operand value
@@ -322,15 +517,16 @@ class Simulator:
             destrd = misc['rd']
 
             if misc['opcode'] in ("AND", "TST"):
+                # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
                 res = op1 & op2
-                # TODO : update flags
             elif misc['opcode'] in ("EOR", "TEQ"):
+                # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
                 res = op1 ^ op2
-                # TODO : update flags
             elif misc['opcode'] in ("SUB", "CMP"):
+                # TODO : update carry and overflow flags
                 res = op1 - op2
-                # TODO : update flags
             elif misc['opcode'] == "RSB":
+                # TODO : update carry and overflow flags
                 res = op2 - op1
             elif misc['opcode'] in ("ADD", "CMN"):
                 res = op1 + op2
@@ -338,14 +534,16 @@ class Simulator:
                 if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
                     workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
             elif misc['opcode'] == "ADC":
-                res = op1 + op2 + int(self.flags['C'])
+                res = op1 + op2 + int(self.flags['C'].get())
                 workingFlags['C'] = bool(res & (1 << 32))
                 if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
                     workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
             elif misc['opcode'] == "SBC":
-                res = op1 - op2 + int(self.flags['C']) - 1
+                # TODO : update carry and overflow flags
+                res = op1 - op2 + int(self.flags['C'].get()) - 1
             elif misc['opcode'] == "RSC":
-                res = op2 - op1 + int(self.flags['C']) - 1
+                # TODO : update carry and overflow flags
+                res = op2 - op1 + int(self.flags['C'].get()) - 1
             elif misc['opcode'] == "ORR":
                 res = op1 | op2
             elif misc['opcode'] == "MOV":
@@ -359,18 +557,64 @@ class Simulator:
 
             if res == 0:
                 workingFlags['Z'] = True
-            if res < 0:
-                workingFlags['N'] = True
+            if res & 0x80000000:
+                workingFlags['N'] = True            # "N flag will be set to the value of bit 31 of the result" (4.5.1)
 
             if misc['setflags']:
-                for flag in workingFlags:
-                    self.flags[flag].set(workingFlags[flag])
+                if destrd == 15:
+                    # Combining writing to PC and the S flag is a special case (see ARM Instr. set, 4.5.5)
+                    # "When Rd is R15 and the S flag is set the result of the operation is placed in R15 and
+                    # the SPSR corresponding to the current mode is moved to the CPSR. This allows state
+                    # changes which atomically restore both PC and CPSR. This form of instruction should
+                    # not be used in User mode."
+                    #
+                    # Globally, it tells out to get out of an interrupt
+                    if self.regs.getCPSR().getMode() == "User":
+                        assert False, "Error, using S flag and PC as destination register in user mode!"
+                    self.regs.getCPSR().set(self.regs.getSPSR().get())          # Put back the saved SPSR in CPSR
+                else:
+                    for flag in workingFlags:
+                        self.flags[flag].set(workingFlags[flag])
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
                 # We actually write the result
                 self.regs[destrd].set(res)
 
     def nextInstr(self):
-        self.execInstr(self.regs[15].get())
+        # We clear an eventual breakpoint
+        self.sysHandle.clearBreakpoint()
+
+        # The instruction should have been fetched by the last instruction
+        self.execInstr()
         self.regs[15].set(self.regs[15].get()+4)        # PC = PC + 4
 
+        # Retrieve instruction from memory
+        nextInstrBytes = self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True)
+        if nextInstrBytes is not None:          # We did not make an illegal memory access
+            self.fetchedInstr = bytes(nextInstrBytes)
+
+        # We look for interrupts
+        # The current instruction is always finished before the interrupt
+        # TODO Handle special cases for LDR and STR multiples
+        if self.interruptActive and (self.lastInterruptCycle == -1 and self.sysHandle.countCycles - self.interruptParams['b'] >= self.interruptParams['t0'] or
+                                        self.lastInterruptCycle >= 0 and self.sysHandle.countCycles - self.lastInterruptCycle >= self.interruptParams['a']):
+            if (self.interruptParams['type'] == "FIQ" and not self.regs.getCPSR()['F'] or
+                    self.interruptParams['type'] == "IRQ" and not self.regs.getCPSR()['I']):        # Is the interrupt masked?
+                # Interruption!
+                # We enter it (the entry point is 0x18 for IRQ and 0x1C for FIQ)
+                self.regs.setCurrentBank(self.interruptParams['type'])                  # Set the register bank
+                self.regs.getSPSR().set(self.regs.getCPSR().get())                      # Save the CPSR in the current SPSR
+                self.regs.getCPSR().setMode(self.interruptParams['type'])               # Set the interrupt mode in CPSR
+                self.regs.getCPSR()[self.interruptParams['type'][0]] = True             # Disable interrupts
+                self.regs[14].set(self.pcoffset + self.regs[15].get())                  # Save PC in LR (on the FIQ or IRQ bank)
+                self.regs[15].set(self.pcoffset + (0x18 if self.interruptParams['type'] == "IRQ" else 0x1C))      # Set PC to enter the interrupt
+                self.lastInterruptCycle = self.sysHandle.countCycles
+
+        # Question : if we hit a breakpoint for the _next_ instruction, should we enter the interrupt anyway?
+        # Did we hit a breakpoint?
+        # A breakpoint always stop the simulator
+        if self.sysHandle.breakpointTrigged:
+            self.stepMode = None
+
+        # One more cycle done!
+        self.sysHandle.countCycles += 1
 

@@ -84,12 +84,25 @@ def generateUpdate(inter):
     Generates the messages to update the interface
     """
     retval = []
+
+    # Breakpoints
+    #retval.extend(tuple({k.lower(): v.breakpoint for k,v in inter.getRegisters().items()}.items()))
+    bpm = inter.getBreakpointsMem()
+    bpm["r"].append(5)
+    bpm["w"].append(24)
+    bpm["rw"].append(42)
+    retval.extend([["membp_r", bpm['r']],
+                   ["membp_w", bpm['w']],
+                   ["membp_rw", bpm['rw']]])
+
     # Memory View
     mem = inter.getMemory()
-    chunks = [mem[x:x+10] for x in range(0, len(mem), 10)]
+    mem_addrs = range(0, len(mem), 16)
+    chunks = [mem[x:x+16] for x in mem_addrs]
     vallist = []
     for i, line in enumerate(chunks):
         cols = {"c{}".format(j): "{:02x}".format(char).upper() for j, char in enumerate(line)}
+        cols["ch"] = "0x{:08x}".format(mem_addrs[i])
         # web interface is 1-indexed in this case
         vallist.append({"id": i + 1, "values": cols})
     retval.append(["mem", vallist])
@@ -97,13 +110,13 @@ def generateUpdate(inter):
     # Registers
     retval.extend(tuple({k.lower(): "{:08x}".format(v) for k,v in inter.getRegisters().items()}.items()))
     retval.extend(tuple({k.lower(): "{}".format(v) for k,v in inter.getFlags().items()}.items()))
-    print(retval)
+
     return retval
 
 
 def updateDisplay(interp, force_all=False):
-    # TODO: Update only required (MAG a dit que ca serait simple)
-    force_all = True # TODO: TEMPORAIRE
+    print("IMPLEMENT getChanges()!")
+    force_all = True
     if force_all:
         retval = [["debugline", interp.getCurrentLine()],]
         retval.extend(generateUpdate(interp))
@@ -134,32 +147,34 @@ def process(ws, msg_in):
             interpreters[ws].step(data[1])
         elif data[0] == 'reset':
             interpreters[ws].reset()
-        elif data[0] == 'breakpointsinst':
+        elif data[0] == 'breakpointsinstr':
             interpreters[ws].setBreakpointInstr(data[1])
         elif data[0] == 'breakpointsmem':
-            # addr, mode [r,w,rw]
             interpreters[ws].setBreakpointMem(data[1], data[2])
-        elif data[0] == 'breakpointsregister':
-            # reg name, mode [r,w,rw]
-            interpreters[ws].setBreakpointRegister(data[1], data[2])
         elif data[0] == 'update':
             if data[1][0].upper() == 'R':
                 reg_id = int(data[1][1:])
                 interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
             elif data[1].upper() in ('N', 'Z', 'C', 'V'):
-                interpreters[ws].setFlags({data[1]: int(data[2], 16)})
+                flag_id = data[1].upper()
+                val = not interpreters[ws].getFlags()[flag_id]
+                interpreters[ws].setFlags({flag_id: val})
+            elif data[1][:2].upper() == 'BP':
+                _, mode, reg_id = data[1].split('_')
+                # reg name, mode [r,w,rw]
+                interpreters[ws].setBreakpointRegister(reg_id, mode)
             elif data[1].upper() == 'INTERRUPT_CYCLES':
                 pass
             elif data[1].upper() == 'INTERRUPT_ID':
                 pass
-            retval.extend(generateUpdate(interpreters[ws]))
         elif data[0] == 'memchange':
             val = bytearray([int(data[2], 16)])
             interpreters[ws].sim.mem.set(data[1], val, 1)
-            retval.extend(generateUpdate(interpreters[ws]))
         else:
             print("<{}> Unknown message: {}".format(ws, data))
+
     del msg_in[:]
+
     if ws in interpreters:
         return updateDisplay(interpreters[ws], force_update_all)
     return []

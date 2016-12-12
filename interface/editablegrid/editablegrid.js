@@ -118,7 +118,10 @@ function EnumProvider(config)
  * @constructor
  * @class EditableGrid
  */
-function EditableGrid(name, config) { if (name) this.init(name, config); }
+function EditableGrid(name, config) { 
+	if (typeof name != 'undefined' && name.replace(/\s+/g,'') == "") console.error("EditableGrid() : parameter [name] cannot be empty."); 
+	if (name) this.init(name, config);
+}
 
 /**
  * Default properties
@@ -148,7 +151,7 @@ EditableGrid.prototype.paginatorAttributes = null;
 EditableGrid.prototype.lastURL = null;
 
 EditableGrid.prototype.init = function (name, config)
-{
+{   
 	if (typeof name != "string" || (typeof config != "object" && typeof config != "undefined")) {
 		alert("The EditableGrid constructor takes two arguments:\n- name (string)\n- config (object)\n\nGot instead " + (typeof name) + " and " + (typeof config) + ".");
 	};
@@ -187,18 +190,21 @@ EditableGrid.prototype.init = function (name, config)
 	this.currentTableid = null;
 
 	if (this.enableSort) {
-		this.sortUpImage = new Image();
-		if ( typeof config != "undefined" && typeof config['sortIconUp'] != "undefined" ) 
-			this.sortUpImage.src = config['sortIconUp'];
-		else
-			this.sortUpImage.src = this.baseUrl + "/images/bullet_arrow_up.png";
+		if ( typeof config != "undefined" && typeof config['sortIconUp'] != "undefined" ) {
+			this.sortUpElement = new Image();
+			this.sortUpElement.src = config['sortIconUp'];
+		} else {
+			this.sortUpElement = document.createElement('span');
+			this.sortUpElement.innerHTML = '&#8593;' // Unicode 'up' arrow
+		}
 
-
-		this.sortDownImage = new Image();
-		if ( typeof config != "undefined" && typeof config['sortIconDown'] != "undefined" ) 
-			this.sortDownImage.src = config['sortIconDown'];
-		else
-			this.sortDownImage.src = this.baseUrl + "/images/bullet_arrow_down.png";
+		if ( typeof config != "undefined" && typeof config['sortIconDown'] != "undefined" ) {
+			this.sortDownElement = new Image();
+			this.sortDownElement.src = config['sortIconDown'];
+		} else {
+			this.sortDownElement = document.createElement('span');
+			this.sortDownElement.innerHTML = '&#8595;' // Unicode 'down' arrow
+		}
 	}
 
 	// restore stored parameters, or use default values if nothing stored
@@ -217,6 +223,7 @@ EditableGrid.prototype.chartRendered = function() {};
 EditableGrid.prototype.tableRendered = function(containerid, className, tableid) {};
 EditableGrid.prototype.tableSorted = function(columnIndex, descending) {};
 EditableGrid.prototype.tableFiltered = function() {};
+EditableGrid.prototype.openedCellEditor = function(rowIndex, columnIndex) {};
 EditableGrid.prototype.modelChanged = function(rowIndex, columnIndex, oldValue, newValue, row) {};
 EditableGrid.prototype.rowSelected = function(oldRowIndex, newRowIndex) {};
 EditableGrid.prototype.isHeaderEditable = function(rowIndex, columnIndex) { return false; };
@@ -409,7 +416,7 @@ EditableGrid.prototype.processXML = function()
 			}
 
 			// for each row we keep the orginal index, the id and all other attributes that may have been set in the XML
-			var rowData = { visible: true, originalIndex: i, id: rows[i].getAttribute("id") ? rows[i].getAttribute("id") : defaultRowId++ };  
+			var rowData = { visible: true, originalIndex: i, id: rows[i].getAttribute("id") !== null ? rows[i].getAttribute("id") : defaultRowId++ };  
 			for (var attrIndex = 0; attrIndex < rows[i].attributes.length; attrIndex++) {
 				var node = rows[i].attributes.item(attrIndex);
 				if (node.nodeName != "id") rowData[node.nodeName] = node.nodeValue; 
@@ -633,7 +640,7 @@ EditableGrid.prototype.processJSON = function(jsonData)
 		}
 
 		// for each row we keep the orginal index, the id and all other attributes that may have been set in the JSON
-		var rowData = { visible: true, originalIndex: i, id: row.id ? row.id : defaultRowId++ };  
+		var rowData = { visible: true, originalIndex: i, id: row.id !== undefined && row.id !== null ? row.id : defaultRowId++ };  
 		for (var attributeName in row) if (attributeName != "id" && attributeName != "values") rowData[attributeName] = row[attributeName];
 
 		// get column values for this rows

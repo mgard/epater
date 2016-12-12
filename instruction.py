@@ -15,6 +15,7 @@ class InstrType(Enum):
     multiply = 4
     swap = 5
     softinterrupt = 6
+    psrtransfer = 7
     declareOp = 100
 
     @staticmethod
@@ -26,6 +27,7 @@ class InstrType(Enum):
                 InstrType.multiply: MultiplyInstructionToBytecode,
                 InstrType.swap: SwapInstructionToBytecode,
                 InstrType.softinterrupt: SoftinterruptInstructionToBytecode,
+                InstrType.psrtransfer: PSRTransferInstructionToBytecode,
                 InstrType.declareOp: DeclareInstructionToBytecode}[inType]
 
 exportInstrInfo = {# DATA OPERATIONS
@@ -45,6 +47,9 @@ exportInstrInfo = {# DATA OPERATIONS
                    'MOV': InstrType.dataop,
                    'BIC': InstrType.dataop,
                    'MVN': InstrType.dataop,
+                    # PROGRAM STATUS REGISTER OPERATIONS
+                   'MRS': InstrType.psrtransfer,
+                   'MSR': InstrType.psrtransfer,
                     # MEMORY OPERATIONS
                    'LDR': InstrType.memop,
                    'STR': InstrType.memop,
@@ -403,6 +408,20 @@ def MultiplyInstructionToBytecode(asmtokens):
 
 
 def SwapInstructionToBytecode(asmtokens):
+    mnemonic = asmtokens[0].value
+    if mnemonic == 'MSR':
+        # Read the PSR
+        pass
+    else:
+        # Write the PSR
+        pass
+
+
+    # Todo
+    raise NotImplementedError()
+
+
+def PSRTransferInstructionToBytecode(asmtokens):
     # Todo
     raise NotImplementedError()
 
@@ -562,6 +581,35 @@ def BytecodeToInstrInfos(bc):
     elif checkMask(instrInt, (7, 4, 24), (27, 26, 25, 23, 21, 20, 11, 10, 9, 8, 6, 5)): # Swap
         category = InstrType.swap
         # TODO
+
+    elif checkMask(instrInt, (19, 24), (27, 26, 23, 20)):       # MRS or MSR
+        # This one is tricky
+        # The signature looks like a data processing operation, BUT
+        # it sets the "opcode" to an operation beginning with 10**, and the only operations that match this are TST, TEQ, CMP and CMN
+        # It is said that for these ops, the S flag MUST be set to 1
+        # With MSR and MRS, the bit representing the S flag is always 0, so we can differentiate these instructions...
+        category = InstrType.psrtransfer
+
+        usespsr = bool(instrInt & (1 << 22))
+        modeWrite = bool(instrInt & (1 << 21))
+        flagsOnly = bool(instrInt & (1 << 16))
+        imm = bool(instrInt & (1 << 25))
+        rd = (instrInt >> 12) & 0xF
+
+        if imm and flagsOnly:       # Immediate mode is allowed only for flags-only mode
+            val = instrInt & 0xFF
+            shift = ("ROR", "imm", ((instrInt >> 8) & 0xF) * 2)       # see 4.5.3 of ARM doc to understand the * 2
+        else:
+            val = instrInt & 0xF
+            shift = ("ROR", "imm", 0)       # No rotate with registers for these particular instructions
+        op2 = (val, shift)
+
+        miscInfo = {'write': modeWrite,
+                    'usespsr': usespsr,
+                    'flagsOnly': flagsOnly,
+                    'imm': imm,
+                    'op2': op2,
+                    'rd': rd}       # Only valid if modeWrite == False
 
     elif checkMask(instrInt, (), (27, 26)):     # Data processing
         category = InstrType.dataop

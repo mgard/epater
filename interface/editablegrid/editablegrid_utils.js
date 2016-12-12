@@ -244,7 +244,7 @@ EditableGrid.prototype.detectDir = function()
 	var e = document.getElementsByTagName('base');
 	for (var i=0; i<e.length; i++) if(e[i].href) base = e[i].href;
 
-	var e = document.getElementsByTagName('script');
+	e = document.getElementsByTagName('script');
 	for (var i=0; i<e.length; i++) {
 		if (e[i].src && /(^|\/)editablegrid[^\/]*\.js([?#].*)?$/i.test(e[i].src)) {
 			var src = new URI(e[i].src);
@@ -280,7 +280,7 @@ EditableGrid.prototype.isSame = function(v1, v2)
  * @private
  */
 EditableGrid.prototype.strip = function(str) { return str.replace(/^\s+/, '').replace(/\s+$/, ''); };
-EditableGrid.prototype.hasClassName = function(element, className) { return (element.className.length > 0 && (element.className == className || new RegExp("(^|\\s)" + className + "(\\s|$)").test(element.className))); };
+EditableGrid.prototype.hasClassName = function(element, className) { return (element.className.length > 0 && (element.className == className || new RegExp("(^|\\s)" + className.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&") + "(\\s|$)").test(element.className))); };
 EditableGrid.prototype.addClassName = function(element, className) { if (!this.hasClassName(element, className)) element.className += (element.className ? ' ' : '') + className; };
 EditableGrid.prototype.removeClassName = function(element, className) { element.className = this.strip(element.className.replace(new RegExp("(^|\\s+)" + className + "(\\s+|$)"), ' ')); };
 
@@ -323,7 +323,6 @@ EditableGrid.prototype.checkDate = function(strDate, strDatestyle)
 	strDatestyle = strDatestyle || this.dateFormat;
 	strDatestyle = strDatestyle || "EU";
 
-	var strDate;
 	var strDateArray;
 	var strDay;
 	var strMonth;
@@ -683,11 +682,21 @@ function get_html_translation_table (table, quote_style) {
 	return hash_map;
 }
 
+function html_entity_decode(string, quote_style)
+{
+	var hash_map = {}, symbol = '', tmp_str = '';
+	tmp_str = string.toString();
+	if (false === (hash_map = get_html_translation_table('HTML_ENTITIES', quote_style))) return false;
+	hash_map["'"] = '&#039;';
+	for (symbol in hash_map) tmp_str = tmp_str.split(hash_map[symbol]).join(symbol);
+	return tmp_str;
+}
+
 function htmlentities(string, quote_style) 
 {
 	var hash_map = {}, symbol = '', tmp_str = '';
 	tmp_str = string.toString();
-	if (false === (hash_map = this.get_html_translation_table('HTML_ENTITIES', quote_style))) return false;
+	if (false === (hash_map = get_html_translation_table('HTML_ENTITIES', quote_style))) return false;
 	tmp_str = tmp_str.split('&').join('&amp;'); // replace & first, otherwise & in htlm codes will be replaced too!
 	hash_map["'"] = '&#039;';
 	for (symbol in hash_map) tmp_str = tmp_str.split(symbol).join(hash_map[symbol]);
@@ -698,7 +707,7 @@ function htmlspecialchars(string, quote_style)
 {
 	var hash_map = {}, symbol = '', tmp_str = '';
 	tmp_str = string.toString();
-	if (false === (hash_map = this.get_html_translation_table('HTML_SPECIALCHARS', quote_style))) return false;
+	if (false === (hash_map = get_html_translation_table('HTML_SPECIALCHARS', quote_style))) return false;
 	tmp_str = tmp_str.split('&').join('&amp;'); // replace & first, otherwise & in htlm codes will be replaced too!
 	for (symbol in hash_map) tmp_str = tmp_str.split(symbol).join(hash_map[symbol]);
 	return tmp_str;
