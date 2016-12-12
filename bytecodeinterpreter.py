@@ -1,3 +1,4 @@
+from settings import getSetting
 from procsimulator import Simulator, Memory, Register
 
 class BCInterpreter:
@@ -113,10 +114,16 @@ class BCInterpreter:
         return
 
     def getCurrentLine(self):
-        pc = self.sim.regs[15].get()
+        pc = self.sim.regs[15].get(mayTriggerBkpt=False)
         # TODO : this assert will be a problem if we execute data...
         assert pc in self.addr2line, "Line outside of linked memory!"
         return self.addr2line[pc][-1]
+
+    def getCurrentInstructionAddress(self):
+        pc = self.sim.regs[15].get(mayTriggerBkpt=False)
+        pc -= 8 if getSetting("PCbehavior") == "+8" else 0
+        return pc
+
 
     def getProcessorState(self):
         r = []
