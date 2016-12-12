@@ -187,15 +187,9 @@ def process(ws, msg_in):
                     reg_id = int(reg_id[1:])
                     # reg name, mode [r,w,rw]
                     interpreters[ws].setBreakpointRegister(reg_id, mode)
-                elif data[1].upper() == 'INTERRUPT_ACTIVE':
-                    print('INTERRUPT_ACTIVE')
-                    print(data)
-                elif data[1].upper() == 'INTERRUPT_CYCLES':
-                    print("cycles")
-                elif data[1].upper() == 'INTERRUPT_CYCLES_FIRST':
-                    print("cycles first")
-                elif data[1].upper() == 'INTERRUPT_ID':
-                    print("interrupt id")
+            elif data[0] == "interrupt":
+                mode = data[2] # FIQ/IRQ
+                interpreters[ws].setInterrupt(mode, not data[1], data[4], data[3], 0)
             elif data[0] == 'memchange':
                 val = bytearray([int(data[2], 16)])
                 interpreters[ws].setMemory(data[1], val)
