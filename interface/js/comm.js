@@ -5,6 +5,8 @@ var asm_breakpoints = [];
 var mem_breakpoints_r = [];
 var mem_breakpoints_w = [];
 var mem_breakpoints_rw = [];
+var mem_breakpoints_e = [];
+var mem_breakpoints_instr = -1;
 var debug_marker = null;
 
 ws.onmessage = function (event) {
@@ -25,6 +27,8 @@ ws.onmessage = function (event) {
         } else {
             debug_marker = null;
         }
+    } else if (obj[0] == 'debuginstrmem') {
+        mem_breakpoints_instr = obj[1];
     } else if (obj[0] == 'mem') {
         editableGrid.load({"data": obj[1]});
         editableGrid.renderGrid("memoryview", "testgrid");
@@ -34,6 +38,16 @@ ws.onmessage = function (event) {
         mem_breakpoints_w = obj[1];
     } else if (obj[0] == 'membp_rw') {
         mem_breakpoints_rw = obj[1];
+    } else if (obj[0] == 'membp_e') {
+        mem_breakpoints_e = obj[1];
+    } else if (obj[0] == 'error') {
+        $("#message_bar").text(obj[1]);
+
+        /*$(this).slideToggle("normal", "easeInOutBack", function(){
+            $("#message_bar").slideToggle("normal", "easeInOutBack");
+        });*/
+
+        $("#message_bar").slideDown("normal", "easeInOutBack");
     }
 };
 

@@ -128,6 +128,12 @@ img {
 .mem_rw {
     background-color: yellow;
 }
+.mem_e {
+    border: 1px solid red;
+}
+.mem_instr {
+    border: 1px solid green;
+}
 
 #assemble {
     color: #ffffff;
@@ -145,7 +151,7 @@ img {
     border-radius: 5px;
 }
 
-.registers_container {
+.border_container {
     border: 1px solid #333;
 }
 
@@ -166,3 +172,18 @@ img {
 .tab.active { background: #fff; position: relative; top: 1px; border-color: #666; }
 .tab a.active { font-weight: bold; }
 .tab-container .panel-container { background: #fff; border: solid #666 1px; padding: 10px; -moz-border-radius: 0 4px 4px 4px; -webkit-border-radius: 0 4px 4px 4px; }
+
+/* Message */
+#message_bar{
+  cursor: pointer;
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 50px;
+  width: 100%;
+  background: rgba(200, 100, 100, 0.5);
+  z-index: 1000;
+  vertical-align: middle;
+  text-align: center;
+}

@@ -11,16 +11,16 @@
         <script src="js/ace-custom/mode-assembly_arm.js" type="text/javascript" charset="utf-8"></script>
 
         <script src="editablegrid/editablegrid.js"></script>
-        <!-- [DO NOT DEPLOY] --> <script src="editablegrid/editablegrid_renderers.js" ></script>
-        <!-- [DO NOT DEPLOY] --> <script src="editablegrid/editablegrid_editors.js" ></script>
-        <!-- [DO NOT DEPLOY] --> <script src="editablegrid/editablegrid_validators.js" ></script>
-        <!-- [DO NOT DEPLOY] --> <script src="editablegrid/editablegrid_utils.js" ></script>
-        <!-- [DO NOT DEPLOY] --> <script src="editablegrid/editablegrid_charts.js" ></script>
+        <script src="editablegrid/editablegrid_renderers.js" ></script>
+        <script src="editablegrid/editablegrid_editors.js" ></script>
+        <script src="editablegrid/editablegrid_validators.js" ></script>
+        <script src="editablegrid/editablegrid_utils.js" ></script>
+        <script src="editablegrid/editablegrid_charts.js" ></script>
         <link rel="stylesheet" href="editablegrid/editablegrid.css" type="text/css" media="screen">
 
     </head>
     <body id="body_">
-    <!-- <h1 id="header"># ARM Editor Online #</h1> -->
+    <div id="message_bar"></div>
     <table id="content">
         <tr>
             <td id="regView">
@@ -34,7 +34,7 @@
                         <li class="tab"><a href="#tabs1-IRQ">IRQ</a></li>
                         <li class="tab"><a href="#tabs1-SVC">SVC</a></li>
                     </ul>
-                    <div id="tabs1-User" class="registers_container">
+                    <div id="tabs1-User" class="border_container">
                         <h4 id="gp">Registre G&eacute;n&eacute;raux (User)</h4>
                         <table class="registers">
                             <thead>
@@ -143,7 +143,7 @@
                             </tr>
                         </table>
                     </div>
-                    <div id="tabs1-FIQ" class="registers_container">
+                    <div id="tabs1-FIQ" class="border_container">
                         <h4 id="gp">Registre G&eacute;n&eacute;raux (FIQ)</h4>
                         <table class="registers">
                             <thead>
@@ -252,7 +252,7 @@
                             </tr>
                         </table>
                     </div>
-                    <div id="tabs1-IRQ" class="registers_container">
+                    <div id="tabs1-IRQ" class="border_container">
                         <h4 id="gp">Registre G&eacute;n&eacute;raux (IRQ)</h4>
                         <table class="registers">
                             <thead>
@@ -361,7 +361,7 @@
                             </tr>
                         </table>
                     </div>
-                    <div id="tabs1-SVC" class="registers_container">
+                    <div id="tabs1-SVC" class="border_container">
                         <h4 id="gp">Registre G&eacute;n&eacute;raux (SVC)</h4>
                         <table class="registers">
                             <thead>
@@ -471,30 +471,32 @@
                         </table>
                     </div>
                 </div>
-                <div><h4>&Eacute;tat courant</h4></div>
-                <table>
-                    <tr>
-                        <td>Negatif (N)</td>
-                        <td><button class="flag_btn" name="n"><input class="regVal pointer" id="n" type="text" name="n" readonly/></button></td>
-                    </tr>
-                    <tr>
-                        <td>Zero (Z)</td>
-                        <td><button class="flag_btn" name="z"><input class="regVal pointer" id="z" type="text" name="z" readonly/></button></td>
-                    </tr>
-                    <tr>
-                        <td>Emprunt (C)</td>
-                        <td><button class="flag_btn" name="c"><input class="regVal pointer" id="c" type="text" name="c" readonly/></button></td>
-                    </tr>
-                    <tr>
-                        <td>D&eacute;passement (V)</td>
-                        <td><button class="flag_btn" name="v"><input class="regVal pointer" id="v" type="text" name="v" readonly/></button></td>
-                    </tr>
-                </table>
-                <div><h4>Interruptions</h4></div>
-                <input type="checkbox" name="interrupt_active" value="activate"/>Activate<br/>
-                <input class="regVal" id="interrupt_id" type="text" name="interrupt_id"/>&nbsp;num&eacute;ro<br/>
-                <input class="regVal" id="interrupt_cycles" type="text" name="interrupt_cycles"/>&nbsp;cycles<br/>
-                <input class="regVal" id="interrupt_cycles_first" type="text" name="interrupt_cycles_first"/>&nbsp;cycles (first)
+                <div class="border_container"><h4>&Eacute;tat courant</h4>
+                    <table>
+                        <tr>
+                            <td>Negatif (N)</td>
+                            <td><button class="flag_btn" name="n"><input class="regVal pointer" id="n" type="text" name="n" readonly/></button></td>
+                        </tr>
+                        <tr>
+                            <td>Zero (Z)</td>
+                            <td><button class="flag_btn" name="z"><input class="regVal pointer" id="z" type="text" name="z" readonly/></button></td>
+                        </tr>
+                        <tr>
+                            <td>Emprunt (C)</td>
+                            <td><button class="flag_btn" name="c"><input class="regVal pointer" id="c" type="text" name="c" readonly/></button></td>
+                        </tr>
+                        <tr>
+                            <td>D&eacute;passement (V)</td>
+                            <td><button class="flag_btn" name="v"><input class="regVal pointer" id="v" type="text" name="v" readonly/></button></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="border_container"><h4>Interruptions</h4>
+                    <input type="checkbox" name="interrupt_active" value="activate"/>Activate<br/>
+                    <input class="regVal" id="interrupt_id" type="text" name="interrupt_id"/>&nbsp;num&eacute;ro<br/>
+                    <input class="regVal" id="interrupt_cycles" type="text" name="interrupt_cycles"/>&nbsp;cycles<br/>
+                    <input class="regVal" id="interrupt_cycles_first" type="text" name="interrupt_cycles_first"/>&nbsp;cycles (first)
+                </div>
             </td>
             <td id="editorPanel">
                 <div id="editor">
@@ -572,24 +574,26 @@ variablemem DS32 10
                 <br>
             </td>
             <td id="dashboard">
+                <div class="border_container">
+                <h4>Instruction courante</h4>
                 <div id="editorLineNum"></div>
                 <div id="stepInLine"></div>
                 <div id="ic"></div>
-                <h4>Instruction courante</h4>
                 <div id="instruct"></div>
                 <div id="lable"></div>
                 <div id="data"></div>
-                <br>
-                <h4>M&eacute;moire</h4>
-                Breakpoints:
-                <span class="mem_r">R</span>
-                <span class="mem_w">W</span>
-                <span class="mem_rw">RW</span><br/>
-                <div id="memoryview"></div>
-                D&eacute;but:
-                <div id="paginator"></div>
-                <hr/>
-                <div>
+                </div>
+                <div class="border_container">
+                    <h4>M&eacute;moire</h4>
+                    Breakpoints:
+                    <span class="mem_r">R</span>
+                    <span class="mem_w">W</span>
+                    <span class="mem_rw">RW</span><br/>
+                    <div id="memoryview"></div>
+                    D&eacute;but:
+                    <div id="paginator"></div>
+                </div>
+                <div class="border_container">
                     <button onclick="assemble()" id="assemble">Assemble</button><br/><br/>
                     <button onclick="simulate()" disable="disabled"><img src="./image/resume_co.gif"/></button>
                     <button id="stepin" onclick="sendMsg('stepinto')" disable="disabled"><img src="./image/stepinto_co.gif"/></button>
@@ -613,6 +617,7 @@ variablemem DS32 10
     <script src="js/jquery-1.11.1.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="js/tooltipster/js/jquery.tooltipster.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="js/jquery.easytabs.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="js/jquery.easing.min.js" type="text/javascript" charset="utf-8"></script>
     <link rel="stylesheet" type="text/css" href="js/tooltipster/css/tooltipster.css" />
     <script src="js/comm.js" type="text/javascript" charset="utf-8"></script>
 
@@ -620,6 +625,12 @@ variablemem DS32 10
 
         $('#tab-container').easytabs({
             "animate": false
+        });
+
+        $("#message_bar").click(function(){
+          $(this).slideToggle("normal", "easeInOutBack", function(){
+            $("#show_message_bar").slideToggle("normal", "easeInOutBack");
+          });
         });
 
         function formatHexUnsigned32Bits(i) {
@@ -749,9 +760,30 @@ variablemem DS32 10
                         }
                         col = mem_breakpoints_rw[i] % 16;
                         $('.editablegrid-c'+col, tableRow).addClass('mem_rw');
-                        
                     }
-                    //var addr = $('td:first', $(e.toElement).closest('tr')).text();
+
+                    for (var i = 0; i < mem_breakpoints_e.length; i++) {
+                        tofind = formatHexUnsigned32Bits(mem_breakpoints_e[i]).slice(0, 9) + "0";
+                        var tableRow = $("td", $("#memoryview")).filter(function() {
+                            return $(this).text() == tofind;
+                        }).closest("tr");
+                        if (tableRow.length < 1) {
+                            continue;
+                        }
+                        col = mem_breakpoints_e[i] % 16;
+                        $('.editablegrid-c'+col, tableRow).addClass('mem_e');
+                    }
+
+                    /* Highlight current instruction */
+                    tofind = formatHexUnsigned32Bits(mem_breakpoints_instr).slice(0, 9) + "0";
+                    var tableRow = $("td", $("#memoryview")).filter(function() {
+                        return $(this).text() == tofind;
+                    }).closest("tr");
+                    if (tableRow.length > 0) {
+                        col = mem_breakpoints_instr % 16;
+                        $('.editablegrid-c'+col, tableRow).addClass('mem_instr');
+                    }
+                    
                 }
             });
             editableGrid.load({"metadata": metadata,  "data": data});
@@ -811,7 +843,7 @@ variablemem DS32 10
             else link.css("cursor",  "pointer").click(function(event) { editableGrid.lastPage(); });
             paginator.append(link);*/
             $(".editablegrid-c0, .editablegrid-c1, .editablegrid-c2, .editablegrid-c3, .editablegrid-c4, .editablegrid-c5, .editablegrid-c6, .editablegrid-c7, .editablegrid-c8, .editablegrid-c9, .editablegrid-c10, .editablegrid-c11, .editablegrid-c12, .editablegrid-c13, .editablegrid-c14, .editablegrid-c15").click(function(e) {
-              var addr = $('td:first', $(e.toElement).closest('tr')).text();
+              var addr = $('td:first', $(e.toElement).closest('tr')).text().slice(0,9) + this.classList[0].slice(-1);
               if(e.shiftKey) {
                 ws.send(JSON.stringify(['breakpointsmem', addr, 'r']));
               }

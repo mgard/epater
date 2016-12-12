@@ -1,10 +1,6 @@
-import argparse
-import time
-import math
+import traceback
 import asyncio
 import json
-import collections
-from itertools import repeat
 
 import websockets
 
@@ -40,7 +36,6 @@ async def handler(websocket, path):
                 [listener_task, producer_task],
                 #timeout=0.001,
                 return_when=asyncio.FIRST_COMPLETED)
-            print(done, pending)
 
             if listener_task in done:
                 try:
@@ -90,7 +85,8 @@ def generateUpdate(inter):
     bpm = inter.getBreakpointsMem()
     retval.extend([["membp_r", bpm['r']],
                    ["membp_w", bpm['w']],
-                   ["membp_rw", bpm['rw']]])
+                   ["membp_rw", bpm['rw']],
+                   ["membp_e", bpm['e']]])
 
     # Memory View
     mem = inter.getMemory()
@@ -123,10 +119,19 @@ def updateDisplay(interp, force_all=False):
         try:
             retval.append(["debugline", interp.getCurrentLine()])
         except AssertionError:
-            pass
+            retval.append(["debugline", -1])
+
+        try:
+            retval.append(["debuginstrmem", "0x{:08x}".format(interp.getCurrentInstructionAddress())])
+        except Exception as e:
+            retval.append(["debuginstrmem", -1])
+            retval.append(["error", str(e)])
+
         retval.extend(generateUpdate(interp))
     else:
         retval = interp.getChanges()
+
+    # TODO: check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
     return retval
 
 
@@ -135,55 +140,61 @@ def process(ws, msg_in):
     Output: List of messages to send.
     """
     force_update_all = False
-    for msg in msg_in:
-        data = json.loads(msg)
-        if data[0] == 'assemble':
-            # TODO: Afficher les erreurs à l'écran "codeerror"
-            bytecode, bcinfos = ASMparser(data[1].split("\n"))
-            interpreters[ws] = BCInterpreter(bytecode, bcinfos)
-            force_update_all = True
-        elif data[0] == 'stepinto':
-            interpreters[ws].step()
-        elif data[0] == 'stepforward':
-            interpreters[ws].step('forward')
-        elif data[0] == 'stepout':
-            interpreters[ws].step('out')
-        elif data[0] == 'run':
-            interpreters[ws].step(data[1])
-        elif data[0] == 'reset':
-            interpreters[ws].reset()
-        elif data[0] == 'breakpointsinstr':
-            interpreters[ws].setBreakpointInstr(data[1])
-        elif data[0] == 'breakpointsmem':
-            interpreters[ws].setBreakpointMem(data[1], data[2])
-        elif data[0] == 'update':
-            if data[1][0].upper() == 'R':
-                reg_id = int(data[1][1:])
-                interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
-            elif data[1].upper() in ('N', 'Z', 'C', 'V'):
-                flag_id = data[1].upper()
-                val = not interpreters[ws].getFlags()[flag_id]
-                interpreters[ws].setFlags({flag_id: val})
-            elif data[1][:2].upper() == 'BP':
-                _, mode, reg_id = data[1].split('_')
-                reg_id = int(reg_id[1:])
-                # reg name, mode [r,w,rw]
-                interpreters[ws].setBreakpointRegister(reg_id, mode)
-            elif data[1].upper() == 'INTERRUPT_CYCLES':
-                pass
-            elif data[1].upper() == 'INTERRUPT_ID':
-                pass
-        elif data[0] == 'memchange':
-            val = bytearray([int(data[2], 16)])
-            interpreters[ws].sim.mem.set(data[1], val, 1)
-        else:
-            print("<{}> Unknown message: {}".format(ws, data))
+    retval = []
+    try:
+        for msg in msg_in:
+            data = json.loads(msg)
+            if data[0] == 'assemble':
+                # TODO: Afficher les erreurs à l'écran "codeerror"
+                bytecode, bcinfos = ASMparser(data[1].split("\n"))
+                interpreters[ws] = BCInterpreter(bytecode, bcinfos)
+                force_update_all = True
+            elif data[0] == 'stepinto':
+                interpreters[ws].step()
+            elif data[0] == 'stepforward':
+                interpreters[ws].step('forward')
+            elif data[0] == 'stepout':
+                interpreters[ws].step('out')
+            elif data[0] == 'run':
+                interpreters[ws].step(data[1])
+            elif data[0] == 'reset':
+                interpreters[ws].reset()
+            elif data[0] == 'breakpointsinstr':
+                interpreters[ws].setBreakpointInstr(data[1])
+            elif data[0] == 'breakpointsmem':
+                print(data[1:])
+                interpreters[ws].setBreakpointMem(data[1], data[2])
+            elif data[0] == 'update':
+                if data[1][0].upper() == 'R':
+                    reg_id = int(data[1][1:])
+                    interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
+                elif data[1].upper() in ('N', 'Z', 'C', 'V'):
+                    flag_id = data[1].upper()
+                    val = not interpreters[ws].getFlags()[flag_id]
+                    interpreters[ws].setFlags({flag_id: val})
+                elif data[1][:2].upper() == 'BP':
+                    _, mode, reg_id = data[1].split('_')
+                    reg_id = int(reg_id[1:])
+                    # reg name, mode [r,w,rw]
+                    interpreters[ws].setBreakpointRegister(reg_id, mode)
+                elif data[1].upper() == 'INTERRUPT_CYCLES':
+                    pass
+                elif data[1].upper() == 'INTERRUPT_ID':
+                    pass
+            elif data[0] == 'memchange':
+                val = bytearray([int(data[2], 16)])
+                interpreters[ws].sim.mem.set(data[1], val, 1)
+            else:
+                print("<{}> Unknown message: {}".format(ws, data))
+    except Exception as e:
+        traceback.print_exc()
+        retval.append(["error", str(e)])
 
     del msg_in[:]
 
     if ws in interpreters:
-        return updateDisplay(interpreters[ws], force_update_all)
-    return []
+        retval.extend(updateDisplay(interpreters[ws], force_update_all))
+    return retval
 
 
 if __name__ == '__main__':
