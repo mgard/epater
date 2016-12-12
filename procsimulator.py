@@ -74,9 +74,9 @@ class ControlRegister:
         self.regname = name
         self.sys = systemHandle
         self.val = 0
+        self.history = []
         self.setMode("User")
         self.breakpoints = {flag:0 for flag in self.flag2index.keys()}
-        self.history = []
 
     @property
     def name(self):
