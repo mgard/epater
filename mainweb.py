@@ -64,6 +64,7 @@ async def handler(websocket, path):
                 producer_task.cancel()
 
             # Continue executions of "run", "step out" and "step forward"1
+            # TODO: This won't scale
             if not done:
                 for ws, interp in interpreters.items():
                     if not interp.shouldStop:
