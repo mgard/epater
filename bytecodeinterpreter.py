@@ -20,13 +20,13 @@ class BCInterpreter:
 
     def setBreakpointInstr(self, listLineNumbers):
         # First, we remove all execution breakpoints
-        # TODO it will clash with execution breakpoints manually set in memory!
-        self.sim.mem.removeExecuteBreakpoints()
+        self.sim.mem.removeExecuteBreakpoints([self.line2addr[b] for b in self.lineBreakpoints])
 
         # Now we add all breakpoint
         # The easy case is when the line is directly mapped to a memory address (e.g. it is an instruction)
         # When it's not, we have to find the closest next line which is mapped
         # If there is no such line (we are asked to put a breakpoint after the last line of code) then no breakpoint is set
+        self.lineBreakpoints = []
         for lineno in listLineNumbers:
             if lineno in self.line2addr:
                 self.sim.mem.setBreakpoint(self.line2addr[lineno], 1)

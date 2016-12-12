@@ -314,8 +314,9 @@ class Memory:
     def removeBreakpoint(self, addr):
         self.breakpoints[addr] = 0
 
-    def removeExecuteBreakpoints(self):
-        for addr in [a for a,b in self.breakpoints.items() if b & 1 == 1]:
+    def removeExecuteBreakpoints(self, ignoreList=()):
+        # Remove all execution breakpoints, except for those that have their address in ignoreList
+        for addr in [a for a,b in self.breakpoints.items() if b & 1 == 1 and a not in ignoreList]:
             self.removeBreakpoint(addr)
 
     def stepBack(self):
