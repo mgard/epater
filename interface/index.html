@@ -471,28 +471,42 @@
                         </table>
                     </div>
                 </div>
-                <div class="border_container"><h4>&Eacute;tat courant</h4>
+                <div class="border_container smaller_font"><h4>&Eacute;tat courant</h4>
                     <table>
                         <tr>
                             <td>Negatif (N)</td>
-                            <td><button class="flag_btn" name="n"><input class="regVal pointer" id="n" type="text" name="n" readonly/></button></td>
+                            <td><button class="flag_btn" name="n"><input class="statusVal pointer" id="n" type="text" name="n" readonly/></button></td>
+                            <td><button class="flag_btn" name="sn"><input class="statusVal pointer" id="sn" type="text" name="sn" readonly/></button></td>
                         </tr>
                         <tr>
                             <td>Zero (Z)</td>
-                            <td><button class="flag_btn" name="z"><input class="regVal pointer" id="z" type="text" name="z" readonly/></button></td>
+                            <td><button class="flag_btn" name="z"><input class="statusVal pointer" id="z" type="text" name="z" readonly/></button></td>
+                            <td><button class="flag_btn" name="sz"><input class="statusVal pointer" id="sz" type="text" name="sz" readonly/></button></td>
                         </tr>
                         <tr>
                             <td>Emprunt (C)</td>
-                            <td><button class="flag_btn" name="c"><input class="regVal pointer" id="c" type="text" name="c" readonly/></button></td>
+                            <td><button class="flag_btn" name="c"><input class="statusVal pointer" id="c" type="text" name="c" readonly/></button></td>
+                            <td><button class="flag_btn" name="sc"><input class="statusVal pointer" id="sc" type="text" name="sc" readonly/></button></td>
                         </tr>
                         <tr>
                             <td>D&eacute;passement (V)</td>
-                            <td><button class="flag_btn" name="v"><input class="regVal pointer" id="v" type="text" name="v" readonly/></button></td>
+                            <td><button class="flag_btn" name="v"><input class="statusVal pointer" id="v" type="text" name="v" readonly/></button></td>
+                            <td><button class="flag_btn" name="sv"><input class="statusVal pointer" id="sv" type="text" name="sv" readonly/></button></td>
+                        </tr>
+                        <tr>
+                            <td>IRQ actif</td>
+                            <td><button class="flag_btn" name="i"><input class="statusVal pointer" id="i" type="text" name="i" readonly/></button></td>
+                            <td><button class="flag_btn" name="si"><input class="statusVal pointer" id="si" type="text" name="si" readonly/></button></td>
+                        </tr>
+                        <tr>
+                            <td>FIQ actif</td>
+                            <td><button class="flag_btn" name="f"><input class="statusVal pointer" id="f" type="text" name="f" readonly/></button></td>
+                            <td><button class="flag_btn" name="sf"><input class="statusVal pointer" id="sf" type="text" name="sf" readonly/></button></td>
                         </tr>
                     </table>
                 </div>
                 <div class="border_container"><h4>Interruptions</h4>
-                    <input type="checkbox" name="interrupt_active" value="activate"/>Activate<br/>
+                    <input type="checkbox" id="interrupt_active" name="interrupt_active" value="activate"/>Activer<br/>
                     <input class="regVal" id="interrupt_id" type="text" name="interrupt_id"/>&nbsp;num&eacute;ro<br/>
                     <input class="regVal" id="interrupt_cycles" type="text" name="interrupt_cycles"/>&nbsp;cycles<br/>
                     <input class="regVal" id="interrupt_cycles_first" type="text" name="interrupt_cycles_first"/>&nbsp;cycles (first)
@@ -556,8 +570,7 @@ MOVEQ R6,  #3
 
 SECTION DATA
 
-variablemem DS32 10
-                </div>
+variablemem DS32 10</div>
                 <br>
                 <div>
                     <div style="float: left;">
@@ -575,13 +588,13 @@ variablemem DS32 10
             </td>
             <td id="dashboard">
                 <div class="border_container">
-                <h4>Instruction courante</h4>
-                <div id="editorLineNum"></div>
-                <div id="stepInLine"></div>
-                <div id="ic"></div>
-                <div id="instruct"></div>
-                <div id="lable"></div>
-                <div id="data"></div>
+                    <h4>Instruction courante</h4>
+                    <div id="editorLineNum"></div>
+                    <div id="stepInLine"></div>
+                    <div id="ic"></div>
+                    <div id="instruct"></div>
+                    <div id="lable"></div>
+                    <div id="data"></div>
                 </div>
                 <div class="border_container">
                     <h4>M&eacute;moire</h4>
@@ -665,7 +678,15 @@ variablemem DS32 10
             });
 
             $("input").change(function () {
-                ws.send(JSON.stringify(["update",  $(this).attr("id"),  $(this).val()]));
+                if ($(this).attr("id") != "interrupt_active") {
+                    ws.send(JSON.stringify(["update",  $(this).attr("id"),  $(this).val()]));
+                } else {
+                    if (document.getElementById('interrupt_active').checked) {
+                        ws.send(JSON.stringify(["interrupt_on",  $("#interrupt_id").val(), $("#interrupt_cycles").val(), $("#interrupt_cycles_first").val()]));
+                    } else {
+                        ws.send(JSON.stringify(["interrupt_off",  $("#interrupt_id").val(), $("#interrupt_cycles").val(), $("#interrupt_cycles_first").val()]));
+                    }
+                }
             });
 
             $(".flag_btn").click(function() {
@@ -851,12 +872,10 @@ variablemem DS32 10
                 ws.send(JSON.stringify(['breakpointsmem', addr, 'w']));
               }
               if(e.altKey) {
-                //ws.send(JSON.stringify(['breakpointsmem', addr, 'e']));
+                ws.send(JSON.stringify(['breakpointsmem', addr, 'e']));
               }
             });
         };
-
-
 
         function saveTextAsFile() {
             var textToWrite = editor.getValue();
@@ -869,8 +888,7 @@ variablemem DS32 10
                 // Chrome allows the link to be clicked
                 // without actually adding it to the DOM.
                 downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
-            }
-            else {
+            } else {
                 // Firefox requires the link to be added to the DOM
                 // before it can be clicked.
                 downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
@@ -881,6 +899,5 @@ variablemem DS32 10
             downloadLink.click();
         }
     </script>
-
 </body>
 </html>

@@ -15,6 +15,9 @@ ws.onmessage = function (event) {
     var element = document.getElementById(obj[0]);
     if (element != null) {
         $(element).val(obj[1]);
+        $(element).prop("disabled", false);
+    } else if (obj[0] == 'disable') {
+        $(obj[1]).prop("disabled", true);
     } else if (obj[0] == 'codeerror') {
         // row indices are 0-indexed
         editor.session.setAnnotations([{row: obj[1], text: obj[2], type: "error"}]);
@@ -40,6 +43,8 @@ ws.onmessage = function (event) {
         mem_breakpoints_rw = obj[1];
     } else if (obj[0] == 'membp_e') {
         mem_breakpoints_e = obj[1];
+    } else if (obj[0] == 'banking') {
+        $("#tab-container").easytabs('select', '#tabs1-' + obj[1]);
     } else if (obj[0] == 'error') {
         $("#message_bar").text(obj[1]);
 
