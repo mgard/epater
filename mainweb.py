@@ -61,6 +61,7 @@ async def handler(websocket, path):
             # Continue executions of "run", "step out" and "step forward"1
             # TODO: This won't scale
             if not done:
+                print("Here!")
                 for ws, interp in interpreters.items():
                     if not interp.shouldStop:
                         interp.step()
@@ -106,7 +107,12 @@ def generateUpdate(inter):
     retval.extend(tuple({"FIQ_{}".format(k.lower()): "{:08x}".format(v) for k,v in registers_types['FIQ'].items()}.items()))
     retval.extend(tuple({"IRQ_{}".format(k.lower()): "{:08x}".format(v) for k,v in registers_types['IRQ'].items()}.items()))
     retval.extend(tuple({"SVC_{}".format(k.lower()): "{:08x}".format(v) for k,v in registers_types['SVC'].items()}.items()))
-    retval.extend(tuple({k.lower(): "{}".format(v) for k,v in inter.getFlags().items()}.items()))
+
+    flags = inter.getFlags()
+    retval.extend(tuple({k.lower(): "{}".format(v) for k,v in flags.items()}.items()))
+    if 'SN' not in flags:
+        flags = ("sn", "sz", "sc", "sv", "si", "sf")
+        retval.extend([["disable", f] for f in flags])
 
     return retval
 
@@ -131,7 +137,12 @@ def updateDisplay(interp, force_all=False):
     else:
         retval = interp.getChanges()
 
+    retval.append(["banking", interp.getProcessorMode()])
+
     # TODO: check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
+    if interp.currentBreakpoint:
+        if interp.currentBreakpoint.source == 'memory' and bool(interp.currentBreakpoint.mode & 8):
+            retval.append(["error", "PC est &agrave; l'ext&eacute;rieur de la m&eacute;moire initialis&eacute;e."])
     return retval
 
 
@@ -156,19 +167,18 @@ def process(ws, msg_in):
             elif data[0] == 'stepout':
                 interpreters[ws].step('out')
             elif data[0] == 'run':
-                interpreters[ws].step(data[1])
+                interpreters[ws].step('run')
             elif data[0] == 'reset':
                 interpreters[ws].reset()
             elif data[0] == 'breakpointsinstr':
                 interpreters[ws].setBreakpointInstr(data[1])
             elif data[0] == 'breakpointsmem':
-                print(data[1:])
-                interpreters[ws].setBreakpointMem(data[1], data[2])
+                interpreters[ws].toggleBreakpointMem(data[1], data[2])
             elif data[0] == 'update':
                 if data[1][0].upper() == 'R':
                     reg_id = int(data[1][1:])
                     interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
-                elif data[1].upper() in ('N', 'Z', 'C', 'V'):
+                elif data[1].upper() in ('N', 'Z', 'C', 'V', 'I', 'F', 'SN', 'SZ', 'SC', 'SV', 'SI', 'SF'):
                     flag_id = data[1].upper()
                     val = not interpreters[ws].getFlags()[flag_id]
                     interpreters[ws].setFlags({flag_id: val})
@@ -177,13 +187,18 @@ def process(ws, msg_in):
                     reg_id = int(reg_id[1:])
                     # reg name, mode [r,w,rw]
                     interpreters[ws].setBreakpointRegister(reg_id, mode)
+                elif data[1].upper() == 'INTERRUPT_ACTIVE':
+                    print('INTERRUPT_ACTIVE')
+                    print(data)
                 elif data[1].upper() == 'INTERRUPT_CYCLES':
-                    pass
+                    print("cycles")
+                elif data[1].upper() == 'INTERRUPT_CYCLES_FIRST':
+                    print("cycles first")
                 elif data[1].upper() == 'INTERRUPT_ID':
-                    pass
+                    print("interrupt id")
             elif data[0] == 'memchange':
                 val = bytearray([int(data[2], 16)])
-                interpreters[ws].sim.mem.set(data[1], val, 1)
+                interpreters[ws].setMemory(data[1], val)
             else:
                 print("<{}> Unknown message: {}".format(ws, data))
     except Exception as e:

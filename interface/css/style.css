@@ -36,6 +36,15 @@ h4 {
     width: 65px;
 }
 
+.smaller_font {
+    font-size: 0.8em;
+}
+
+.statusVal {
+    width: 30px;
+    height: 0.5em;
+}
+
 .flag_btn, .pointer {
     cursor: pointer;
 }
