@@ -65,7 +65,8 @@ tokens = (
    'MEMACCESSPRE',
    'MEMACCESSPOST',
    'DECLARATION',
-   'SECTION'
+   'SECTION',
+   'SWICONSTANT'
 )
 
 t_ignore_COMMENT = r';.*$'
@@ -188,6 +189,12 @@ def t_SETFLAGS(t):
 
 def t_BYTEONLY(t):
     r'((?<=(LDR|STR))|(?<=((LDR|STR)[A-Z]{2})))B\s+'
+    return t
+
+def t_SWICONSTANT(t):
+    r'(0x[0-9a-fA-F]+|[0-9]+)'
+    #r'((?<=(SWI|SVC))|(?<=((SWI|SVC)[A-Z]{2})))\s+(0x[0-9a-fA-F]+|[0-9]+)'
+    t.value = int(t.value, 0)
     return t
 
 def t_REFLABELADDR(t):

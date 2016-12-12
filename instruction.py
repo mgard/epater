@@ -70,6 +70,7 @@ exportInstrInfo = {# DATA OPERATIONS
                    'SWP': InstrType.swap,
                     # SOFTWARE INTERRUPT OPERATIONS
                    'SWI': InstrType.softinterrupt,
+                   'SVC': InstrType.softinterrupt,      # Same opcode, but two different mnemonics
                    }
 
 globalInstrInfo = dict(exportInstrInfo)
@@ -408,6 +409,12 @@ def MultiplyInstructionToBytecode(asmtokens):
 
 
 def SwapInstructionToBytecode(asmtokens):
+    # Todo
+    raise NotImplementedError()
+
+
+def PSRTransferInstructionToBytecode(asmtokens):
+    # Todo
     mnemonic = asmtokens[0].value
     if mnemonic == 'MSR':
         # Read the PSR
@@ -416,19 +423,25 @@ def SwapInstructionToBytecode(asmtokens):
         # Write the PSR
         pass
 
-
-    # Todo
-    raise NotImplementedError()
-
-
-def PSRTransferInstructionToBytecode(asmtokens):
-    # Todo
     raise NotImplementedError()
 
 
 def SoftinterruptInstructionToBytecode(asmtokens):
-    # TODO
-    raise NotImplementedError()
+    mnemonic = asmtokens[0].value
+    b = 0xF << 24
+    dictSeen = defaultdict(int)
+    for tok in asmtokens[1:]:
+        if tok.type == 'COND':
+            b |= conditionMapping[tok.value] << 28
+        elif tok.type == 'SWICONSTANT':
+            b |= tok.value & 0xFFFFFF       # Only 24 bits
+        dictSeen[tok.type] += 1
+
+    if dictSeen['COND'] == 0:
+        b |= conditionMapping['AL'] << 28
+
+    checkTokensCount(dictSeen)
+    return struct.pack("<I", b)
 
 
 def DeclareInstructionToBytecode(asmtokens):
