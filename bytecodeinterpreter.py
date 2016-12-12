@@ -103,6 +103,13 @@ class BCInterpreter:
     def getMemory(self):
         return self.sim.mem.serialize()
 
+    def setMemory(self, addr, val):
+        # if addr is not initialized, then do nothing
+        # val is a bytearray of one element (1 byte)
+        if self.sim.mem._getRelativeAddr(addr, 1) is None:
+            return
+        self.sim.mem.set(addr, val[0], 1)
+
     def getRegisters(self):
         return self.sim.regs.getAllRegisters()
 
@@ -136,6 +143,7 @@ class BCInterpreter:
 
     def getChanges(self):
         # Return the modified registers, memory, flags
+        #
         return
 
     def getCurrentLine(self):

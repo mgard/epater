@@ -73,7 +73,8 @@ class ControlRegister:
     def __init__(self, name, systemHandle):
         self.regname = name
         self.sys = systemHandle
-        self.val = 0x100
+        self.val = 0
+        self.setMode("User")
         self.breakpoints = {flag:0 for flag in self.flag2index.keys()}
         self.history = []
 
@@ -89,7 +90,9 @@ class ControlRegister:
         self.history.append((self.sys.countCycles, self.val))
 
     def getMode(self):
-        return self.bits2mode[self.val & 0x1F]
+        k = self.val & 0x1F
+        assert k in self.bits2mode, "Invalid processor mode : {}".format(k)
+        return self.bits2mode[k]
 
     def __getitem__(self, flag):
         flag = flag.upper()
@@ -252,7 +255,7 @@ class Memory:
                 return sec, addr - self.startAddr[sec]
         return None
 
-    def get(self, addr, size=4, execMode=False):
+    def get(self, addr, size=4, execMode=False, mayTriggerBkpt=True):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
             self.sys.throw(BkptInfo("memory", 8, addr))
@@ -261,20 +264,20 @@ class Memory:
         for offset in range(size):
             if execMode and self.breakpoints[addr+offset] & 1:
                 self.sys.throw(BkptInfo("memory", 1, addr + offset))
-            if self.breakpoints[addr+offset] & 4:
+            if mayTriggerBkpt and self.breakpoints[addr+offset] & 4:
                 self.sys.throw(BkptInfo("memory", 4, addr + offset))
 
         sec, offset = resolvedAddr
         return self.data[sec][offset:offset+size]
 
-    def set(self, addr, val, size=4):
+    def set(self, addr, val, size=4, mayTriggerBkpt=True):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
             self.sys.throw(BkptInfo("memory", 8, addr))
             return
 
         for offset in range(size):
-            if self.breakpoints[addr+offset] & 2:
+            if mayTriggerBkpt and self.breakpoints[addr+offset] & 2:
                 self.sys.throw(BkptInfo("memory", 2, addr + offset))
 
         sec, offset = resolvedAddr
