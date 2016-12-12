@@ -17,7 +17,8 @@ ws.onmessage = function (event) {
         $(element).val(obj[1]);
         $(element).prop("disabled", false);
     } else if (obj[0] == 'disable') {
-        $(obj[1]).prop("disabled", true);
+        //$(obj[1]).prop("disabled", true);
+        $("[name='" + obj[1] + "']").prop("disabled", true);
     } else if (obj[0] == 'codeerror') {
         // row indices are 0-indexed
         editor.session.setAnnotations([{row: obj[1], text: obj[2], type: "error"}]);
@@ -36,10 +37,16 @@ ws.onmessage = function (event) {
         editableGrid.load({"data": obj[1]});
         editableGrid.renderGrid("memoryview", "testgrid");
     } else if (obj[0] == 'membp_r') {
+        console.log("r")
+        console.log(obj[1])
         mem_breakpoints_r = obj[1];
     } else if (obj[0] == 'membp_w') {
+        console.log("w")
+        console.log(obj[1])
         mem_breakpoints_w = obj[1];
     } else if (obj[0] == 'membp_rw') {
+        console.log("rw")
+        console.log(obj[1])
         mem_breakpoints_rw = obj[1];
     } else if (obj[0] == 'membp_e') {
         mem_breakpoints_e = obj[1];
@@ -70,7 +77,8 @@ function assemble() {
 }
 
 function simulate() {
-    ws.send(JSON.stringify(['run']));
+    var animate_speed = $('#animate_speed').val();
+    ws.send(JSON.stringify(['run', animate_speed]));
 }
 
 function sendBreakpointsInstr() {
