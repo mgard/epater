@@ -1,4 +1,5 @@
 import traceback
+import time
 import asyncio
 import json
 
@@ -14,11 +15,18 @@ connected = set()
 
 
 async def producer(data_list):
-    # Simuler des interruptions externes
     while True:
         if data_list:
             return json.dumps(data_list.pop(0))
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.05)
+
+
+async def run_instance():
+    while True:
+        for ws, interp in interpreters.items():
+            if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__):
+                return ws, interp
+        await asyncio.sleep(0.05)
 
 
 async def handler(websocket, path):
@@ -32,9 +40,9 @@ async def handler(websocket, path):
                 break
             listener_task = asyncio.ensure_future(websocket.recv())
             producer_task = asyncio.ensure_future(producer(to_send))
+            to_run_task = asyncio.ensure_future(run_instance())
             done, pending = await asyncio.wait(
-                [listener_task, producer_task],
-                #timeout=0.001,
+                [listener_task, producer_task, to_run_task],
                 return_when=asyncio.FIRST_COMPLETED)
 
             if listener_task in done:
@@ -58,15 +66,12 @@ async def handler(websocket, path):
             else:
                 producer_task.cancel()
 
-            # Continue executions of "run", "step out" and "step forward"1
-            # TODO: This won't scale
-            if not done:
-                print("Here!")
-                for ws, interp in interpreters.items():
-                    if not interp.shouldStop:
-                        interp.step()
-                        print("RUNNING!")
-                        to_send.extend(updateDisplay(interp))
+            # Continue executions of "run", "step out" and "step forward"
+            if to_run_task in done:
+                ws, interp = to_run_task.result()
+                interp.step()
+                interpreters[ws].last_step__ = time.time()
+                to_send.extend(updateDisplay(interp))
 
     finally:
         if websocket in interpreters:
@@ -142,7 +147,7 @@ def updateDisplay(interp, force_all=False):
     # TODO: check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
     if interp.currentBreakpoint:
         if interp.currentBreakpoint.source == 'memory' and bool(interp.currentBreakpoint.mode & 8):
-            retval.append(["error", "PC est &agrave; l'ext&eacute;rieur de la m&eacute;moire initialis&eacute;e."])
+            retval.append(["error", "PC est à l'extérieur de la mémoire initialisée."])
     return retval
 
 
@@ -160,14 +165,22 @@ def process(ws, msg_in):
                 bytecode, bcinfos = ASMparser(data[1].split("\n"))
                 interpreters[ws] = BCInterpreter(bytecode, bcinfos)
                 force_update_all = True
+                interpreters[ws].last_step__ = time.time()
+                interpreters[ws].animate_speed__ = 0.1
             elif data[0] == 'stepinto':
                 interpreters[ws].step()
             elif data[0] == 'stepforward':
                 interpreters[ws].step('forward')
+                interpreters[ws].last_step__ = time.time()
+                interpreters[ws].animate_speed__ = int(data[1]) / 1000
             elif data[0] == 'stepout':
                 interpreters[ws].step('out')
+                interpreters[ws].last_step__ = time.time()
+                interpreters[ws].animate_speed__ = int(data[1]) / 1000
             elif data[0] == 'run':
                 interpreters[ws].step('run')
+                interpreters[ws].last_step__ = time.time()
+                interpreters[ws].animate_speed__ = int(data[1]) / 1000
             elif data[0] == 'reset':
                 interpreters[ws].reset()
             elif data[0] == 'breakpointsinstr':
@@ -180,7 +193,10 @@ def process(ws, msg_in):
                     interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
                 elif data[1].upper() in ('N', 'Z', 'C', 'V', 'I', 'F', 'SN', 'SZ', 'SC', 'SV', 'SI', 'SF'):
                     flag_id = data[1].upper()
-                    val = not interpreters[ws].getFlags()[flag_id]
+                    try:
+                        val = not interpreters[ws].getFlags()[flag_id]
+                    except KeyError:
+                        pass
                     interpreters[ws].setFlags({flag_id: val})
                 elif data[1][:2].upper() == 'BP':
                     _, mode, reg_id = data[1].split('_')

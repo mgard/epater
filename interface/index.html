@@ -473,36 +473,41 @@
                 </div>
                 <div class="border_container smaller_font"><h4>&Eacute;tat courant</h4>
                     <table>
-                        <tr>
-                            <td>Negatif (N)</td>
-                            <td><button class="flag_btn" name="n"><input class="statusVal pointer" id="n" type="text" name="n" readonly/></button></td>
-                            <td><button class="flag_btn" name="sn"><input class="statusVal pointer" id="sn" type="text" name="sn" readonly/></button></td>
-                        </tr>
-                        <tr>
-                            <td>Zero (Z)</td>
-                            <td><button class="flag_btn" name="z"><input class="statusVal pointer" id="z" type="text" name="z" readonly/></button></td>
-                            <td><button class="flag_btn" name="sz"><input class="statusVal pointer" id="sz" type="text" name="sz" readonly/></button></td>
-                        </tr>
-                        <tr>
-                            <td>Emprunt (C)</td>
-                            <td><button class="flag_btn" name="c"><input class="statusVal pointer" id="c" type="text" name="c" readonly/></button></td>
-                            <td><button class="flag_btn" name="sc"><input class="statusVal pointer" id="sc" type="text" name="sc" readonly/></button></td>
-                        </tr>
-                        <tr>
-                            <td>D&eacute;passement (V)</td>
-                            <td><button class="flag_btn" name="v"><input class="statusVal pointer" id="v" type="text" name="v" readonly/></button></td>
-                            <td><button class="flag_btn" name="sv"><input class="statusVal pointer" id="sv" type="text" name="sv" readonly/></button></td>
-                        </tr>
-                        <tr>
-                            <td>IRQ actif</td>
-                            <td><button class="flag_btn" name="i"><input class="statusVal pointer" id="i" type="text" name="i" readonly/></button></td>
-                            <td><button class="flag_btn" name="si"><input class="statusVal pointer" id="si" type="text" name="si" readonly/></button></td>
-                        </tr>
-                        <tr>
-                            <td>FIQ actif</td>
-                            <td><button class="flag_btn" name="f"><input class="statusVal pointer" id="f" type="text" name="f" readonly/></button></td>
-                            <td><button class="flag_btn" name="sf"><input class="statusVal pointer" id="sf" type="text" name="sf" readonly/></button></td>
-                        </tr>
+                        <thead>
+                            <tr><th>&nbsp;</th><th>CPSR</th><th>SPSR</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Negatif (N)</td>
+                                <td><button class="flag_btn" name="n"><input class="statusVal pointer" id="n" type="text" name="n" readonly/></button></td>
+                                <td><button class="flag_btn" name="sn"><input class="statusVal pointer" id="sn" type="text" name="sn" readonly/></button></td>
+                            </tr>
+                            <tr>
+                                <td>Zero (Z)</td>
+                                <td><button class="flag_btn" name="z"><input class="statusVal pointer" id="z" type="text" name="z" readonly/></button></td>
+                                <td><button class="flag_btn" name="sz"><input class="statusVal pointer" id="sz" type="text" name="sz" readonly/></button></td>
+                            </tr>
+                            <tr>
+                                <td>Emprunt (C)</td>
+                                <td><button class="flag_btn" name="c"><input class="statusVal pointer" id="c" type="text" name="c" readonly/></button></td>
+                                <td><button class="flag_btn" name="sc"><input class="statusVal pointer" id="sc" type="text" name="sc" readonly/></button></td>
+                            </tr>
+                            <tr>
+                                <td>D&eacute;passement (V)</td>
+                                <td><button class="flag_btn" name="v"><input class="statusVal pointer" id="v" type="text" name="v" readonly/></button></td>
+                                <td><button class="flag_btn" name="sv"><input class="statusVal pointer" id="sv" type="text" name="sv" readonly/></button></td>
+                            </tr>
+                            <tr>
+                                <td>Ignore IRQ</td>
+                                <td><button class="flag_btn" name="i"><input class="statusVal pointer" id="i" type="text" name="i" readonly/></button></td>
+                                <td><button class="flag_btn" name="si"><input class="statusVal pointer" id="si" type="text" name="si" readonly/></button></td>
+                            </tr>
+                            <tr>
+                                <td>Ignore FIQ</td>
+                                <td><button class="flag_btn" name="f"><input class="statusVal pointer" id="f" type="text" name="f" readonly/></button></td>
+                                <td><button class="flag_btn" name="sf"><input class="statusVal pointer" id="sf" type="text" name="sf" readonly/></button></td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
                 <div class="border_container"><h4>Interruptions</h4>
@@ -615,6 +620,8 @@ variablemem DS32 10</div>
                     <button id="stepin" onclick="sendMsg('stepinto')" disable="disabled"><img src="./image/stepinto_co.gif"/></button>
                     <button id="stepforward" onclick="sendMsg('stepforward')" disable="disabled"><img src="./image/stepover_co.gif"/></button>
                     <button id="stepout" onclick="sendMsg('stepout')" disable="disabled"><img src="./image/stepreturn_co.gif"/></button>
+                    <br/>
+                    Animate speed:&nbsp;<input class="regVal" id="animate_speed" type="text" value="100"/>ms
                 </div>
                 <!-- Input (stdin)<br>
                 <textarea id="stdin_" name ="stdin" placeholder="your inputs here"></textarea><br>
@@ -695,23 +702,6 @@ variablemem DS32 10</div>
             $(".flag_btn").click(function() {
                 ws.send(JSON.stringify(["update",  $(this).attr("name")]));
             })
-
-            $('#gp').tooltipster({
-                content: $('<table border="1"> \
-                                <thead>\
-                                    <tr>\
-                                        <th>&nbsp;</th>\
-                                        <th>R0</th>\
-                                        <th>R1</th>\
-                                    </tr>\
-                                </thead>\
-                                <tbody id="dataTBody">\
-                                <tr><td>0</td></tr>\
-                                <tr><td>1</td></tr>\
-                                </tbody>\
-                            </table>'), 
-                position: 'bottom'
-            });
 
             // Memory viewer
             var metadata = [];
