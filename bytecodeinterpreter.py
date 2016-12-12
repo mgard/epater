@@ -91,7 +91,7 @@ class BCInterpreter:
         return self.sim.sysHandle.breakpointInfo if self.sim.sysHandle.breakpointTrigged else None
 
     def step(self, stepMode="into"):
-        # stepMode= "into" | "forward" | "out"
+        # stepMode= "into" | "forward" | "out" | "run"
         if stepMode != "into":
             self.sim.setStepCondition(stepMode)
         self.sim.nextInstr()
@@ -126,6 +126,7 @@ class BCInterpreter:
 
     def getCurrentLine(self):
         pc = self.sim.regs[15].get(mayTriggerBkpt=False)
+        pc -= 8 if getSetting("PCbehavior") == "+8" else 0
         # TODO : this assert will be a problem if we execute data...
         assert pc in self.addr2line, "Line outside of linked memory!"
         return self.addr2line[pc][-1]

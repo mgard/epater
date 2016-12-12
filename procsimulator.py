@@ -344,6 +344,7 @@ class Simulator:
 
         self.stepMode = None
         self.stepCondition = 0
+        self.runIteration = 0           # Used to stop the simulator after n iterations in run mode
 
         self.flags = self.regs.getCPSR()
 
@@ -374,15 +375,18 @@ class Simulator:
                 return True
         if self.stepMode == "out":
             return self.stepCondition == 0
+        if self.stepMode == "run":
+            return self.sysHandle.countCycles - self.runIteration >= getSetting("runmaxit")
 
         # We are doing a step into, we always stop
         return True
 
 
     def setStepCondition(self, stepMode):
-        assert stepMode in ("out", "forward")
+        assert stepMode in ("out", "forward", "run")
         self.stepMode = stepMode
         self.stepCondition = 1
+        self.runIteration = self.sysHandle.countCycles
 
 
     def stepBack(self, count):
