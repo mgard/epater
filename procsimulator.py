@@ -298,8 +298,19 @@ class Memory:
     def setBreakpoint(self, addr, modeOctal):
         self.breakpoints[addr] = modeOctal
 
+    def toggleBreakpoint(self, addr, modeOctal):
+        if not addr in self.breakpoints:
+            self.setBreakpoint(addr, modeOctal)
+        else:
+            # Toggle the value
+            self.breakpoints[addr] ^= modeOctal
+
     def removeBreakpoint(self, addr):
         self.breakpoints[addr] = 0
+
+    def removeExecuteBreakpoints(self):
+        for addr in [a for a,b in self.breakpoints.items() if b & 1 == 1]:
+            self.removeBreakpoint(addr)
 
     def stepBack(self):
         # Set the memory as it was one step back in the past

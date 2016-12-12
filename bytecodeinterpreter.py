@@ -18,13 +18,19 @@ class BCInterpreter:
     def reset(self):
         self.sim.reset()
 
-    def setBreakpointInstr(self, lineno):
+    def setBreakpointInstr(self, listLineNumbers):
+        # First, we remove all execution breakpoints
+        # TODO it will clash with execution breakpoints manually set in memory!
+        self.sim.mem.removeExecuteBreakpoints()
+
+        # Now we add all breakpoint
         # The easy case is when the line is directly mapped to a memory address (e.g. it is an instruction)
         # When it's not, we have to find the closest next line which is mapped
         # If there is no such line (we are asked to put a breakpoint after the last line of code) then no breakpoint is set
-        if lineno in self.line2addr:
-            self.sim.mem.setBreakpoint(self.line2addr[lineno], 1)
-            self.lineBreakpoints.append(lineno)
+        for lineno in listLineNumbers:
+            if lineno in self.line2addr:
+                self.sim.mem.setBreakpoint(self.line2addr[lineno], 1)
+                self.lineBreakpoints.append(lineno)
 
     def getBreakpointsMem(self):
         return {
@@ -35,9 +41,14 @@ class BCInterpreter:
         }
 
     def setBreakpointMem(self, addr, mode):
-        # Mode = 'r' | 'w' | 'rw' | '' (passing an empty string removes the breakpoint)
-        modeOctal = 4*('r' in mode) + 2*('w' in mode)
+        # Mode = 'r' | 'w' | 'rw' | 'e' | '' (passing an empty string removes the breakpoint)
+        modeOctal = 4*('r' in mode) + 2*('w' in mode) + 1*('e' in mode)
         self.sim.mem.setBreakpoint(addr, modeOctal)
+
+    def toggleBreakpointMem(self, addr, mode):
+        # Mode = 'r' | 'w' | 'rw' | 'e' | '' (passing an empty string removes the breakpoint)
+        modeOctal = 4*('r' in mode) + 2*('w' in mode) + 1*('e' in mode)
+        self.sim.mem.toggleBreakpoint(addr, modeOctal)
 
     def setBreakpointRegister(self, reg, mode):
         # Mode = 'r' | 'w' | 'rw' | '' (passing an empty string removes the breakpoint)
@@ -75,7 +86,7 @@ class BCInterpreter:
         # 'source' = 'register' | 'memory' | ' flag'
         # 'mode' = integer (same interpretation as Unix permissions)
         #                   if source='memory' then mode can also be 8 : it means that we're trying to access an uninitialized memory address
-        # 'infos' = supplemental information (register index if source='register', flag name if source='flag', address if source='memory'
+        # 'infos' = supplemental information (register index if source='register', flag name if source='flag', address if source='memory')
         # If no breakpoint has been trigged in the last instruction, then return None
         return self.sim.sysHandle.breakpointInfo if self.sim.sysHandle.breakpointTrigged else None
 
