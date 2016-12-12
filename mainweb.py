@@ -72,6 +72,8 @@ async def handler(websocket, path):
                 interp.step()
                 interpreters[ws].last_step__ = time.time()
                 to_send.extend(updateDisplay(interp))
+            else:
+                to_run_task.cancel()
 
     finally:
         if websocket in interpreters:
@@ -89,10 +91,10 @@ def generateUpdate(inter):
     # Breakpoints
     #retval.extend(tuple({k.lower(): v.breakpoint for k,v in inter.getRegisters().items()}.items()))
     bpm = inter.getBreakpointsMem()
-    retval.extend([["membp_r", bpm['r']],
-                   ["membp_w", bpm['w']],
-                   ["membp_rw", bpm['rw']],
-                   ["membp_e", bpm['e']]])
+    retval.extend([["membp_r", ["0x{:08x}".format(x) for x in bpm['r']]],
+                   ["membp_w", ["0x{:08x}".format(x) for x in bpm['w']]],
+                   ["membp_rw", ["0x{:08x}".format(x) for x in bpm['rw']]],
+                   ["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]]])
 
     # Memory View
     mem = inter.getMemory()
@@ -186,7 +188,7 @@ def process(ws, msg_in):
             elif data[0] == 'breakpointsinstr':
                 interpreters[ws].setBreakpointInstr(data[1])
             elif data[0] == 'breakpointsmem':
-                interpreters[ws].toggleBreakpointMem(data[1], data[2])
+                interpreters[ws].toggleBreakpointMem(int(data[1], 16), data[2])
             elif data[0] == 'update':
                 if data[1][0].upper() == 'R':
                     reg_id = int(data[1][1:])

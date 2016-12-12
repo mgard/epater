@@ -748,8 +748,8 @@ variablemem DS32 10</div>
                         if (tableRow.length < 1) {
                             continue;
                         }
-                        col = mem_breakpoints_r[i] % 16;
-                        $('.editablegrid-c'+col.toString(16), tableRow).addClass('mem_r');
+                        col = parseInt(mem_breakpoints_r[i], 16) % 16;
+                        $('.editablegrid-c'+col, tableRow).addClass('mem_r');
                     }
 
                     for (var i = 0; i < mem_breakpoints_w.length; i++) {
@@ -760,8 +760,8 @@ variablemem DS32 10</div>
                         if (tableRow.length < 1) {
                             continue;
                         }
-                        col = mem_breakpoints_w[i] % 16;
-                        $('.editablegrid-c'+col.toString(16), tableRow).addClass('mem_w');
+                        col = parseInt(mem_breakpoints_w[i], 16) % 16;
+                        $('.editablegrid-c'+col, tableRow).addClass('mem_w');
                     }
 
                     for (var i = 0; i < mem_breakpoints_rw.length; i++) {
@@ -772,7 +772,7 @@ variablemem DS32 10</div>
                         if (tableRow.length < 1) {
                             continue;
                         }
-                        col = mem_breakpoints_rw[i] % 16;
+                        col = parseInt(mem_breakpoints_rw[i], 16) % 16;
                         $('.editablegrid-c'+col, tableRow).addClass('mem_rw');
                     }
 
@@ -784,7 +784,7 @@ variablemem DS32 10</div>
                         if (tableRow.length < 1) {
                             continue;
                         }
-                        col = mem_breakpoints_e[i] % 16;
+                        col = parseInt(mem_breakpoints_e[i], 16) % 16;
                         $('.editablegrid-c'+col, tableRow).addClass('mem_e');
                     }
 
@@ -857,7 +857,10 @@ variablemem DS32 10</div>
             else link.css("cursor",  "pointer").click(function(event) { editableGrid.lastPage(); });
             paginator.append(link);*/
             $(".editablegrid-c0, .editablegrid-c1, .editablegrid-c2, .editablegrid-c3, .editablegrid-c4, .editablegrid-c5, .editablegrid-c6, .editablegrid-c7, .editablegrid-c8, .editablegrid-c9, .editablegrid-c10, .editablegrid-c11, .editablegrid-c12, .editablegrid-c13, .editablegrid-c14, .editablegrid-c15").click(function(e) {
-              var addr = $('td:first', $(e.toElement).closest('tr')).text().slice(0,9) + this.classList[0].slice(-1);
+              var suffix = this.classList[0].slice(-2);
+              if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
+              suffix = parseInt(suffix).toString(16);
+              var addr = $('td:first', $(e.toElement).closest('tr')).text().slice(0,9) + suffix;
               if(e.shiftKey) {
                 ws.send(JSON.stringify(['breakpointsmem', addr, 'r']));
               }
