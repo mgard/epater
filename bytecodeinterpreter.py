@@ -60,7 +60,7 @@ class BCInterpreter:
         modeOctal = 4*('r' in mode) + 2*('w' in mode)
         self.sim.flags.breakpoints[flag.upper()] = modeOctal
 
-    def setInterrupt(self, type, ncyclesbefore, ncyclesperiod, clearinterrupt, begincountat=0):
+    def setInterrupt(self, type, clearinterrupt, ncyclesbefore=0, ncyclesperiod=0, begincountat=0):
         # type is either "FIQ" or "IRQ"
         # ncyclesbefore is the number of cycles to wait before the first interrupt
         # ncyclesperiod the number of cycles between two interrupts
