@@ -283,7 +283,8 @@ class Memory:
         sec, offset = resolvedAddr
         val &= 0xFFFFFFFF
         self.history.append((self.sys.countCycles, sec, offset, size, val, self.data[sec][offset:offset+size]))
-        self.data[sec][offset:offset+size] = val
+        valBytes = struct.pack("<I", val) if size == 4 else struct.pack("<c", val)
+        self.data[sec][offset:offset+size] = valBytes
 
     def serialize(self):
         """
@@ -322,8 +323,8 @@ class Memory:
     def stepBack(self):
         # Set the memory as it was one step back in the past
         while self.history[-1][0] >= self.sys.countCycles:
-            _, sec, offset, size, val, previousVal = self.history.pop()
-            self.data[sec][offset:offset+size] = previousVal
+            _, sec, offset, size, val, previousValBytes = self.history.pop()
+            self.data[sec][offset:offset+size] = previousValBytes
 
 
 
