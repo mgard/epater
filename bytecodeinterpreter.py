@@ -111,14 +111,28 @@ class BCInterpreter:
             self.sim.regs[r].set(v, mayTriggerBkpt=False)
 
     def getFlags(self):
-        return self.sim.flags.getAllFlags()
+        # Return a dictionnary of the flags; if the current mode has a SPSR, then this method also returns
+        # its flags, with their name prepended with 'S', in the same dictionnary
+        d = self.sim.flags.getAllFlags()
+        if self.sim.regs.getSPSR() is not None:
+            d.update({"S{}".format(k): v for k,v in self.sim.regs.getSPSR().getAllFlags().items()})
+        return d
+
+    def setFlags(self, flagsDict):
+        # Set the flags in CPSR and the current SPSR (if there is such register)
+        # The input is a dictionnary with flag names as keys and booleans as values
+        # To set the SPSR flags, the keys to use are the same as the CPSR, but prepended with a 'S'
+        # (e.g. use 'SC' to reference carry flag in the current SPSR)
+        hasSPSR = self.sim.regs.getSPSR() is not None
+        for f,v in flagsDict.items():
+            if hasSPSR and len(f) == 2:
+                f = f[1]
+                self.sim.regs.getSPSR().setFlag(f.upper(), int(v), mayTriggerBkpt=False)
+            elif len(f) == 1:
+                self.sim.flags.setFlag(f.upper(), int(v), mayTriggerBkpt=False)
 
     def getProcessorMode(self):
         return self.sim.flags.getMode()
-
-    def setFlags(self, flagsDict):
-        for f,v in flagsDict.items():
-            self.sim.flags[f.upper()].set(v, mayTriggerBkpt=False)
 
     def getChanges(self):
         # Return the modified registers, memory, flags

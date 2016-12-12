@@ -102,11 +102,18 @@ class ControlRegister:
         return bool((self.val >> self.flag2index[flag]) & 0x1)
 
     def __setitem__(self, flag, value):
+        self.setFlag(flag, value)
+
+    def get(self):
+        # Return the content of the PSR as an integer
+        return self.val
+
+    def setFlag(self, flag, value, mayTriggerBkpt=True):
         flag = flag.upper()
         if flag not in self.flag2index:
             raise KeyError
 
-        if self.breakpoints[flag] & 2:
+        if mayTriggerBkpt and self.breakpoints[flag] & 2:
             self.sys.throw(BkptInfo("flag", 2, flag))
 
         if value:   # We set the flag
@@ -114,10 +121,6 @@ class ControlRegister:
         else:       # We clear the flag
             self.val &= 0xFFFFFFFF - (1 << self.flag2index[flag])
         self.history.append((self.sys.countCycles, self.val))
-
-    def get(self):
-        # Return the content of the PSR as an integer
-        return self.val
 
     def getAllFlags(self):
         # This function never triggers a breakpoint
@@ -191,7 +194,7 @@ class BankedRegisters:
 
     def getSPSR(self):
         if self.currentBank == "User":
-            assert False, "No SPSR register in user mode!"
+            return None             # No SPSR register in user mode
         return self.banks[self.currentBank][1][1]
 
     def getAllRegisters(self):
