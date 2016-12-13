@@ -219,6 +219,9 @@ def DataInstructionToBytecode(asmtokens):
 
     countReg = 0
     dictSeen = defaultdict(int)
+    if mnemonic in ('TEQ', 'TST', 'CMP', 'CMN'):
+        # No destination register for these instructions
+        dictSeen['REGISTER'] = 1
     for tok in asmtokens[1:]:
         # "TEQ, TST, CMP and CMN do not write the result of their operation but do set
         # flags in the CPSR. An assembler should always set the S flag for these instructions
@@ -416,12 +419,15 @@ def SwapInstructionToBytecode(asmtokens):
 def PSRTransferInstructionToBytecode(asmtokens):
     # Todo
     mnemonic = asmtokens[0].value
-    if mnemonic == 'MSR':
+    b = 0x2 << 23
+    if mnemonic == 'MRS':
         # Read the PSR
-        pass
+        b |= 0xF << 16
     else:
         # Write the PSR
-        pass
+        b |= 0x28F << 12
+
+
 
     raise NotImplementedError()
 

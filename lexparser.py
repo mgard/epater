@@ -197,6 +197,14 @@ def t_SWICONSTANT(t):
     t.value = int(t.value, 0)
     return t
 
+def t_PSRCHOICE(t):
+    r'(S|C)PSR\s+'
+    return t
+
+def t_PSRRESTRAINED(t):
+    r'((?<=(MSR))|(?<=((MSR)[A-Z]{2})))_[cxsf]+\s+'
+    return t
+
 def t_REFLABELADDR(t):
     r'\s*=\w+'
     t.value = t.value[1:]
