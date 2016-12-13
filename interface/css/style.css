@@ -194,6 +194,7 @@ img {
   top: 0;
   left: 0;
   height: 50px;
+  line-height: 50px;
   width: 100%;
   background: rgba(200, 100, 100, 0.5);
   z-index: 1000;
