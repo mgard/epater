@@ -38,9 +38,9 @@ ws.onmessage = function (event) {
         editableGrid.refreshGrid();
     } else if (obj[0] == 'mempartial') {
         for (var i = 0; i < obj[1].length; i++) {
-            var row = Math.floor(obj[1][0] / 16);
-            var col = (obj[1][0] % 16) + 1;
-            editableGrid.setValueAt(row, col, obj[1][1], false);
+            var row = Math.floor(obj[1][i][0] / 16);
+            var col = (obj[1][i][0] % 16) + 1;
+            editableGrid.setValueAt(row, col, obj[1][i][1], false);
         }
 
         editableGrid.refreshGrid();

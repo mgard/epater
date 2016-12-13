@@ -551,11 +551,13 @@
                 <div class="border_container">
                     <h4>M&eacute;moire</h4>
                     Breakpoints:
-                    <span class="mem_r">R</span>
+                    <span id="help_r" class="mem_r">R</span>
                     <span class="mem_w">W</span>
-                    <span class="mem_rw">RW</span><br/>
+                    <span class="mem_rw">RW</span>
+                    <span class="mem_e">E</span>
+                    <span class="mem_instr">instr</span><br/>
                     <div id="memoryview"></div>
-                    D&eacute;but:
+                    Segment:
                     <div id="paginator"></div>
                 </div>
                 <div class="border_container">
@@ -689,6 +691,27 @@
             editableGrid.load({"metadata": metadata,  "data": data});
             editableGrid.renderGrid("memoryview",  "testgrid");
 
+            $('#help_r').tooltipster({
+                content: 'Lecture (read)',
+                position: 'top'
+            });
+            $('#help_w').tooltipster({
+                content: 'Lecture (read)',
+                position: 'top'
+            });
+            $('#help_rw').tooltipster({
+                content: 'Lecture (read)',
+                position: 'top'
+            });
+            $('#help_e').tooltipster({
+                content: 'Lecture (read)',
+                position: 'top'
+            });
+            $('#help_instr').tooltipster({
+                content: 'Lecture (read)',
+                position: 'top'
+            });
+
         });
 
         function updateMemoryBreakpointsView() {
@@ -769,8 +792,8 @@
 
             // get pages in interval (with links except for the current page)
             var pages = this.getPagesInInterval(interval,  function(pageIndex,  isCurrent) {
-                if (isCurrent) return "0x" + (pageIndex * 20*16).toString(16);
-                return $("<a>").css("cursor",  "pointer").html("0x" + (pageIndex * 20*16).toString(16))
+                if (isCurrent) return "0x" + ("00000000" + (pageIndex * 20*16).toString(16)).slice(-9);
+                return $("<a>").css("cursor",  "pointer").html("0x" + ("00000000" + (pageIndex * 20*16).toString(16)).slice(-9))
                     .attr('rel',  pageIndex + 1)
                     .click(function(event) { editableGrid.setPageIndex(parseInt($(this).attr('rel')) - 1); });
             });
