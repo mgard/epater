@@ -42,12 +42,12 @@ ws.onmessage = function (event) {
             var col = (obj[1][i][0] % 16) + 1;
             editableGrid.setValueAt(row, col, obj[1][i][1], false);
         }
-
         editableGrid.refreshGrid();
         //editableGrid.renderGrid("memoryview", "testgrid");
     } else if (obj[0] == 'mem') {
         editableGrid.load({"data": obj[1]});
         editableGrid.renderGrid("memoryview", "testgrid");
+        addHoverMemoryView();
     } else if (obj[0] == 'membp_r') {
         mem_breakpoints_r = obj[1];
     } else if (obj[0] == 'membp_w') {

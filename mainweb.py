@@ -154,7 +154,6 @@ def updateDisplay(interp, force_all=False):
             if "register" in changed_vals:
                 retval.extend([[k.lower(), str(bool(v)) if k.lower()[-1] in ('v', 'c', 'z', 'n', 'i', 'f') else "{:08x}".format(v)] for k,v in changed_vals["register"].items()])
             if "memory" in changed_vals:
-                print(changed_vals["memory"])
                 retval.append(["mempartial", [[k, "{:02x}".format(v).upper()] for k, v in changed_vals["memory"]]])
 
     # TODO: check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.

@@ -691,6 +691,7 @@
             });
             editableGrid.load({"metadata": metadata,  "data": data});
             editableGrid.renderGrid("memoryview",  "testgrid");
+            addHoverMemoryView();
 
             $('#help_r').tooltipster({
                 contentAsHTML: true,
@@ -782,6 +783,22 @@
             }
         }
 
+        function addHoverMemoryView() {
+            $("#memoryview td").each(function (idx, e) {
+                var suffix = this.classList[0].slice(-2);
+                if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
+                suffix = parseInt(suffix);
+                if (!isNaN(suffix)) {
+                    suffix = suffix.toString(16);
+                    var addr = $('td:first', $(e).closest('tr')).text().slice(0,9) + suffix;
+                    $(e).tooltipster({
+                        content: 'Adresse: ' + addr,
+                        position: 'top'
+                    });
+                }
+            });
+        }
+
         // From editablegrid's demo
         function image(relativePath) {
             return "./editablegrid/images/" + relativePath;
@@ -801,7 +818,10 @@
                 if (isCurrent) return "0x" + ("00000000" + (pageIndex * 20*16).toString(16)).slice(-9);
                 return $("<a>").css("cursor",  "pointer").html("0x" + ("00000000" + (pageIndex * 20*16).toString(16)).slice(-9))
                     .attr('rel',  pageIndex + 1)
-                    .click(function(event) { editableGrid.setPageIndex(parseInt($(this).attr('rel')) - 1); });
+                    .click(function(event) {
+                        editableGrid.setPageIndex(parseInt($(this).attr('rel')) - 1);
+                        addHoverMemoryView();
+                    });
             });
 
             // "first" link
