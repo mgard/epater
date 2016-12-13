@@ -103,6 +103,9 @@ class BCInterpreter:
     def getMemory(self):
         return self.sim.mem.serialize()
 
+    def getMemoryFormatted(self):
+        return self.sim.mem.serializeFormatted()
+
     def setMemory(self, addr, val):
         # if addr is not initialized, then do nothing
         # val is a bytearray of one element (1 byte)

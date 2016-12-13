@@ -339,6 +339,21 @@ class Memory:
             ret_val += bytearray('\0' * padding_size, 'utf-8')
         return ret_val
 
+    def serializeFormatted(self):
+        # Return a list of strings of length 2
+        # These strings may contain the hex value of the mem cell, or "--" to indicate that it is undeclared
+        sorted_mem = sorted(self.startAddr.items(), key=operator.itemgetter(1))
+        retList = []
+        for sec, start in sorted_mem:
+            padding_size = start - len(retList)
+            retList += ["--"] * padding_size
+
+            retList += ["{:2X}".format(d) for d in self.data[sec]]
+
+            padding_size = self.endAddr[sec] - start - len(self.data[sec])
+            retList += ["--"] * padding_size
+        return retList
+
     def getMemoryChanges(self):
         if len(self.history) == 0:
             return []
