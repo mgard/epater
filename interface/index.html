@@ -16,12 +16,12 @@
         <script src="editablegrid/editablegrid_editors.js" ></script>
         <script src="editablegrid/editablegrid_validators.js" ></script>
         <script src="editablegrid/editablegrid_utils.js" ></script>
-        <script src="editablegrid/editablegrid_charts.js" ></script>
         <link rel="stylesheet" href="editablegrid/editablegrid.css" type="text/css" media="screen">
 
     </head>
     <body id="body_">
     <div id="message_bar"></div>
+    <div id="enonce">{{ enonce }}</div>
     <table id="content">
         <tr>
             <td id="regView">
@@ -475,7 +475,7 @@
                 <div class="border_container smaller_font"><h4>&Eacute;tat courant</h4>
                     <table>
                         <thead>
-                            <tr><th>&nbsp;</th><th>CPSR</th><th>SPSR</th></tr>
+                            <tr><th>&nbsp;</th><th>CPSR</th><th id="spsr_title">SPSR</th></tr>
                         </thead>
                         <tbody>
                             <tr>
@@ -517,69 +517,12 @@
                         <option value="FIQ">FIQ</option>
                         <option value="IRQ">IRQ</option>
                     </select><br/>
-                    <input class="regVal" id="interrupt_cycles" type="text" name="interrupt_cycles"/>&nbsp;cycles<br/>
-                    <input class="regVal" id="interrupt_cycles_first" type="text" name="interrupt_cycles_first"/>&nbsp;cycles (first)
+                    <input class="regVal" id="interrupt_cycles" type="text" value="5" name="interrupt_cycles"/>&nbsp;cycles<br/>
+                    <input class="regVal" id="interrupt_cycles_first" type="text" value="5" name="interrupt_cycles_first"/>&nbsp;cycles (premier)
                 </div>
             </td>
             <td id="editorPanel">
-                <div id="editor">
-SECTION INTVEC
-
-B main
-
-mavariable DC32 0x22,  0x1
-monautrevariable DC32 0xFFEEDDCC,  0x11223344
-
-SECTION CODE
-
-main
-B testmov
-
-testmov
-MOV R0,  #0
-MOV R1,  #0xA
-MOV R2,  #1 LSL R1
-MOV R3,  #0xF0000000
-MOV R4,  #0x1000 ASR #3
-MOV R5,  PC
-
-testop
-MOV R0,  #4
-MOV R1,  #0xB
-ADD R2,  R0,  R1
-SUB R3,  R0,  R1
-SUB R4,  R1,  R0
-AND R5,  R0,  R1
-ORR R6,  R0,  R1
-EOR R7,  R6,  R1
-
-testmem
-LDR R3,  mavariable
-LDR R4,  =mavariable
-LDR R10,  [R4,  #8]
-SUB R6,  PC,  #8
-LDR R7,  =variablemem
-STR R6,  [R7]
-
-testloop
-MOV R0,  #0
-MOV R1,  #0xF
-loop ADD R0,  R0,  #1
-CMP R0,  R1
-BNE loop
-BEQ skip
-MOV R11,  #0xEF
-skip
-MOV R2,  #0xFF
-MOV R3,  #255
-SUBS R4,  R2,  R3
-MOVGT R5,  #1
-MOVLE R5,  #2
-MOVEQ R6,  #3
-
-SECTION DATA
-
-variablemem DS32 10</div>
+                <div id="editor">{{ code }}</div>
                 <br>
                 <div>
                     <div style="float: left;">
@@ -671,7 +614,7 @@ variablemem DS32 10</div>
 
 				var row = e.getDocumentPosition().row ;
                  
-                var index = $.inArray(row,  asm_breakpoints);
+                var index = $.inArray(row, asm_breakpoints);
                 if (index >= 0) {
                     e.editor.session.clearBreakpoint(row);
                     asm_breakpoints.splice(index,  1);
@@ -740,71 +683,73 @@ variablemem DS32 10</div>
                 pageSize: 20, 
                 tableRendered: function() {
                     this.updatePaginator();
-
-                    for (var i = 0; i < mem_breakpoints_r.length; i++) {
-                        tofind = formatHexUnsigned32Bits(mem_breakpoints_r[i]).slice(0, 9) + "0";
-                        var tableRow = $("td", $("#memoryview")).filter(function() {
-                            return $(this).text() == tofind;
-                        }).closest("tr");
-                        if (tableRow.length < 1) {
-                            continue;
-                        }
-                        col = parseInt(mem_breakpoints_r[i], 16) % 16;
-                        $('.editablegrid-c'+col, tableRow).addClass('mem_r');
-                    }
-
-                    for (var i = 0; i < mem_breakpoints_w.length; i++) {
-                        tofind = formatHexUnsigned32Bits(mem_breakpoints_w[i]).slice(0, 9) + "0";
-                        var tableRow = $("td", $("#memoryview")).filter(function() {
-                            return $(this).text() == tofind;
-                        }).closest("tr");
-                        if (tableRow.length < 1) {
-                            continue;
-                        }
-                        col = parseInt(mem_breakpoints_w[i], 16) % 16;
-                        $('.editablegrid-c'+col, tableRow).addClass('mem_w');
-                    }
-
-                    for (var i = 0; i < mem_breakpoints_rw.length; i++) {
-                        tofind = formatHexUnsigned32Bits(mem_breakpoints_rw[i]).slice(0, 9) + "0";
-                        var tableRow = $("td", $("#memoryview")).filter(function() {
-                            return $(this).text() == tofind;
-                        }).closest("tr");
-                        if (tableRow.length < 1) {
-                            continue;
-                        }
-                        col = parseInt(mem_breakpoints_rw[i], 16) % 16;
-                        $('.editablegrid-c'+col, tableRow).addClass('mem_rw');
-                    }
-
-                    for (var i = 0; i < mem_breakpoints_e.length; i++) {
-                        tofind = formatHexUnsigned32Bits(mem_breakpoints_e[i]).slice(0, 9) + "0";
-                        var tableRow = $("td", $("#memoryview")).filter(function() {
-                            return $(this).text() == tofind;
-                        }).closest("tr");
-                        if (tableRow.length < 1) {
-                            continue;
-                        }
-                        col = parseInt(mem_breakpoints_e[i], 16) % 16;
-                        $('.editablegrid-c'+col, tableRow).addClass('mem_e');
-                    }
-
-                    /* Highlight current instruction */
-                    tofind = formatHexUnsigned32Bits(mem_breakpoints_instr).slice(0, 9) + "0";
-                    var tableRow = $("td", $("#memoryview")).filter(function() {
-                        return $(this).text() == tofind;
-                    }).closest("tr");
-                    if (tableRow.length > 0) {
-                        col = mem_breakpoints_instr % 16;
-                        $('.editablegrid-c'+col, tableRow).addClass('mem_instr');
-                    }
-                    
+                    updateMemoryBreakpointsView();
                 }
             });
             editableGrid.load({"metadata": metadata,  "data": data});
             editableGrid.renderGrid("memoryview",  "testgrid");
 
         });
+
+        function updateMemoryBreakpointsView() {
+            for (var i = 0; i < mem_breakpoints_r.length; i++) {
+                tofind = formatHexUnsigned32Bits(mem_breakpoints_r[i]).slice(0, 9) + "0";
+                var tableRow = $("td", $("#memoryview")).filter(function() {
+                    return $(this).text() == tofind;
+                }).closest("tr");
+                if (tableRow.length < 1) {
+                    continue;
+                }
+                col = parseInt(mem_breakpoints_r[i], 16) % 16;
+                $('.editablegrid-c'+col, tableRow).addClass('mem_r');
+            }
+
+            for (var i = 0; i < mem_breakpoints_w.length; i++) {
+                tofind = formatHexUnsigned32Bits(mem_breakpoints_w[i]).slice(0, 9) + "0";
+                var tableRow = $("td", $("#memoryview")).filter(function() {
+                    return $(this).text() == tofind;
+                }).closest("tr");
+                if (tableRow.length < 1) {
+                    continue;
+                }
+                col = parseInt(mem_breakpoints_w[i], 16) % 16;
+                $('.editablegrid-c'+col, tableRow).addClass('mem_w');
+            }
+
+            for (var i = 0; i < mem_breakpoints_rw.length; i++) {
+                tofind = formatHexUnsigned32Bits(mem_breakpoints_rw[i]).slice(0, 9) + "0";
+                var tableRow = $("td", $("#memoryview")).filter(function() {
+                    return $(this).text() == tofind;
+                }).closest("tr");
+                if (tableRow.length < 1) {
+                    continue;
+                }
+                col = parseInt(mem_breakpoints_rw[i], 16) % 16;
+                $('.editablegrid-c'+col, tableRow).addClass('mem_rw');
+            }
+
+            for (var i = 0; i < mem_breakpoints_e.length; i++) {
+                tofind = formatHexUnsigned32Bits(mem_breakpoints_e[i]).slice(0, 9) + "0";
+                var tableRow = $("td", $("#memoryview")).filter(function() {
+                    return $(this).text() == tofind;
+                }).closest("tr");
+                if (tableRow.length < 1) {
+                    continue;
+                }
+                col = parseInt(mem_breakpoints_e[i], 16) % 16;
+                $('.editablegrid-c'+col, tableRow).addClass('mem_e');
+            }
+
+            /* Highlight current instruction */
+            tofind = formatHexUnsigned32Bits(mem_breakpoints_instr).slice(0, 9) + "0";
+            var tableRow = $("td", $("#memoryview")).filter(function() {
+                return $(this).text() == tofind;
+            }).closest("tr");
+            if (tableRow.length > 0) {
+                col = mem_breakpoints_instr % 16;
+                $('.editablegrid-c'+col, tableRow).addClass('mem_instr');
+            }
+        }
 
         // From editablegrid's demo
         function image(relativePath) {

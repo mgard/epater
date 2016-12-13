@@ -34,6 +34,7 @@ h4 {
 
 .regVal {
     width: 65px;
+    font-family: monospace;
 }
 
 .smaller_font {
@@ -126,6 +127,7 @@ img {
 #memoryview td {
     text-align: center;
     font-size: 0.9em;
+    font-family: monospace;
 }
 
 .mem_r {

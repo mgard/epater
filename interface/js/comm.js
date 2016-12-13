@@ -31,8 +31,19 @@ ws.onmessage = function (event) {
         } else {
             debug_marker = null;
         }
+        editableGrid.refreshGrid();
+        //editableGrid.renderGrid("memoryview", "testgrid");
     } else if (obj[0] == 'debuginstrmem') {
         mem_breakpoints_instr = obj[1];
+    } else if (obj[0] == 'mempartial') {
+        for (var i = 0; i < obj[1].length; i++) {
+            var row = Math.floor(obj[1][0] / 16);
+            var col = (obj[1][0] % 16) + 1;
+            editableGrid.setValueAt(row, col, obj[1][1], false);
+        }
+
+        editableGrid.refreshGrid();
+        //editableGrid.renderGrid("memoryview", "testgrid");
     } else if (obj[0] == 'mem') {
         editableGrid.load({"data": obj[1]});
         editableGrid.renderGrid("memoryview", "testgrid");
@@ -46,6 +57,11 @@ ws.onmessage = function (event) {
         mem_breakpoints_e = obj[1];
     } else if (obj[0] == 'banking') {
         $("#tab-container").easytabs('select', '#tabs1-' + obj[1]);
+        if (obj[1] == "User") {
+            $("#spsr_title").text("SPSR");
+        } else {
+            $("#spsr_title").text("SPSR (" + obj[1] + ")");
+        }
     } else if (obj[0] == 'error') {
         $("#message_bar").text(obj[1]);
 
@@ -68,6 +84,9 @@ function assemble() {
     // Remove code errors tooltips
     codeerrors = {};
     $(".ace_content").css("background-color", "#FFF");
+
+    asm_breakpoints.length = 0;
+    editor.session.clearBreakpoints();
 }
 
 function simulate() {

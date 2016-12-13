@@ -2,8 +2,14 @@ import traceback
 import time
 import asyncio
 import json
+import os
+from multiprocessing import Process
 
 import websockets
+from bs4 import BeautifulSoup
+from gevent import monkey; monkey.patch_all()
+import bottle
+from bottle import route, get, template, static_file, request
 
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
@@ -89,7 +95,6 @@ def generateUpdate(inter):
     retval = []
 
     # Breakpoints
-    #retval.extend(tuple({k.lower(): v.breakpoint for k,v in inter.getRegisters().items()}.items()))
     bpm = inter.getBreakpointsMem()
     retval.extend([["membp_r", ["0x{:08x}".format(x) for x in bpm['r']]],
                    ["membp_w", ["0x{:08x}".format(x) for x in bpm['w']]],
@@ -125,26 +130,29 @@ def generateUpdate(inter):
 
 
 def updateDisplay(interp, force_all=False):
-    print("IMPLEMENT getChanges()!")
-    force_all = True
     retval = []
+
+    try:
+        retval.append(["debugline", interp.getCurrentLine()])
+    except AssertionError:
+        retval.append(["debugline", -1])
+
+    try:
+        retval.append(["debuginstrmem", "0x{:08x}".format(interp.getCurrentInstructionAddress())])
+    except Exception as e:
+        retval.append(["debuginstrmem", -1])
+        retval.append(["error", str(e)])
+
     if force_all:
-        try:
-            retval.append(["debugline", interp.getCurrentLine()])
-        except AssertionError:
-            retval.append(["debugline", -1])
-
-        try:
-            retval.append(["debuginstrmem", "0x{:08x}".format(interp.getCurrentInstructionAddress())])
-        except Exception as e:
-            retval.append(["debuginstrmem", -1])
-            retval.append(["error", str(e)])
-
         retval.extend(generateUpdate(interp))
+        retval.append(["banking", interp.getProcessorMode()])
     else:
-        retval = interp.getChanges()
-
-    retval.append(["banking", interp.getProcessorMode()])
+        changed_vals = interp.getChanges()
+        if changed_vals:
+            if "register" in changed_vals:
+                retval.extend([[k.lower(),  "{:08x}".format(v)] for k,v in changed_vals["register"].items()])
+            if "memory" in changed_vals:
+                retval.append(["mempartial", [[k, "{:02x}".format(v).upper()] for k, v in changed_vals["memory"]]])
 
     # TODO: check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
     if interp.currentBreakpoint:
@@ -189,6 +197,11 @@ def process(ws, msg_in):
                 interpreters[ws].setBreakpointInstr(data[1])
             elif data[0] == 'breakpointsmem':
                 interpreters[ws].toggleBreakpointMem(int(data[1], 16), data[2])
+                bpm = interpreters[ws].getBreakpointsMem()
+                retval.extend([["membp_r", ["0x{:08x}".format(x) for x in bpm['r']]],
+                               ["membp_w", ["0x{:08x}".format(x) for x in bpm['w']]],
+                               ["membp_rw", ["0x{:08x}".format(x) for x in bpm['rw']]],
+                               ["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]]])
             elif data[0] == 'update':
                 if data[1][0].upper() == 'R':
                     reg_id = int(data[1][1:])
@@ -224,8 +237,100 @@ def process(ws, msg_in):
     return retval
 
 
-if __name__ == '__main__':
-    start_server = websockets.serve(handler, '127.0.0.1', 31415)
+default_code = """SECTION INTVEC
 
+B main
+
+mavariable DC32 0x22,  0x1
+monautrevariable DC32 0xFFEEDDCC,  0x11223344
+
+SECTION CODE
+
+main
+B testmov
+
+testmov
+MOV R0,  #0
+MOV R1,  #0xA
+MOV R2,  #1 LSL R1
+MOV R3,  #0xF0000000
+MOV R4,  #0x1000 ASR #3
+MOV R5,  PC
+
+testop
+MOV R0,  #4
+MOV R1,  #0xB
+ADD R2,  R0,  R1
+SUB R3,  R0,  R1
+SUB R4,  R1,  R0
+AND R5,  R0,  R1
+ORR R6,  R0,  R1
+EOR R7,  R6,  R1
+
+testmem
+LDR R3,  mavariable
+LDR R4,  =mavariable
+LDR R10,  [R4,  #8]
+SUB R6,  PC,  #8
+LDR R7,  =variablemem
+STR R6,  [R7]
+
+testloop
+MOV R0,  #0
+MOV R1,  #0xF
+loop ADD R0,  R0,  #1
+CMP R0,  R1
+BNE loop
+BEQ skip
+MOV R11,  #0xEF
+skip
+MOV R2,  #0xFF
+MOV R3,  #255
+SUBS R4,  R2,  R3
+MOVGT R5,  #1
+MOVLE R5,  #2
+MOVEQ R6,  #3
+
+SECTION DATA
+
+variablemem DS32 10"""
+
+index_template = open('./interface/index.html', 'r').read()
+@get('/')
+def index():
+    if "exercice" in request.query:
+        with open(os.path.join("exercices", request.query["exercice"]), 'r') as fhdl:
+            exercice_html = fhdl.read()
+        soup = BeautifulSoup(exercice_html, "html.parser")
+        enonce = soup.find("div", {"id": "enonce"})
+        code = soup.find("div", {"id": "code"})
+        if not code:
+            code = ""
+        if not enonce:
+            enonce = ""
+    else:
+        code = default_code
+        enonce = ""
+    return template(index_template, code=code, enonce=enonce)
+
+
+@route('/<filename:path>')
+def static_serve(filename):
+    return static_file(filename, root='./interface/')
+
+
+def http_server():
+    bottle.run(host='0.0.0.0', port=8000, server="gevent")
+
+
+if __name__ == '__main__':
+
+    p = Process(target=http_server)
+    p.start()
+
+    # Websocket Server
+    start_server = websockets.serve(handler, '127.0.0.1', 31415)
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
+
+    p.join()
