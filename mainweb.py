@@ -151,7 +151,7 @@ def updateDisplay(interp, force_all=False):
         changed_vals = interp.getChanges()
         if changed_vals:
             if "register" in changed_vals:
-                retval.extend([[k.lower(),  "{:08x}".format(v)] for k,v in changed_vals["register"].items()])
+                retval.extend([[k.lower(), str(bool(v)) if k.lower()[-1] in ('v', 'c', 'z', 'n', 'i', 'f') else "{:08x}".format(v)] for k,v in changed_vals["register"].items()])
             if "memory" in changed_vals:
                 retval.append(["mempartial", [[k, "{:02x}".format(v).upper()] for k, v in changed_vals["memory"]]])
 

@@ -42,12 +42,14 @@ h4 {
 }
 
 .statusVal {
-    width: 30px;
-    height: 0.5em;
+    width: 35px;
+    height: 1em;
 }
 
 .flag_btn, .pointer {
     cursor: pointer;
+    padding: 0;
+    margin: 0;
 }
 
 #content {
