@@ -173,7 +173,9 @@ def process(ws, msg_in):
     try:
         for msg in msg_in:
             data = json.loads(msg)
-            if data[0] == 'assemble':
+            if data[0] != 'assemble' and ws not in interpreters:
+                raise Exception("Veuillez assembler le code avant d'effectuer cette opération.")
+            elif data[0] == 'assemble':
                 # TODO: Afficher les erreurs à l'écran "codeerror"
                 bytecode, bcinfos = ASMparser(data[1].split("\n"))
                 interpreters[ws] = BCInterpreter(bytecode, bcinfos)

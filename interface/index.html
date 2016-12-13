@@ -552,10 +552,11 @@
                     <h4>M&eacute;moire</h4>
                     Breakpoints:
                     <span id="help_r" class="mem_r">R</span>
-                    <span class="mem_w">W</span>
-                    <span class="mem_rw">RW</span>
-                    <span class="mem_e">E</span>
-                    <span class="mem_instr">instr</span><br/>
+                    <span id="help_w" class="mem_w">W</span>
+                    <span id="help_rw" class="mem_rw">RW</span>
+                    <span id="help_e" class="mem_e">E</span>
+                    <span id="help_instr" class="mem_instr">instr</span><br/>
+                    Ctrl+click: &Eacute;criture, Shift+click: Lecture, Alt+click: Ex&eacute;cution<br/>
                     <div id="memoryview"></div>
                     Segment:
                     <div id="paginator"></div>
@@ -692,23 +693,28 @@
             editableGrid.renderGrid("memoryview",  "testgrid");
 
             $('#help_r').tooltipster({
+                contentAsHTML: true,
                 content: 'Lecture (read)',
                 position: 'top'
             });
             $('#help_w').tooltipster({
-                content: 'Lecture (read)',
+                contentAsHTML: true,
+                content: '&Eacute;criture (write)',
                 position: 'top'
             });
             $('#help_rw').tooltipster({
-                content: 'Lecture (read)',
+                contentAsHTML: true,
+                content: 'Lecture ou &eacute;criture (read/write)',
                 position: 'top'
             });
             $('#help_e').tooltipster({
-                content: 'Lecture (read)',
+                contentAsHTML: true,
+                content: 'Ex&eacute;cution (execute)',
                 position: 'top'
             });
             $('#help_instr').tooltipster({
-                content: 'Lecture (read)',
+                contentAsHTML: true,
+                content: 'Instruction courante',
                 position: 'top'
             });
 
