@@ -597,7 +597,7 @@ class Simulator:
                     self.regs.getCPSR().set(self.regs.getSPSR().get())          # Put back the saved SPSR in CPSR
                 else:
                     for flag in workingFlags:
-                        self.flags[flag].set(workingFlags[flag])
+                        self.flags[flag] = workingFlags[flag]
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
                 # We actually write the result
                 self.regs[destrd].set(res)
