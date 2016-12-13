@@ -15,15 +15,14 @@ if __name__ == '__main__':
         bytecode, bcinfos = ASMparser(f)
 
     interpreter = BCInterpreter(bytecode, bcinfos)
-    print(interpreter.getCurrentLine(), interpreter.getChanges())
-    interpreter.step()
-    print(interpreter.getCurrentLine(), interpreter.getChanges())
-    interpreter.step()
-    print(interpreter.getCurrentLine(), interpreter.getChanges())
-    interpreter.step()
-    print(interpreter.getCurrentLine(), interpreter.getChanges())
-    interpreter.step()
-    print(interpreter.getCurrentLine(), interpreter.getChanges())
+    with open(args.inputfile) as f:
+        lines = f.readlines()
+        for i in range(10):
+            print(i, lines[interpreter.getCurrentLine()][:-1])
+            interpreter.step()
+            print(interpreter.getCurrentLine(), interpreter.getChanges())
+
+            print("################")
 
 
 
