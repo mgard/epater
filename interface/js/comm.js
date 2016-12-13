@@ -37,16 +37,10 @@ ws.onmessage = function (event) {
         editableGrid.load({"data": obj[1]});
         editableGrid.renderGrid("memoryview", "testgrid");
     } else if (obj[0] == 'membp_r') {
-        console.log("r")
-        console.log(obj[1])
         mem_breakpoints_r = obj[1];
     } else if (obj[0] == 'membp_w') {
-        console.log("w")
-        console.log(obj[1])
         mem_breakpoints_w = obj[1];
     } else if (obj[0] == 'membp_rw') {
-        console.log("rw")
-        console.log(obj[1])
         mem_breakpoints_rw = obj[1];
     } else if (obj[0] == 'membp_e') {
         mem_breakpoints_e = obj[1];
