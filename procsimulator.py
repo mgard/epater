@@ -16,7 +16,7 @@ class SimulatorError(Exception):
 
 BkptInfo = namedtuple("BkptInfo", ['source', 'mode', 'infos'])
 class SystemHandler:
-    def __init__(self, initCountCycles=0):
+    def __init__(self, initCountCycles=-1):
         self.breakpointTrigged = None
         self.breakpointInfo = None
         self.countCycles = initCountCycles
@@ -63,6 +63,11 @@ class Register:
             self.history.pop()
             self.val = self.history[-1][1]
 
+    def getChanges(self):
+        if len(self.history) == 0 or self.history[-1][0] != self.sys.countCycles:
+            return None
+        return self.val
+
 
 class ControlRegister:
     flag2index = {'N': 31, 'Z': 30, 'C': 29, 'V': 28, 'I': 7, 'F': 6}
@@ -75,6 +80,7 @@ class ControlRegister:
         self.sys = systemHandle
         self.val = 0
         self.history = []
+        self.historyFlags = []
         self.setMode("User")
         self.breakpoints = {flag:0 for flag in self.flag2index.keys()}
 
@@ -124,10 +130,19 @@ class ControlRegister:
         else:       # We clear the flag
             self.val &= 0xFFFFFFFF - (1 << self.flag2index[flag])
         self.history.append((self.sys.countCycles, self.val))
+        if len(self.historyFlags) > 0 and self.historyFlags[-1][0] == self.sys.countCycles:
+            self.historyFlags[-1][1].update({flag: value})
+        else:
+            self.historyFlags.append((self.sys.countCycles, {flag: value}))
 
     def getAllFlags(self):
         # This function never triggers a breakpoint
         return {flag: bool((self.val >> self.flag2index[flag]) & 0x1) for flag in self.flag2index.keys()}
+
+    def getChanges(self):
+        if len(self.historyFlags) == 0 or self.historyFlags[-1][0] != self.sys.countCycles:
+            return {}
+        return self.historyFlags[-1][1]
 
     def set(self, val):
         # Be careful with this method, many PSR values are illegal
@@ -156,7 +171,7 @@ class BankedRegisters:
         regs[15].altname = "PC"
         # We add the flags
         # No SPSR in user mode
-        flags = (ControlRegister("CPSR", systemHandle),)
+        flags = (ControlRegister("CPSR", systemHandle), None)
         self.banks['User'] = (regs, flags)
 
         # Create FIQ registers
@@ -204,6 +219,29 @@ class BankedRegisters:
         # Helper function to get all registers from all banks at once
         # The result is returned as a dictionary of dictionary
         return {bname: {reg.name: reg.get(mayTriggerBkpt=False) for reg in bank[0]} for bname, bank in self.banks.items()}
+
+    def getRegistersAndFlagsChanges(self):
+        d = {}
+        changeBank = None
+        if len(self.history) > 0 and self.history[-1][0] == self.sys.countCycles:
+            changeBank = self.history[-1][1]
+
+        prefixBanks = {"User": "", "FIQ": "FIQ_", "IRQ": "IRQ_", "SVC": "SVC_"}
+        # Add CPSR flags that were modified in the last cycle
+        d.update({flag: val for flag,val in self.getCPSR().getChanges().items()})
+        for bank in self.banks:
+            # Get registers update
+            # We never send PC updates (since it is always updated)
+            d.update({"{}{}".format(prefixBanks[bank], reg.name): reg.getChanges() for reg in self.banks[bank][0][:-1] if reg.getChanges() is not None})
+
+            if changeBank is not None and self.currentBank != "User":
+                # If we just changed bank, we send the whole SPSR, regardless of its changes
+                d.update({"S{}".format(flag): val for flag, val in self.getSPSR().getAllFlags().items()})
+            elif self.currentBank != "User":
+                # Else, we just send the current SPSR changes (if there are any, and if the current bank has a SPSR)
+                d.update({"S{}".format(flag): val for flag, val in self.getSPSR().getChanges().items()})
+
+        return d, changeBank
 
     def stepBack(self):
         # Set the registers and flags as they were one step back
@@ -282,7 +320,7 @@ class Memory:
 
         sec, offset = resolvedAddr
         val &= 0xFFFFFFFF
-        self.history.append((self.sys.countCycles, sec, offset, size, val, self.data[sec][offset:offset+size]))
+        self.history.append((self.sys.countCycles, sec, offset, addr, size, val, self.data[sec][offset:offset+size]))
         valBytes = struct.pack("<I", val) if size == 4 else struct.pack("<c", val)
         self.data[sec][offset:offset+size] = valBytes
 
@@ -301,6 +339,20 @@ class Memory:
             padding_size = self.endAddr[sec] - start - len(self.data[sec])
             ret_val += bytearray('\0' * padding_size, 'utf-8')
         return ret_val
+
+    def getMemoryChanges(self):
+        if len(self.history) == 0:
+            return []
+
+        changesList = []
+        for step in self.history[::-1]:
+            cycle, sec, offset, virtualAddr, size, val, previousValBytes = step
+            if cycle == self.sys.countCycles:
+                changesList.append([virtualAddr, val])
+            else:
+                # Since we iterate from the end, the cycle numbers will always decrease, so it is useless to continue
+                break
+        return changesList
 
     def setBreakpoint(self, addr, modeOctal):
         self.breakpoints[addr] = modeOctal
@@ -323,7 +375,7 @@ class Memory:
     def stepBack(self):
         # Set the memory as it was one step back in the past
         while self.history[-1][0] >= self.sys.countCycles:
-            _, sec, offset, size, val, previousValBytes = self.history.pop()
+            _, sec, offset, virtualAddr, size, val, previousValBytes = self.history.pop()
             self.data[sec][offset:offset+size] = previousValBytes
 
 
@@ -603,6 +655,9 @@ class Simulator:
                 self.regs[destrd].set(res)
 
     def nextInstr(self):
+        # One more cycle to do!
+        self.sysHandle.countCycles += 1
+
         # We clear an eventual breakpoint
         self.sysHandle.clearBreakpoint()
 
@@ -638,6 +693,4 @@ class Simulator:
         if self.sysHandle.breakpointTrigged:
             self.stepMode = None
 
-        # One more cycle done!
-        self.sysHandle.countCycles += 1
 

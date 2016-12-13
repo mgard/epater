@@ -141,10 +141,23 @@ class BCInterpreter:
     def getProcessorMode(self):
         return self.sim.flags.getMode()
 
+    def getCycleCount(self):
+        return self.sim.sysHandle.countCycles
+
     def getChanges(self):
         # Return the modified registers, memory, flags
         #
-        return
+        d = {}
+        dRegsAndFlags, dBank = self.sim.regs.getRegistersAndFlagsChanges()
+        if dBank is not None:
+            d["bank"] = dBank
+        if len(dRegsAndFlags) > 0:
+            d["register"] = dRegsAndFlags
+
+        lMem = self.sim.mem.getMemoryChanges()
+        if len(lMem) > 0:
+            d["memory"] = lMem
+        return d
 
     def getCurrentLine(self):
         pc = self.sim.regs[15].get(mayTriggerBkpt=False)
@@ -158,9 +171,4 @@ class BCInterpreter:
         pc -= 8 if getSetting("PCbehavior") == "+8" else 0
         return pc
 
-
-    def getProcessorState(self):
-        r = []
-
-        return r
 
