@@ -114,7 +114,7 @@ class BCInterpreter:
         return self.sim.regs.getAllRegisters()
 
     def setRegisters(self, regsDict):
-        for r,v in regsDict:
+        for r,v in regsDict.items():
             self.sim.regs[r].set(v, mayTriggerBkpt=False)
 
     def getFlags(self):
