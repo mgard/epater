@@ -231,8 +231,7 @@ class BankedRegisters:
         d.update({flag: val for flag,val in self.getCPSR().getChanges().items()})
         for bank in self.banks:
             # Get registers update
-            # We never send PC updates (since it is always updated)
-            d.update({"{}{}".format(prefixBanks[bank], reg.name): reg.getChanges() for reg in self.banks[bank][0][:-1] if reg.getChanges() is not None})
+            d.update({"{}{}".format(prefixBanks[bank], reg.name): reg.getChanges() for reg in self.banks[bank][0] if reg.getChanges() is not None})
 
             if changeBank is not None and self.currentBank != "User":
                 # If we just changed bank, we send the whole SPSR, regardless of its changes
