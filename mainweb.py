@@ -30,7 +30,7 @@ async def producer(data_list):
 async def run_instance():
     while True:
         for ws, interp in interpreters.items():
-            if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__):
+            if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (not interp.user_asked_stop__):
                 return ws, interp
         await asyncio.sleep(0.05)
 
@@ -75,9 +75,10 @@ async def handler(websocket, path):
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
                 ws, interp = to_run_task.result()
-                interp.step()
-                interpreters[ws].last_step__ = time.time()
-                to_send.extend(updateDisplay(interp))
+                if not interp.user_asked_stop__:
+                    interp.step()
+                    interpreters[ws].last_step__ = time.time()
+                    to_send.extend(updateDisplay(interp))
             else:
                 to_run_task.cancel()
 
@@ -177,6 +178,8 @@ def process(ws, msg_in):
                 force_update_all = True
                 interpreters[ws].last_step__ = time.time()
                 interpreters[ws].animate_speed__ = 0.1
+                interpreters[ws].running__ = False
+                interpreters[ws].user_asked_stop__ = False
             elif data[0] == 'stepinto':
                 interpreters[ws].step()
             elif data[0] == 'stepforward':
@@ -191,6 +194,8 @@ def process(ws, msg_in):
                 interpreters[ws].step('run')
                 interpreters[ws].last_step__ = time.time()
                 interpreters[ws].animate_speed__ = int(data[1]) / 1000
+                if interpreters[ws].running__ == False:
+                    interpreters[ws].user_asked_stop__ = True
             elif data[0] == 'reset':
                 interpreters[ws].reset()
             elif data[0] == 'breakpointsinstr':
@@ -299,11 +304,11 @@ index_template = open('./interface/index.html', 'r').read()
 @get('/')
 def index():
     if "exercice" in request.query:
-        with open(os.path.join("exercices", request.query["exercice"]), 'r') as fhdl:
+        with open(os.path.join("exercices", "{}.html".format(request.query["exercice"])), 'r') as fhdl:
             exercice_html = fhdl.read()
         soup = BeautifulSoup(exercice_html, "html.parser")
         enonce = soup.find("div", {"id": "enonce"})
-        code = soup.find("div", {"id": "code"})
+        code = soup.find("div", {"id": "code"}).text
         if not code:
             code = ""
         if not enonce:
