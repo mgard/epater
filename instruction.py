@@ -217,16 +217,18 @@ def DataInstructionToBytecode(asmtokens):
     mnemonic = asmtokens[0].value
     b = dataOpcodeMapping[mnemonic] << 21
 
-    countReg = 0
     dictSeen = defaultdict(int)
     if mnemonic in ('TEQ', 'TST', 'CMP', 'CMN'):
         # No destination register for these instructions
         dictSeen['REGISTER'] = 1
-    for tok in asmtokens[1:]:
+
         # "TEQ, TST, CMP and CMN do not write the result of their operation but do set
         # flags in the CPSR. An assembler should always set the S flag for these instructions
         # even if this is not specified in the mnemonic" (4-15, ARM7TDMI-S Data Sheet)
-        if tok.type == 'SETFLAGS' or mnemonic in ('TEQ', 'TST', 'CMP', 'CMN'):
+        b |= 1 << 20
+
+    for tok in asmtokens[1:]:
+        if tok.type == 'SETFLAGS':
             b |= 1 << 20
         elif tok.type == 'COND':
             b |= conditionMapping[tok.value] << 28
