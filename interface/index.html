@@ -741,13 +741,15 @@
             }
 
             /* Highlight current instruction */
-            tofind = formatHexUnsigned32Bits(mem_breakpoints_instr).slice(0, 9) + "0";
-            var tableRow = $("td", $("#memoryview")).filter(function() {
-                return $(this).text() == tofind;
-            }).closest("tr");
-            if (tableRow.length > 0) {
-                col = mem_breakpoints_instr % 16;
-                $('.editablegrid-c'+col, tableRow).addClass('mem_instr');
+            for (var i = 0; i < mem_breakpoints_instr.length; i++) {
+                tofind = formatHexUnsigned32Bits(mem_breakpoints_instr[i]).slice(0, 9) + "0";
+                var tableRow = $("td", $("#memoryview")).filter(function() {
+                    return $(this).text() == tofind;
+                }).closest("tr");
+                if (tableRow.length > 0) {
+                    col = mem_breakpoints_instr[i] % 16;
+                    $('.editablegrid-c'+col, tableRow).addClass('mem_instr');
+                }
             }
         }
 

@@ -139,7 +139,8 @@ def updateDisplay(interp, force_all=False):
         retval.append(["debugline", -1])
 
     try:
-        retval.append(["debuginstrmem", "0x{:08x}".format(interp.getCurrentInstructionAddress())])
+        instr_addr = interp.getCurrentInstructionAddress()
+        retval.append(["debuginstrmem", ["0x{:08x}".format(x) for x in range(instr_addr, instr_addr + 4)]])
     except Exception as e:
         retval.append(["debuginstrmem", -1])
         retval.append(["error", str(e)])
