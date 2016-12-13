@@ -6,7 +6,7 @@ var mem_breakpoints_r = [];
 var mem_breakpoints_w = [];
 var mem_breakpoints_rw = [];
 var mem_breakpoints_e = [];
-var mem_breakpoints_instr = -1;
+var mem_breakpoints_instr = [];
 var debug_marker = null;
 
 ws.onmessage = function (event) {
