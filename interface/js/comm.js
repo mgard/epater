@@ -31,10 +31,11 @@ ws.onmessage = function (event) {
         } else {
             debug_marker = null;
         }
-        editableGrid.refreshGrid();
+        //editableGrid.refreshGrid();
         //editableGrid.renderGrid("memoryview", "testgrid");
     } else if (obj[0] == 'debuginstrmem') {
         mem_breakpoints_instr = obj[1];
+        editableGrid.refreshGrid();
     } else if (obj[0] == 'mempartial') {
         for (var i = 0; i < obj[1].length; i++) {
             var row = Math.floor(obj[1][0] / 16);

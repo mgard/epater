@@ -178,7 +178,6 @@ def process(ws, msg_in):
                 force_update_all = True
                 interpreters[ws].last_step__ = time.time()
                 interpreters[ws].animate_speed__ = 0.1
-                interpreters[ws].running__ = False
                 interpreters[ws].user_asked_stop__ = False
             elif data[0] == 'stepinto':
                 interpreters[ws].step()
@@ -191,11 +190,13 @@ def process(ws, msg_in):
                 interpreters[ws].last_step__ = time.time()
                 interpreters[ws].animate_speed__ = int(data[1]) / 1000
             elif data[0] == 'run':
-                interpreters[ws].step('run')
-                interpreters[ws].last_step__ = time.time()
-                interpreters[ws].animate_speed__ = int(data[1]) / 1000
-                if interpreters[ws].running__ == False:
+                if interpreters[ws].shouldStop == False and not interpreters[ws].user_asked_stop__:
                     interpreters[ws].user_asked_stop__ = True
+                else:
+                    interpreters[ws].user_asked_stop__ = False
+                    interpreters[ws].step('run')
+                    interpreters[ws].last_step__ = time.time()
+                    interpreters[ws].animate_speed__ = int(data[1]) / 1000
             elif data[0] == 'reset':
                 interpreters[ws].reset()
             elif data[0] == 'breakpointsinstr':
