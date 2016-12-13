@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta charset="UTF-8">
         <title>ARM Simulator</title>
         <link rel="stylesheet" type="text/css" media="screen" href="css/style.css">
         <script src="js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
@@ -550,7 +551,7 @@ SUB R3,  R0,  R1
 SUB R4,  R1,  R0
 AND R5,  R0,  R1
 ORR R6,  R0,  R1
-XOR R7,  R6,  R1
+EOR R7,  R6,  R1
 
 testmem
 LDR R3,  mavariable
@@ -860,7 +861,7 @@ variablemem DS32 10</div>
               var suffix = this.classList[0].slice(-2);
               if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
               suffix = parseInt(suffix).toString(16);
-              var addr = $('td:first', $(e.toElement).closest('tr')).text().slice(0,9) + suffix;
+              var addr = $('td:first', $(e.target).closest('tr')).text().slice(0,9) + suffix;
               if(e.shiftKey) {
                 ws.send(JSON.stringify(['breakpointsmem', addr, 'r']));
               }
