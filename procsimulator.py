@@ -565,7 +565,10 @@ class Simulator:
                 res = struct.unpack("<I", m)[0]
                 self.regs[misc['rd']].set(res)
             else:       # STR
-                self.mem.set(realAddr, self.regs[misc['rd']].get(), size=1 if misc['byte'] else 4)
+                valWrite = self.regs[misc['rd']].get()
+                if misc['rd'] == 15 and getSetting("PCspecialbehavior"):
+                    valWrite += 4       # Special case for PC (see ARM datasheet, 4.9.4)
+                self.mem.set(realAddr, valWrite, size=1 if misc['byte'] else 4)
 
             if misc['writeback']:
                 self.regs[misc['base']].set(addr)
@@ -598,6 +601,8 @@ class Simulator:
                     _, op2 = self._shiftVal(op2, misc['op2'][1])
             else:
                 op2 = self.regs[misc['op2'][0]].get()
+                if misc['op2'][0] == 15 and getSetting("PCspecialbehavior"):
+                    op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
                 carry, op2 = self._shiftVal(op2, misc['op2'][1])
                 workingFlags['C'] = bool(carry)
 
