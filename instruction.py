@@ -455,15 +455,17 @@ def SoftinterruptInstructionToBytecode(asmtokens):
 def DeclareInstructionToBytecode(asmtokens):
     assert asmtokens[0].type == 'DECLARATION', str((asmtokens[0].type, asmtokens[0].value))
     info = asmtokens[0].value
-
     formatletter = "B" if info.nbits == 8 else "H" if info.nbits == 16 else "I" # 32
-    return struct.pack("<"+formatletter*info.dim, *([0]*info.dim if len(info.vals) == 0 else info.vals))
+    if len(info.vals) == 0:
+        dimBytes = info.dim * info.nbits // 8
+        return struct.pack("<"+"B"*dimBytes, *[getSetting("fillValue")]*dimBytes)
+    else:
+        return struct.pack("<"+formatletter*info.dim, *info.vals)
 
 
 
 def InstructionToBytecode(asmtokens):
     assert asmtokens[0].type in ('INSTR', 'DECLARATION')
-    #print(asmtokens)
     tp = globalInstrInfo[asmtokens[0].value if asmtokens[0].type == 'INSTR' else asmtokens[0].value.type]
     return InstrType.getEncodeFunction(tp)(asmtokens)
 
