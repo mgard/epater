@@ -494,6 +494,13 @@ class Simulator:
                 val = ((val & (2**32-1)) >> shiftamount%32) | (val << (32-(shiftamount%32)) & (2**32-1))
         return carryOut, val
 
+    def _checkCarry(self, op1, op2, res):
+        return bool(res & (1 << 32))
+
+    def _checkOverflow(self, op1, op2, res):
+        if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
+            return not bool((op1 & 0x80000000) ^ (res & 0x80000000))
+        return False
 
     def execInstr(self):
         """
@@ -598,7 +605,8 @@ class Simulator:
             if misc['imm']:
                 op2 = misc['op2'][0]
                 if misc['op2'][1][2] != 0:
-                    _, op2 = self._shiftVal(op2, misc['op2'][1])
+                    carry, op2 = self._shiftVal(op2, misc['op2'][1])
+                    workingFlags['C'] = bool(carry)
             else:
                 op2 = self.regs[misc['op2'][0]].get()
                 if misc['op2'][0] == 15 and getSetting("PCspecialbehavior"):
@@ -610,33 +618,37 @@ class Simulator:
             destrd = misc['rd']
 
             if misc['opcode'] in ("AND", "TST"):
-                # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
+                # These instructions do not affect the V flag (ARM Instr. set, 4.5.1)
+                # However, C flag "is set to the carry out from the barrel shifter [if the shift is not LSL #0]" (4.5.1)
+                # this was already done when we called _shiftVal
                 res = op1 & op2
             elif misc['opcode'] in ("EOR", "TEQ"):
                 # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
                 res = op1 ^ op2
             elif misc['opcode'] in ("SUB", "CMP"):
-                # TODO : update carry and overflow flags
                 res = op1 - op2
+                workingFlags['C'] = self._checkCarry(op1, op2, res)
+                workingFlags['V'] = self._checkOverflow(op1, (~op2)+1, res)
             elif misc['opcode'] == "RSB":
-                # TODO : update carry and overflow flags
                 res = op2 - op1
+                workingFlags['C'] = self._checkCarry(op2, op1, res)
+                workingFlags['V'] = self._checkOverflow(op2, (~op1)+1, res)
             elif misc['opcode'] in ("ADD", "CMN"):
                 res = op1 + op2
-                workingFlags['C'] = bool(res & (1 << 32))
-                if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
-                    workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
+                workingFlags['C'] = self._checkCarry(op1, op2, res)
+                workingFlags['V'] = self._checkOverflow(op1, op2, res)
             elif misc['opcode'] == "ADC":
                 res = op1 + op2 + int(self.flags['C'].get())
-                workingFlags['C'] = bool(res & (1 << 32))
-                if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
-                    workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
+                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C'].get()), res)
+                workingFlags['V'] = self._checkOverflow(op1, op2 + int(self.flags['C'].get()), res)
             elif misc['opcode'] == "SBC":
-                # TODO : update carry and overflow flags
                 res = op1 - op2 + int(self.flags['C'].get()) - 1
+                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C'].get()) - 1, res)
+                workingFlags['V'] = self._checkOverflow(op1, ((~op2) + 1) + int(self.flags['C'].get()) - 1, res)
             elif misc['opcode'] == "RSC":
-                # TODO : update carry and overflow flags
                 res = op2 - op1 + int(self.flags['C'].get()) - 1
+                workingFlags['C'] = self._checkCarry(op2, op1 + int(self.flags['C'].get()) - 1, res)
+                workingFlags['V'] = self._checkOverflow(op2, ((~op1) + 1) + int(self.flags['C'].get()) - 1, res)
             elif misc['opcode'] == "ORR":
                 res = op1 | op2
             elif misc['opcode'] == "MOV":
@@ -647,6 +659,8 @@ class Simulator:
                 res = ~op2
             else:
                 assert False, "Bad data opcode : " + misc['opcode']
+
+            res &= 0xFFFFFFFF           # Get the result back to 32 bits, if applicable (else it's just a no-op)
 
             if res == 0:
                 workingFlags['Z'] = True
