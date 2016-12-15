@@ -28,11 +28,12 @@ async def producer(data_list):
         await asyncio.sleep(0.05)
 
 
-async def run_instance():
+async def run_instance(websocket):
     while True:
-        for ws, interp in random.sample(interpreters.items(), len(interpreters)):
+        if websocket in interpreters:
+            interp = interpreters[websocket]
             if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (not interp.user_asked_stop__):
-                return ws, interp
+                return
         await asyncio.sleep(0.05)
 
 
@@ -43,8 +44,9 @@ async def handler(websocket, path):
     received = []
     try:
         listener_task = asyncio.ensure_future(websocket.recv())
+        print(id(to_send))
         producer_task = asyncio.ensure_future(producer(to_send))
-        to_run_task = asyncio.ensure_future(run_instance())
+        to_run_task = asyncio.ensure_future(run_instance(websocket))
         while True:
             if not websocket.open:
                 break
@@ -66,26 +68,20 @@ async def handler(websocket, path):
                     to_send.extend(data)
 
                 listener_task = asyncio.ensure_future(websocket.recv())
-            #else:
-            #    listener_task.cancel()
 
             if producer_task in done:
                 message = producer_task.result()
                 await websocket.send(message)
                 producer_task = asyncio.ensure_future(producer(to_send))
-            #else:
-            #    producer_task.cancel()
 
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
-                ws, interp = to_run_task.result()
-                if not interp.user_asked_stop__:
-                    interp.step()
-                    interpreters[ws].last_step__ = time.time()
-                    to_send.extend(updateDisplay(interp))
-                to_run_task = asyncio.ensure_future(run_instance())
-            #else:
-            #   to_run_task.cancel()
+                #interp = to_run_task.result()
+                if not interpreters[websocket].user_asked_stop__:
+                    interpreters[websocket].step()
+                    interpreters[websocket].last_step__ = time.time()
+                    to_send.extend(updateDisplay(interpreters[websocket]))
+                to_run_task = asyncio.ensure_future(run_instance(websocket))
 
     finally:
         if websocket in interpreters:
