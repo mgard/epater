@@ -189,6 +189,10 @@ img {
     font-size: 0.8em;
 }
 
+#autosave_menu {
+    margin-left: 15px;
+}
+
 /* Tabs */
 .etabs { margin: 0; padding: 0; }
 .tab { display: inline-block; zoom:1; *display:inline; background: #eee; border: solid 1px #999; border-bottom: none; -moz-border-radius: 4px 4px 0 0; -webkit-border-radius: 4px 4px 0 0; }

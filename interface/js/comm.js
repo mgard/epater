@@ -42,8 +42,6 @@ ws.onmessage = function (event) {
         } else {
             debug_marker = null;
         }
-        //editableGrid.refreshGrid();
-        //editableGrid.renderGrid("memoryview", "testgrid");
     } else if (obj[0] == 'debuginstrmem') {
         mem_breakpoints_instr = obj[1];
         editableGrid.refreshGrid();
@@ -54,7 +52,6 @@ ws.onmessage = function (event) {
             editableGrid.setValueAt(row, col, obj[1][i][1], false);
         }
         editableGrid.refreshGrid();
-        //editableGrid.renderGrid("memoryview", "testgrid");
     } else if (obj[0] == 'mem') {
         editableGrid.load({"data": obj[1]});
         editableGrid.renderGrid("memoryview", "testgrid");

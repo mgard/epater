@@ -527,7 +527,7 @@
                 <div>
                     <div style="float: left;">
                         <input type="file" id="fileToLoad">
-                        <button onclick="loadFileAsText()">Load</button>
+                        <button id="loadFile" onclick="loadFileAsText()">Load</button>
                     </div>
                     <div style="float: right;">
                         <button onclick="editor.setValue('');">
@@ -894,6 +894,39 @@
         };
 
         window.onbeforeunload = confirmOnPageExit;
+
+        function updateAutosave() {
+            $("#autosave_menu").remove();
+            $("#loadFile").after('<select id="autosave_menu"><option val="none">Autosave</option>' + choices + "</select>");
+            $('#autosave_menu').on('change', function() {
+                if (this.value != "none") {
+                    editor.setValue(localStorage.getItem("data_autosave" + this.value.toString()));
+                }
+                $("#autosave_menu").val(0);
+            });
+        }
+
+        autosave_index = 0;
+        if (typeof(Storage) !== "undefined") {
+            setInterval(function() {
+                localStorage.setItem("data_autosave" + autosave_index.toString(), editor.getValue());
+                localStorage.setItem("time_autosave" + autosave_index.toString(), new Date().toLocaleString());
+                autosave_index = (autosave_index + 1) % 10;
+
+                updateAutosave();
+                console.log("Autosaved! ID: " + autosave_index.toString());
+            }, 60000); // Tous les 2 minutes
+
+            // Afficher menu
+            choices = ""
+            for (var i = 0; i < 10; ++i) {
+                var val = localStorage.getItem("time_autosave" + i.toString())
+                if ( val !== null ) { choices = choices + '<option value="' + i + '">' + val + '</option>' }
+            }
+            updateAutosave();
+        } else {
+            console.log("Autosaving disabled!");
+        }
     </script>
 </body>
 </html>
