@@ -170,6 +170,9 @@ def updateDisplay(interp, force_all=False):
     diff_bp = interp.getBreakpointInstr(diff=True)
     if diff_bp:
         retval.append(["asm_breakpoints", interp.getBreakpointInstr()])
+        bpm = interp.getBreakpointsMem()
+        retval.extend([["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]],
+                       ["mempartial", []]])
 
     # TODO: check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
     if interp.currentBreakpoint:

@@ -897,6 +897,11 @@
 
         function updateAutosave() {
             $("#autosave_menu").remove();
+            choices = ""
+            for (var i = 0; i < 10; ++i) {
+                var val = localStorage.getItem("time_autosave" + i.toString())
+                if ( val !== null ) { choices = choices + '<option value="' + i + '">' + val + '</option>' }
+            }
             $("#loadFile").after('<select id="autosave_menu"><option value="-1">Autosave</option>' + choices + "</select>");
             $('#autosave_menu').on('change', function() {
                 if (this.value != "-1") {
@@ -908,6 +913,13 @@
 
         autosave_index = 0;
         if (typeof(Storage) !== "undefined") {
+            // Continue autosaving where we left
+            for (var i = 0; i < 10; ++i) {
+                var val = localStorage.getItem("time_autosave" + i.toString())
+                if ( val === null ) { break; }
+                autosave_index = autosave_index + 1;
+            }
+
             setInterval(function() {
                 localStorage.setItem("data_autosave" + autosave_index.toString(), editor.getValue());
                 localStorage.setItem("time_autosave" + autosave_index.toString(), new Date().toLocaleString());
@@ -918,11 +930,6 @@
             }, 60000); // Tous les 2 minutes
 
             // Afficher menu
-            choices = ""
-            for (var i = 0; i < 10; ++i) {
-                var val = localStorage.getItem("time_autosave" + i.toString())
-                if ( val !== null ) { choices = choices + '<option value="' + i + '">' + val + '</option>' }
-            }
             updateAutosave();
         } else {
             console.log("Autosaving disabled!");
