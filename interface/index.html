@@ -897,12 +897,12 @@
 
         function updateAutosave() {
             $("#autosave_menu").remove();
-            $("#loadFile").after('<select id="autosave_menu"><option val="none">Autosave</option>' + choices + "</select>");
+            $("#loadFile").after('<select id="autosave_menu"><option value="-1">Autosave</option>' + choices + "</select>");
             $('#autosave_menu').on('change', function() {
-                if (this.value != "none") {
+                if (this.value != "-1") {
                     editor.setValue(localStorage.getItem("data_autosave" + this.value.toString()));
                 }
-                $("#autosave_menu").val(0);
+                $("#autosave_menu").val("-1");
             });
         }
 
