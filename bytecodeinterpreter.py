@@ -40,7 +40,7 @@ class BCInterpreter:
             if lineno in self.line2addr:
                 self.sim.mem.setBreakpoint(self.line2addr[lineno], 1)
                 nextLine = lineno + 1
-                while nextLine in self.line2addr and nextLine == lineno:
+                while nextLine in self.line2addr and self.line2addr[nextLine] == self.line2addr[lineno]:
                     nextLine += 1
                 self.lineBreakpoints.append(nextLine-1)
                 print(self.lineBreakpoints)
