@@ -126,6 +126,9 @@ def generateUpdate(inter):
         flags = ("sn", "sz", "sc", "sv", "si", "sf")
         retval.extend([["disable", f] for f in flags])
 
+    # Breakpoints
+    retval.append(["asm_breakpoints", inter.getBreakpointInstr()])
+
     return retval
 
 
@@ -163,6 +166,10 @@ def updateDisplay(interp, force_all=False):
                     retval.append([k, v])
             if "memory" in changed_vals:
                 retval.append(["mempartial", [[k, "{:02x}".format(v).upper()] for k, v in changed_vals["memory"]]])
+
+    diff_bp = interp.getBreakpointInstr(diff=True)
+    if diff_bp:
+        retval.append(["asm_breakpoints", interp.getBreakpointInstr()])
 
     # TODO: check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
     if interp.currentBreakpoint:

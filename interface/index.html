@@ -562,7 +562,7 @@
                 </div>
                 <div class="border_container">
                     <button onclick="assemble()" id="assemble">Assemble</button><br/><br/>
-                    <button onclick="simulate()" disable="disabled"><img src="./image/resume_co.gif"/></button>
+                    <button id="run" onclick="simulate()" disable="disabled"><img src="./image/resume_co.gif"/></button>
                     <button id="stepin" onclick="sendMsg('stepinto')" disable="disabled"><img src="./image/stepinto_co.gif"/></button>
                     <button id="stepforward" onclick="sendMsg('stepforward')" disable="disabled"><img src="./image/stepover_co.gif"/></button>
                     <button id="stepout" onclick="sendMsg('stepout')" disable="disabled"><img src="./image/stepreturn_co.gif"/></button>
@@ -618,19 +618,18 @@
                  
                 var index = $.inArray(row, asm_breakpoints);
                 if (index >= 0) {
-                    e.editor.session.clearBreakpoint(row);
-                    asm_breakpoints.splice(index,  1);
+                    //e.editor.session.clearBreakpoint(row);
+                    asm_breakpoints.splice(index, 1);
                 } else {
-                    e.editor.session.setBreakpoint(row);
+                    //e.editor.session.setBreakpoint(row);
                     asm_breakpoints.push(row);
                 }
                 sendBreakpointsInstr();
 			})
 
             editor.on("change",  function() {
-                //removeCodeErrors();
                 if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
-                $(".ace_content").css("background-color",  "#FFF6F6");
+                $(".ace_content").css("background-color",  "#FFF3F3");
             });
 
             $("input").change(function () {

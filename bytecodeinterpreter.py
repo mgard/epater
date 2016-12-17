@@ -18,6 +18,15 @@ class BCInterpreter:
     def reset(self):
         self.sim.reset()
 
+    def getBreakpointInstr(self, diff=False):
+        if diff and hasattr(self, '_oldLineBreakpoints'):
+            ret = list(set(self.lineBreakpoints) ^ self._oldLineBreakpoints)
+        else:
+            ret = self.lineBreakpoints
+
+        self._oldLineBreakpoints = set(self.lineBreakpoints)
+        return ret
+
     def setBreakpointInstr(self, listLineNumbers):
         # First, we remove all execution breakpoints
         self.sim.mem.removeExecuteBreakpoints([self.line2addr[b] for b in self.lineBreakpoints])
