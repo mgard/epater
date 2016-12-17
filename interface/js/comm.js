@@ -12,7 +12,6 @@ var debug_marker = null;
 ws.onmessage = function (event) {
 	obj = JSON.parse(event.data);
 
-    console.log(obj[0]);
     var element = document.getElementById(obj[0]);
     if (element != null) {
         $(element).val(obj[1]);

@@ -44,7 +44,6 @@ async def handler(websocket, path):
     received = []
     try:
         listener_task = asyncio.ensure_future(websocket.recv())
-        print(id(to_send))
         producer_task = asyncio.ensure_future(producer(to_send))
         to_run_task = asyncio.ensure_future(run_instance(websocket))
         while True:
@@ -76,7 +75,6 @@ async def handler(websocket, path):
 
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
-                #interp = to_run_task.result()
                 if not interpreters[websocket].user_asked_stop__:
                     interpreters[websocket].step()
                     interpreters[websocket].last_step__ = time.time()

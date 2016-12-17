@@ -148,6 +148,18 @@ img {
     border: 1px solid green;
 }
 
+#paginator {
+    text-align: center;
+}
+
+#jump_memory_go {
+    margin: 0 10px 0 0;
+}
+
+#jump_memory {
+    margin: 0 0 0 10px;
+}
+
 #assemble {
     color: #ffffff;
     text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
