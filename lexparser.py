@@ -26,8 +26,9 @@ This allows to propagate the error further in the parsing process, making it
 easier to produce a relevant error message to the user.
 """
 
+# We reverse sort against the length of the opcodes so that a shorter opcode will not consume a bigger one
+# (for instance, if "B" comes before "BL" in the regexp, then "BL ..." will be matched to "B"...
 instructionList = sorted(tuple(exportInstrInfo.keys()), reverse=True, key=lambda op: len(op))
-print(instructionList)
 regexpInstr = (r'|').join(instructionList)
 
 class LexError(Exception):
