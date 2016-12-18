@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 import sys
+from collections import OrderedDict
 from multiprocessing import Process
 
 import websockets
@@ -18,6 +19,8 @@ from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
 from procsimulator import Simulator, Register
 
+
+UPDATE_THROTTLE_SEC = 0.2
 
 interpreters = {}
 connected = set()
@@ -46,6 +49,7 @@ async def handler(websocket, path):
     connected.add(websocket)
     to_send = []
     received = []
+    ui_update_queue = OrderedDict()
     try:
         listener_task = asyncio.ensure_future(websocket.recv())
         producer_task = asyncio.ensure_future(producer(to_send))
@@ -81,21 +85,32 @@ async def handler(websocket, path):
             if to_run_task in done:
                 if not interpreters[websocket].user_asked_stop__:
                     interpreters[websocket].step()
+
                     if DEBUG:
                         if not hasattr(interpreters[websocket], 'num_exec__'):
                             interpreters[websocket].num_exec__ = 1
                         else: 
                             interpreters[websocket].num_exec__ += 1
                         interpreters[websocket].num_exec__ += 1
+
                     interpreters[websocket].last_step__ = time.time()
                     if ((not hasattr(interpreters[websocket], 'next_report__'))
                         or interpreters[websocket].next_report__ < time.time()):
+
                         if DEBUG:
                             if hasattr(interpreters[websocket], 'next_report__'):
-                                print("{} in {}".format(interpreters[websocket].num_exec__, time.time() - interpreters[websocket].next_report__ + 0.05))
+                                print("{} in {}".format(interpreters[websocket].num_exec__, time.time() - interpreters[websocket].next_report__ + UPDATE_THROTTLE_SEC))
                             interpreters[websocket].num_exec__ = 0
-                        interpreters[websocket].next_report__ = time.time() + 0.05
-                        to_send.extend(updateDisplay(interpreters[websocket]))
+
+                        interpreters[websocket].next_report__ = time.time() + UPDATE_THROTTLE_SEC
+                        for el in updateDisplay(interpreters[websocket]):
+                            ui_update_queue[el[0]] = el[1:]
+                        for k,v in ui_update_queue.items():
+                            to_send.append([k] + v)
+                        ui_update_queue = OrderedDict()
+                    else:
+                        for el in updateDisplay(interpreters[websocket]):
+                            ui_update_queue[el[0]] = el[1:]
                 to_run_task = asyncio.ensure_future(run_instance(websocket))
 
     finally:
