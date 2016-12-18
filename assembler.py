@@ -104,7 +104,9 @@ def parse(code):
                 snippetMode = True
                 currentAddr = 0
                 currentSection = "SNIPPET_DUMMY_SECTION"
-            currentAddr += pline[idxToken].value.nbits // 8 * pline[idxToken].value.dim
+            psize = pline[idxToken].value.nbits // 8 * pline[idxToken].value.dim
+            assert psize <= 8192, "Too large memory allocation requested! ({} bytes)".format(psize)
+            currentAddr += psize
         elif pline[idxToken].type == "INSTR":
             if currentAddr == -1:
                 # No section defined, but we have an instruction; we run in snippet mode
