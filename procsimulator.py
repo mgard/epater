@@ -319,8 +319,8 @@ class Memory:
 
         sec, offset = resolvedAddr
         val &= 0xFFFFFFFF if size == 4 else 0xFF
-        self.history.append((self.sys.countCycles, sec, offset, addr, size, val, self.data[sec][offset:offset+size]))
         valBytes = struct.pack("<I", val) if size == 4 else struct.pack("<B", val)
+        self.history.append((self.sys.countCycles, sec, offset, addr, size, val, self.data[sec][offset:offset+size], valBytes))
         self.data[sec][offset:offset+size] = valBytes
 
     def serialize(self):
@@ -360,9 +360,9 @@ class Memory:
 
         changesList = []
         for step in self.history[::-1]:
-            cycle, sec, offset, virtualAddr, size, val, previousValBytes = step
+            cycle, sec, offset, virtualAddr, size, val, previousValBytes, valBytes = step
             if cycle == self.sys.countCycles:
-                changesList.append([virtualAddr, val])
+                changesList.extend([[virtualAddr+dec, int(valBytes[dec])] for dec in range(size)])
             else:
                 # Since we iterate from the end, the cycle numbers will always decrease, so it is useless to continue
                 break
@@ -389,7 +389,7 @@ class Memory:
     def stepBack(self):
         # Set the memory as it was one step back in the past
         while self.history[-1][0] >= self.sys.countCycles:
-            _, sec, offset, virtualAddr, size, val, previousValBytes = self.history.pop()
+            _, sec, offset, virtualAddr, size, val, previousValBytes, valBytes = self.history.pop()
             self.data[sec][offset:offset+size] = previousValBytes
 
 
