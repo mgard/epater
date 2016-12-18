@@ -103,12 +103,12 @@ def generateUpdate(inter):
                    ["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]]])
 
     # Memory View
-    mem = inter.getMemory()
+    mem = inter.getMemoryFormatted()
     mem_addrs = range(0, len(mem), 16)
     chunks = [mem[x:x+16] for x in mem_addrs]
     vallist = []
     for i, line in enumerate(chunks):
-        cols = {"c{}".format(j): "{:02x}".format(char).upper() for j, char in enumerate(line)}
+        cols = {"c{}".format(j): char for j, char in enumerate(line)}
         cols["ch"] = "0x{:08x}".format(mem_addrs[i])
         # web interface is 1-indexed in this case
         vallist.append({"id": i + 1, "values": cols})
