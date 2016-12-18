@@ -87,7 +87,7 @@ def t_MEMACCESSPRE(t):
     shift = mode =="reg" and t.value.count(",") > 1
     if not shift:
         other = abs(int(t.value[t.value.index("#")+1:t.value.rindex("]")], 0)) if mode == "imm" else int(t.value[t.value.rindex("R")+1:t.value.rindex("]")])
-        shiftInfo = ("LSL", 0)
+        shiftInfo = ShiftInfo("LSL", 0)
     else:
         other = int(t.value[t.value[:t.value.rindex(",")].rindex("R")+1:t.value.rindex(",")])
         tmp = re.search(r'(LSL|LSR|ASR|ROR)\s+[#][0-9]{1,2}', t.value).group(0)
