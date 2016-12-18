@@ -630,6 +630,7 @@
             editor.on("change",  function() {
                 if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
                 $(".ace_content").css("background-color",  "#FFF3F3");
+                window.onbeforeunload = confirmOnPageExit;
             });
 
             $("input").change(function () {
@@ -892,8 +893,6 @@
             // For Chrome, Safari, IE8+ and Opera 12+
             return message;
         };
-
-        window.onbeforeunload = confirmOnPageExit;
 
         function updateAutosave() {
             $("#autosave_menu").remove();
