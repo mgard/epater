@@ -114,12 +114,12 @@ def t_DECLARATION(t):
     r'D[SC](8|16|32)\s+\w+.*'
     bits = int(t.value.split()[0][2:])
     vals = [int(v, 0) for v in t.value[t.value.find(" ")+1:].split(",")]
-    if len(vals) < 2:
+    dectype = "DC" if t.value[1] == "C" else "DS"
+    if len(vals) < 2 and dectype != "DC":
         vals = []
         dim = int(t.value.split()[1], 0)
     else:
         dim = len(vals)
-    dectype = "DC" if t.value[1] == "C" else "DS"
     t.value = DecInfo(dectype, bits, dim, vals)
     return t
 
