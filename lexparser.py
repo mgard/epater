@@ -135,7 +135,7 @@ def t_REGISTER(t):
     t.value = int(t.value[1:]) if t.value[0] == "R" else ["SP","LR","PC"].index(t.value)+13
     return t
 
-@lex.TOKEN(r'\{[R0-9\-,\s]}')
+@lex.TOKEN(r'\{[R0-9\-,\s]+}')
 def t_LISTREGS(t):
     listRegs = [0]*16
     val = t.value.replace(" ", "").replace("\t", "")
@@ -151,9 +151,9 @@ def t_LISTREGS(t):
         regs[-1] = int(regs[-1])
         baseRegsEndPos.append(j)
     for i,(r,end) in enumerate(zip(regs, baseRegsEndPos)):
-        if val[end+1] in (',', '}'):
+        if val[end] in (',', '}'):
             listRegs[r] = 1
-        elif val[end+1] == '-':
+        elif val[end] == '-':
             for j in range(r, regs[i+1]):   # Last register not included
                 listRegs[j] = 1
     t.value = listRegs

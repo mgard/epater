@@ -333,7 +333,7 @@ def MultipleMemInstructionToBytecode(asmtokens):
                 assert dictSeen['LISTREGS'] == 0
                 b |= 1 << tok.value     # Not the real encoding when only one reg is present. Is this an actual issue?
         elif tok.type == 'LISTREGS':
-            for i in range(tok.value):
+            for i in range(len(tok.value)):
                 b |= tok.value[i] << i
         elif tok.type == 'UPDATEMODE':
             if mnemonic in ('LDM', 'POP'):
