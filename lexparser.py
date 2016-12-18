@@ -111,7 +111,7 @@ def t_MEMACCESSPOST(t):
     return t
 
 def t_DECLARATION(t):
-    r'D[SC](8|16|32)\s+\w+.*'
+    r'D[SC](8|16|32)\s+[^;]+'
     bits = int(t.value.split()[0][2:])
     vals = [int(v, 0) for v in t.value[t.value.find(" ")+1:].split(",")]
     dectype = "DC" if t.value[1] == "C" else "DS"
