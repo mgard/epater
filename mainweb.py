@@ -1,4 +1,5 @@
 import traceback
+import string
 import time
 import random
 import asyncio
@@ -210,7 +211,8 @@ def process(ws, msg_in):
                 raise Exception("Veuillez assembler le code avant d'effectuer cette opération.")
             elif data[0] == 'assemble':
                 # TODO: Afficher les erreurs à l'écran "codeerror"
-                bytecode, bcinfos = ASMparser(data[1].split("\n"))
+                code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)
+                bytecode, bcinfos = ASMparser(code.splitlines())
                 interpreters[ws] = BCInterpreter(bytecode, bcinfos)
                 force_update_all = True
                 interpreters[ws].last_step__ = time.time()
