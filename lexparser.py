@@ -27,7 +27,7 @@ easier to produce a relevant error message to the user.
 """
 
 instructionList = tuple(exportInstrInfo.keys())
-regexpInstr = (r'|').join(instructionList)
+regexpInstr = (r'\s|').join(instructionList) + r'\s'
 
 class LexError(Exception):
     """
@@ -72,8 +72,10 @@ tokens = (
 t_ignore_COMMENT = r';.*$'
 t_INNERSEP = r','
 
+
 @lex.TOKEN(regexpInstr)
 def t_INSTR(t):
+    t.value = t.value.strip()
     return t
 
 @lex.TOKEN(r'\[\s*(R[0-9]{1,2}|SP|LR|PC)\s*,\s*(([#](\+|-)?(0x)?[0-9a-fA-F]+)|((\+|-)?R[0-9]{1,2}|SP|LR|PC)(\s*,\s*(LSL|LSR|ASR|ROR)\s+[#][0-9]{1,2})?)\s*]')
