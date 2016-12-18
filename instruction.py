@@ -460,8 +460,15 @@ def DeclareInstructionToBytecode(asmtokens):
         dimBytes = info.dim * info.nbits // 8
         return struct.pack("<"+"B"*dimBytes, *[getSetting("fillValue")]*dimBytes)
     else:
-        return struct.pack("<"+formatletter*info.dim, *info.vals)
+        # This sets lowercase formatletter for negative value (signed value)
+        formatletters = []
+        for i,x in enumerate(formatletter*info.dim):
+            if info.vals[i] >= 0:
+                formatletters.append(x)
+            else:
+                formatletters.append(x.lower())
 
+        return struct.pack("<" + "".join(formatletters), *info.vals)
 
 
 def InstructionToBytecode(asmtokens):
