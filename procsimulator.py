@@ -389,7 +389,7 @@ class Memory:
     def stepBack(self):
         # Set the memory as it was one step back in the past
         while self.history[-1][0] >= self.sys.countCycles:
-            _, sec, offset, virtualAddr, size, val, previousValBytes, valBytes = self.history.pop()
+            _, sec, offset, virtualAddr, size, val, previousValBytes,  = self.history.pop()
             self.data[sec][offset:offset+size] = previousValBytes
 
 
@@ -579,6 +579,9 @@ class Simulator:
 
             if misc['writeback']:
                 self.regs[misc['base']].set(addr)
+
+        elif t == InstrType.multiplememop:
+            print(t, regs, cond, misc)
 
         elif t == InstrType.psrtransfer:
             if misc['write']:

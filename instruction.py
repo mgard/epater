@@ -319,7 +319,19 @@ def MultipleMemInstructionToBytecode(asmtokens):
     mnemonic = asmtokens[0].value
     b = 0b100 << 25
 
-    b |= (1 << 20 if mnemonic == "LDM" else 0)
+    b |= (1 << 20 if mnemonic in ('LDM', 'POP') else 0)
+    if mnemonic in ('PUSH', 'POP'):
+        # SP is always used as base register with PUSH and POP
+        b |= 13 << 16
+        # Write-back
+        b |= 1 << 21
+    if mnemonic == 'POP':
+        # Set mode to UP (add offset)
+        b |= 1 << 23
+    if mnemonic == 'PUSH':
+        # Pre-increment
+        b |= 1 << 24
+
     dictSeen = defaultdict(int)
     for tok in asmtokens[1:]:
         if tok.type == 'COND':
@@ -327,7 +339,7 @@ def MultipleMemInstructionToBytecode(asmtokens):
         elif tok.type == 'WRITEBACK':
             b |= 1 << 21
         elif tok.type == 'REGISTER':
-            if dictSeen['REGISTER'] == 0:
+            if dictSeen['REGISTER'] == 0 and mnemonic not in ('PUSH', 'POP'):
                 b |= tok.value << 16
             elif dictSeen['REGISTER'] == 1:
                 assert dictSeen['LISTREGS'] == 0
