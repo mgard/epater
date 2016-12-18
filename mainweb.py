@@ -4,6 +4,7 @@ import random
 import asyncio
 import json
 import os
+import sys
 from multiprocessing import Process
 
 import websockets
@@ -20,6 +21,8 @@ from procsimulator import Simulator, Register
 interpreters = {}
 connected = set()
 
+
+DEBUG = 'DEBUG' in sys.argv
 
 async def producer(data_list):
     while True:
@@ -77,8 +80,21 @@ async def handler(websocket, path):
             if to_run_task in done:
                 if not interpreters[websocket].user_asked_stop__:
                     interpreters[websocket].step()
+                    if DEBUG:
+                        if not hasattr(interpreters[websocket], 'num_exec__'):
+                            interpreters[websocket].num_exec__ = 1
+                        else: 
+                            interpreters[websocket].num_exec__ += 1
+                        interpreters[websocket].num_exec__ += 1
                     interpreters[websocket].last_step__ = time.time()
-                    to_send.extend(updateDisplay(interpreters[websocket]))
+                    if ((not hasattr(interpreters[websocket], 'next_report__'))
+                        or interpreters[websocket].next_report__ < time.time()):
+                        if DEBUG:
+                            if hasattr(interpreters[websocket], 'next_report__'):
+                                print("{} in {}".format(interpreters[websocket].num_exec__, time.time() - interpreters[websocket].next_report__ + 0.05))
+                            interpreters[websocket].num_exec__ = 0
+                        interpreters[websocket].next_report__ = time.time() + 0.05
+                        to_send.extend(updateDisplay(interpreters[websocket]))
                 to_run_task = asyncio.ensure_future(run_instance(websocket))
 
     finally:
@@ -102,12 +118,12 @@ def generateUpdate(inter):
                    ["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]]])
 
     # Memory View
-    mem = inter.getMemory()
+    mem = inter.getMemoryFormatted()
     mem_addrs = range(0, len(mem), 16)
     chunks = [mem[x:x+16] for x in mem_addrs]
     vallist = []
     for i, line in enumerate(chunks):
-        cols = {"c{}".format(j): "{:02x}".format(char).upper() for j, char in enumerate(line)}
+        cols = {"c{}".format(j): char for j, char in enumerate(line)}
         cols["ch"] = "0x{:08x}".format(mem_addrs[i])
         # web interface is 1-indexed in this case
         vallist.append({"id": i + 1, "values": cols})
@@ -170,6 +186,9 @@ def updateDisplay(interp, force_all=False):
     diff_bp = interp.getBreakpointInstr(diff=True)
     if diff_bp:
         retval.append(["asm_breakpoints", interp.getBreakpointInstr()])
+        bpm = interp.getBreakpointsMem()
+        retval.extend([["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]],
+                       ["mempartial", []]])
 
     # TODO: check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
     if interp.currentBreakpoint:
@@ -314,6 +333,7 @@ SUBS R4,  R2,  R3
 MOVGT R5,  #1
 MOVLE R5,  #2
 MOVEQ R6,  #3
+B main
 
 SECTION DATA
 
