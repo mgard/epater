@@ -220,10 +220,12 @@ def process(ws, msg_in):
                 interpreters[ws].step()
             elif data[0] == 'stepforward':
                 interpreters[ws].step('forward')
+                interpreters[ws].user_asked_stop__ = False
                 interpreters[ws].last_step__ = time.time()
                 interpreters[ws].animate_speed__ = int(data[1]) / 1000
             elif data[0] == 'stepout':
                 interpreters[ws].step('out')
+                interpreters[ws].user_asked_stop__ = False
                 interpreters[ws].last_step__ = time.time()
                 interpreters[ws].animate_speed__ = int(data[1]) / 1000
             elif data[0] == 'run':

@@ -90,6 +90,8 @@ function assemble() {
     codeerrors = {};
     $(".ace_content").css("background-color", "#FFF");
 
+    window.onbeforeunload = null;
+
     asm_breakpoints.length = 0;
     editor.session.clearBreakpoints();
 
@@ -99,9 +101,9 @@ function assemble() {
     $("#stepforward").prop('disabled', true);
 }
 
-function simulate() {
+function simulate(type) {
     var animate_speed = $('#animate_speed').val();
-    ws.send(JSON.stringify(['run', animate_speed]));
+    ws.send(JSON.stringify([type, animate_speed]));
 }
 
 function sendBreakpointsInstr() {
