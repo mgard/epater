@@ -339,6 +339,21 @@ class Memory:
             ret_val += bytearray('\0' * padding_size, 'utf-8')
         return ret_val
 
+    def serializeFormatted(self):
+        # Return a list of strings of length 2
+        # These strings may contain the hex value of the mem cell, or "--" to indicate that it is undeclared
+        sorted_mem = sorted(self.startAddr.items(), key=operator.itemgetter(1))
+        retList = []
+        for sec, start in sorted_mem:
+            padding_size = start - len(retList)
+            retList += ["--"] * padding_size
+
+            retList += ["{:2X}".format(d) for d in self.data[sec]]
+
+            padding_size = self.endAddr[sec] - start - len(self.data[sec])
+            retList += ["--"] * padding_size
+        return retList
+
     def getMemoryChanges(self):
         if len(self.history) == 0:
             return []
@@ -479,6 +494,13 @@ class Simulator:
                 val = ((val & (2**32-1)) >> shiftamount%32) | (val << (32-(shiftamount%32)) & (2**32-1))
         return carryOut, val
 
+    def _checkCarry(self, op1, op2, res):
+        return bool(res & (1 << 32))
+
+    def _checkOverflow(self, op1, op2, res):
+        if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
+            return not bool((op1 & 0x80000000) ^ (res & 0x80000000))
+        return False
 
     def execInstr(self):
         """
@@ -550,7 +572,10 @@ class Simulator:
                 res = struct.unpack("<I", m)[0]
                 self.regs[misc['rd']].set(res)
             else:       # STR
-                self.mem.set(realAddr, self.regs[misc['rd']].get(), size=1 if misc['byte'] else 4)
+                valWrite = self.regs[misc['rd']].get()
+                if misc['rd'] == 15 and getSetting("PCspecialbehavior"):
+                    valWrite += 4       # Special case for PC (see ARM datasheet, 4.9.4)
+                self.mem.set(realAddr, valWrite, size=1 if misc['byte'] else 4)
 
             if misc['writeback']:
                 self.regs[misc['base']].set(addr)
@@ -580,9 +605,12 @@ class Simulator:
             if misc['imm']:
                 op2 = misc['op2'][0]
                 if misc['op2'][1][2] != 0:
-                    _, op2 = self._shiftVal(op2, misc['op2'][1])
+                    carry, op2 = self._shiftVal(op2, misc['op2'][1])
+                    workingFlags['C'] = bool(carry)
             else:
                 op2 = self.regs[misc['op2'][0]].get()
+                if misc['op2'][0] == 15 and getSetting("PCspecialbehavior"):
+                    op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
                 carry, op2 = self._shiftVal(op2, misc['op2'][1])
                 workingFlags['C'] = bool(carry)
 
@@ -590,33 +618,37 @@ class Simulator:
             destrd = misc['rd']
 
             if misc['opcode'] in ("AND", "TST"):
-                # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
+                # These instructions do not affect the V flag (ARM Instr. set, 4.5.1)
+                # However, C flag "is set to the carry out from the barrel shifter [if the shift is not LSL #0]" (4.5.1)
+                # this was already done when we called _shiftVal
                 res = op1 & op2
             elif misc['opcode'] in ("EOR", "TEQ"):
                 # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
                 res = op1 ^ op2
             elif misc['opcode'] in ("SUB", "CMP"):
-                # TODO : update carry and overflow flags
                 res = op1 - op2
+                workingFlags['C'] = self._checkCarry(op1, op2, res)
+                workingFlags['V'] = self._checkOverflow(op1, (~op2)+1, res)
             elif misc['opcode'] == "RSB":
-                # TODO : update carry and overflow flags
                 res = op2 - op1
+                workingFlags['C'] = self._checkCarry(op2, op1, res)
+                workingFlags['V'] = self._checkOverflow(op2, (~op1)+1, res)
             elif misc['opcode'] in ("ADD", "CMN"):
                 res = op1 + op2
-                workingFlags['C'] = bool(res & (1 << 32))
-                if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
-                    workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
+                workingFlags['C'] = self._checkCarry(op1, op2, res)
+                workingFlags['V'] = self._checkOverflow(op1, op2, res)
             elif misc['opcode'] == "ADC":
                 res = op1 + op2 + int(self.flags['C'].get())
-                workingFlags['C'] = bool(res & (1 << 32))
-                if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
-                    workingFlags['V'] = not bool((op1 & 0x80000000) ^ (res & 0x80000000))
+                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C'].get()), res)
+                workingFlags['V'] = self._checkOverflow(op1, op2 + int(self.flags['C'].get()), res)
             elif misc['opcode'] == "SBC":
-                # TODO : update carry and overflow flags
                 res = op1 - op2 + int(self.flags['C'].get()) - 1
+                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C'].get()) - 1, res)
+                workingFlags['V'] = self._checkOverflow(op1, ((~op2) + 1) + int(self.flags['C'].get()) - 1, res)
             elif misc['opcode'] == "RSC":
-                # TODO : update carry and overflow flags
                 res = op2 - op1 + int(self.flags['C'].get()) - 1
+                workingFlags['C'] = self._checkCarry(op2, op1 + int(self.flags['C'].get()) - 1, res)
+                workingFlags['V'] = self._checkOverflow(op2, ((~op1) + 1) + int(self.flags['C'].get()) - 1, res)
             elif misc['opcode'] == "ORR":
                 res = op1 | op2
             elif misc['opcode'] == "MOV":
@@ -627,6 +659,8 @@ class Simulator:
                 res = ~op2
             else:
                 assert False, "Bad data opcode : " + misc['opcode']
+
+            res &= 0xFFFFFFFF           # Get the result back to 32 bits, if applicable (else it's just a no-op)
 
             if res == 0:
                 workingFlags['Z'] = True

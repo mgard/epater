@@ -18,6 +18,15 @@ class BCInterpreter:
     def reset(self):
         self.sim.reset()
 
+    def getBreakpointInstr(self, diff=False):
+        if diff and hasattr(self, '_oldLineBreakpoints'):
+            ret = list(set(self.lineBreakpoints) ^ self._oldLineBreakpoints)
+        else:
+            ret = self.lineBreakpoints
+
+        self._oldLineBreakpoints = set(self.lineBreakpoints)
+        return ret
+
     def setBreakpointInstr(self, listLineNumbers):
         # First, we remove all execution breakpoints
         self.sim.mem.removeExecuteBreakpoints([self.line2addr[b] for b in self.lineBreakpoints])
@@ -30,7 +39,11 @@ class BCInterpreter:
         for lineno in listLineNumbers:
             if lineno in self.line2addr:
                 self.sim.mem.setBreakpoint(self.line2addr[lineno], 1)
-                self.lineBreakpoints.append(lineno)
+                nextLine = lineno + 1
+                while nextLine in self.line2addr and self.line2addr[nextLine] == self.line2addr[lineno]:
+                    nextLine += 1
+                self.lineBreakpoints.append(nextLine-1)
+                print(self.lineBreakpoints)
 
     def getBreakpointsMem(self):
         return {
@@ -102,6 +115,9 @@ class BCInterpreter:
 
     def getMemory(self):
         return self.sim.mem.serialize()
+
+    def getMemoryFormatted(self):
+        return self.sim.mem.serializeFormatted()
 
     def setMemory(self, addr, val):
         # if addr is not initialized, then do nothing

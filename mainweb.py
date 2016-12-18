@@ -1,8 +1,10 @@
 import traceback
 import time
+import random
 import asyncio
 import json
 import os
+import sys
 from multiprocessing import Process
 
 import websockets
@@ -20,6 +22,8 @@ interpreters = {}
 connected = set()
 
 
+DEBUG = 'DEBUG' in sys.argv
+
 async def producer(data_list):
     while True:
         if data_list:
@@ -27,11 +31,12 @@ async def producer(data_list):
         await asyncio.sleep(0.05)
 
 
-async def run_instance():
+async def run_instance(websocket):
     while True:
-        for ws, interp in interpreters.items():
+        if websocket in interpreters:
+            interp = interpreters[websocket]
             if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (not interp.user_asked_stop__):
-                return ws, interp
+                return
         await asyncio.sleep(0.05)
 
 
@@ -41,12 +46,12 @@ async def handler(websocket, path):
     to_send = []
     received = []
     try:
+        listener_task = asyncio.ensure_future(websocket.recv())
+        producer_task = asyncio.ensure_future(producer(to_send))
+        to_run_task = asyncio.ensure_future(run_instance(websocket))
         while True:
             if not websocket.open:
                 break
-            listener_task = asyncio.ensure_future(websocket.recv())
-            producer_task = asyncio.ensure_future(producer(to_send))
-            to_run_task = asyncio.ensure_future(run_instance())
             done, pending = await asyncio.wait(
                 [listener_task, producer_task, to_run_task],
                 return_when=asyncio.FIRST_COMPLETED)
@@ -63,24 +68,34 @@ async def handler(websocket, path):
                 data = process(websocket, received)
                 if data:
                     to_send.extend(data)
-            else:
-                listener_task.cancel()
+
+                listener_task = asyncio.ensure_future(websocket.recv())
 
             if producer_task in done:
                 message = producer_task.result()
                 await websocket.send(message)
-            else:
-                producer_task.cancel()
+                producer_task = asyncio.ensure_future(producer(to_send))
 
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
-                ws, interp = to_run_task.result()
-                if not interp.user_asked_stop__:
-                    interp.step()
-                    interpreters[ws].last_step__ = time.time()
-                    to_send.extend(updateDisplay(interp))
-            else:
-                to_run_task.cancel()
+                if not interpreters[websocket].user_asked_stop__:
+                    interpreters[websocket].step()
+                    if DEBUG:
+                        if not hasattr(interpreters[websocket], 'num_exec__'):
+                            interpreters[websocket].num_exec__ = 1
+                        else: 
+                            interpreters[websocket].num_exec__ += 1
+                        interpreters[websocket].num_exec__ += 1
+                    interpreters[websocket].last_step__ = time.time()
+                    if ((not hasattr(interpreters[websocket], 'next_report__'))
+                        or interpreters[websocket].next_report__ < time.time()):
+                        if DEBUG:
+                            if hasattr(interpreters[websocket], 'next_report__'):
+                                print("{} in {}".format(interpreters[websocket].num_exec__, time.time() - interpreters[websocket].next_report__ + 0.05))
+                            interpreters[websocket].num_exec__ = 0
+                        interpreters[websocket].next_report__ = time.time() + 0.05
+                        to_send.extend(updateDisplay(interpreters[websocket]))
+                to_run_task = asyncio.ensure_future(run_instance(websocket))
 
     finally:
         if websocket in interpreters:
@@ -127,6 +142,9 @@ def generateUpdate(inter):
         flags = ("sn", "sz", "sc", "sv", "si", "sf")
         retval.extend([["disable", f] for f in flags])
 
+    # Breakpoints
+    retval.append(["asm_breakpoints", inter.getBreakpointInstr()])
+
     return retval
 
 
@@ -164,6 +182,13 @@ def updateDisplay(interp, force_all=False):
                     retval.append([k, v])
             if "memory" in changed_vals:
                 retval.append(["mempartial", [[k, "{:02x}".format(v).upper()] for k, v in changed_vals["memory"]]])
+
+    diff_bp = interp.getBreakpointInstr(diff=True)
+    if diff_bp:
+        retval.append(["asm_breakpoints", interp.getBreakpointInstr()])
+        bpm = interp.getBreakpointsMem()
+        retval.extend([["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]],
+                       ["mempartial", []]])
 
     # TODO: check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
     if interp.currentBreakpoint:
@@ -308,6 +333,7 @@ SUBS R4,  R2,  R3
 MOVGT R5,  #1
 MOVLE R5,  #2
 MOVEQ R6,  #3
+B main
 
 SECTION DATA
 

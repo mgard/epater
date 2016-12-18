@@ -527,7 +527,7 @@
                 <div>
                     <div style="float: left;">
                         <input type="file" id="fileToLoad">
-                        <button onclick="loadFileAsText()">Load</button>
+                        <button id="loadFile" onclick="loadFileAsText()">Load</button>
                     </div>
                     <div style="float: right;">
                         <button onclick="editor.setValue('');">
@@ -558,12 +558,11 @@
                     <span id="help_instr" class="mem_instr">instr</span><br/>
                     Ctrl+click: &Eacute;criture, Shift+click: Lecture, Alt+click: Ex&eacute;cution<br/>
                     <div id="memoryview"></div>
-                    Segment:
                     <div id="paginator"></div>
                 </div>
                 <div class="border_container">
                     <button onclick="assemble()" id="assemble">Assemble</button><br/><br/>
-                    <button onclick="simulate()" disable="disabled"><img src="./image/resume_co.gif"/></button>
+                    <button id="run" onclick="simulate()" disable="disabled"><img src="./image/resume_co.gif"/></button>
                     <button id="stepin" onclick="sendMsg('stepinto')" disable="disabled"><img src="./image/stepinto_co.gif"/></button>
                     <button id="stepforward" onclick="sendMsg('stepforward')" disable="disabled"><img src="./image/stepover_co.gif"/></button>
                     <button id="stepout" onclick="sendMsg('stepout')" disable="disabled"><img src="./image/stepreturn_co.gif"/></button>
@@ -619,19 +618,18 @@
                  
                 var index = $.inArray(row, asm_breakpoints);
                 if (index >= 0) {
-                    e.editor.session.clearBreakpoint(row);
-                    asm_breakpoints.splice(index,  1);
+                    //e.editor.session.clearBreakpoint(row);
+                    asm_breakpoints.splice(index, 1);
                 } else {
-                    e.editor.session.setBreakpoint(row);
+                    //e.editor.session.setBreakpoint(row);
                     asm_breakpoints.push(row);
                 }
                 sendBreakpointsInstr();
 			})
 
             editor.on("change",  function() {
-                //removeCodeErrors();
                 if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
-                $(".ace_content").css("background-color",  "#FFF6F6");
+                $(".ace_content").css("background-color",  "#FFF3F3");
             });
 
             $("input").change(function () {
@@ -809,23 +807,8 @@
             var paginator = $("#paginator").empty();
             var nbPages = this.getPageCount();
 
-            // get interval
-            var interval = this.getSlidingPageInterval(20);
-            if (interval == null) return;
-
-            // get pages in interval (with links except for the current page)
-            var pages = this.getPagesInInterval(interval,  function(pageIndex,  isCurrent) {
-                if (isCurrent) return "0x" + ("00000000" + (pageIndex * 20*16).toString(16)).slice(-9);
-                return $("<a>").css("cursor",  "pointer").html("0x" + ("00000000" + (pageIndex * 20*16).toString(16)).slice(-9))
-                    .attr('rel',  pageIndex + 1)
-                    .click(function(event) {
-                        editableGrid.setPageIndex(parseInt($(this).attr('rel')) - 1);
-                        addHoverMemoryView();
-                    });
-            });
-
             // "first" link
-            /*var link = $("<a>").html("<img src='" + image("gofirst.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
+            var link = $("<a>").html("<img src='" + image("gofirst.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
             if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
             else link.css("cursor",  "pointer").click(function(event) { editableGrid.firstPage(); });
             paginator.append(link);
@@ -834,16 +817,19 @@
             link = $("<a>").html("<img src='" + image("prev.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
             if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
             else link.css("cursor",  "pointer").click(function(event) { editableGrid.prevPage(); });
-            paginator.append(link);*/
+            paginator.append(link);
 
-            // pages
-            //for (p = 0; p < pages.length; p++) paginator.append(pages[p]).append(" | ");
-            for (p = 0; p < pages.length; p++) {
-                paginator.append(pages[p]).append("<br/>");
-            }
+            var mem_begin = $(".editablegrid-ch:eq(1)").text();
+            paginator.append('<input id="jump_memory" type="text" value="' + mem_begin + '"/><input id="jump_memory_go" type="submit" value="Go">');
+            $("#jump_memory_go").click(function () {
+                var target = $("#jump_memory").val();
+                var page = Math.floor(parseInt(target) / 16*20);
+                editableGrid.setPageIndex(page);
+                addHoverMemoryView();
+            });
 
             // "next" link
-            /*link = $("<a>").html("<img src='" + image("next.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
+            link = $("<a>").html("<img src='" + image("next.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
             if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
             else link.css("cursor",  "pointer").click(function(event) { editableGrid.nextPage(); });
             paginator.append(link);
@@ -852,7 +838,8 @@
             link = $("<a>").html("<img src='" + image("golast.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
             if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
             else link.css("cursor",  "pointer").click(function(event) { editableGrid.lastPage(); });
-            paginator.append(link);*/
+            paginator.append(link);
+
             $(".editablegrid-c0, .editablegrid-c1, .editablegrid-c2, .editablegrid-c3, .editablegrid-c4, .editablegrid-c5, .editablegrid-c6, .editablegrid-c7, .editablegrid-c8, .editablegrid-c9, .editablegrid-c10, .editablegrid-c11, .editablegrid-c12, .editablegrid-c13, .editablegrid-c14, .editablegrid-c15").click(function(e) {
               var suffix = this.classList[0].slice(-2);
               if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
@@ -890,6 +877,62 @@
                 document.body.appendChild(downloadLink);
             }
             downloadLink.click();
+        }
+
+        var confirmOnPageExit = function (e)
+        {
+            // If we haven't been passed the event get the window.event
+            e = e || window.event;
+
+            var message = 'Êtes-vous certain de vouloir quitter cette page?';
+
+            // For IE6-8 and Firefox prior to version 4
+            if (e) { e.returnValue = message; }
+
+            // For Chrome, Safari, IE8+ and Opera 12+
+            return message;
+        };
+
+        window.onbeforeunload = confirmOnPageExit;
+
+        function updateAutosave() {
+            $("#autosave_menu").remove();
+            choices = ""
+            for (var i = 0; i < 10; ++i) {
+                var val = localStorage.getItem("time_autosave" + i.toString())
+                if ( val !== null ) { choices = choices + '<option value="' + i + '">' + val + '</option>' }
+            }
+            $("#loadFile").after('<select id="autosave_menu"><option value="-1">Autosave</option>' + choices + "</select>");
+            $('#autosave_menu').on('change', function() {
+                if (this.value != "-1") {
+                    editor.setValue(localStorage.getItem("data_autosave" + this.value.toString()));
+                }
+                $("#autosave_menu").val("-1");
+            });
+        }
+
+        autosave_index = 0;
+        if (typeof(Storage) !== "undefined") {
+            // Continue autosaving where we left
+            for (var i = 0; i < 10; ++i) {
+                var val = localStorage.getItem("time_autosave" + i.toString())
+                if ( val === null ) { break; }
+                autosave_index = autosave_index + 1;
+            }
+
+            setInterval(function() {
+                localStorage.setItem("data_autosave" + autosave_index.toString(), editor.getValue());
+                localStorage.setItem("time_autosave" + autosave_index.toString(), new Date().toLocaleString());
+                autosave_index = (autosave_index + 1) % 10;
+
+                updateAutosave();
+                console.log("Autosaved! ID: " + autosave_index.toString());
+            }, 60000); // Tous les 2 minutes
+
+            // Afficher menu
+            updateAutosave();
+        } else {
+            console.log("Autosaving disabled!");
         }
     </script>
 </body>

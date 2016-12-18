@@ -59,16 +59,20 @@ def parse(code):
     addrToLine = defaultdict(list)
     currentAddr, currentSection = -1, None
     labelsAddr = {}
-    maxAddrBySection = {"INTVEC": BASE_ADDR_INTVEC, "CODE": BASE_ADDR_CODE, "DATA": BASE_ADDR_DATA}
+    maxAddrBySection = {"INTVEC": BASE_ADDR_INTVEC,
+                        "CODE": BASE_ADDR_CODE,
+                        "DATA": BASE_ADDR_DATA}
+    snippetMode = False
     for i,pline in enumerate(parsedCode):
-        assignedAddr[i] = currentAddr
-        addrToLine[currentAddr].append(i)
+        assignedAddr[i] = max(currentAddr, 0)
+        addrToLine[max(currentAddr, 0)].append(i)
         if len(pline) == 0:
             # We have to keep these empty lines in order to keep track of the line numbers
             continue
         idxToken = 0
 
         if pline[0].type == "SECTION":
+            assert not snippetMode, "SECTION keyword found in snippet mode!"
             if currentSection is not None:
                 maxAddrBySection[currentSection] = currentAddr
 
@@ -83,7 +87,11 @@ def parse(code):
                 currentAddr = BASE_ADDR_DATA
 
         if pline[0].type == "LABEL":
-            assert currentAddr != -1
+            if currentAddr == -1:
+                # No section defined, but we have a label; we run in snippet mode
+                snippetMode = True
+                currentAddr = 0
+                currentSection = "SNIPPET_DUMMY_SECTION"
             labelsAddr[pline[0].value] = currentAddr
             idxToken += 1
 
@@ -91,17 +99,28 @@ def parse(code):
             continue
 
         if pline[idxToken].type == "DECLARATION":
-            assert currentAddr != -1
+            if currentAddr == -1:
+                # No section defined, but we have a declaration; we run in snippet mode
+                snippetMode = True
+                currentAddr = 0
+                currentSection = "SNIPPET_DUMMY_SECTION"
             currentAddr += pline[idxToken].value.nbits // 8 * pline[idxToken].value.dim
         elif pline[idxToken].type == "INSTR":
-            assert currentAddr != -1
+            if currentAddr == -1:
+                # No section defined, but we have an instruction; we run in snippet mode
+                snippetMode = True
+                currentAddr = 0
+                currentSection = "SNIPPET_DUMMY_SECTION"
             currentAddr += 4        # Size of an instruction
-    maxAddrBySection[currentSection] = currentAddr
+    if snippetMode:
+        maxAddrBySection = {"SNIPPET_DUMMY_SECTION": currentAddr}
+    else:
+        maxAddrBySection[currentSection] = currentAddr
 
     # Third pass : replace all the labels in the instructions
     labelsAddrAddr = {}     # Contains to position of the address of a given label once it have been generated (so we do not generate it again)
     labelsAddrBySection = defaultdict(list)
-    currentSection = None
+    currentSection = "SNIPPET_DUMMY_SECTION" if snippetMode else None
     for i,pline in enumerate(parsedCode):
         if len(pline) == 0:
             # We have to keep these empty lines in order to keep track of the line numbers
@@ -135,9 +154,9 @@ def parse(code):
     # At the end of each section, we also add the address defined on the previous pass
 
     # We add a special field in the bytecode info to tell the simulator the start address of each section
-    bytecode = {'__MEMINFOSTART': {"INTVEC": BASE_ADDR_INTVEC, "CODE": BASE_ADDR_CODE, "DATA": BASE_ADDR_DATA},
+    bytecode = {'__MEMINFOSTART': {"SNIPPET_DUMMY_SECTION": 0} if snippetMode else {"INTVEC": BASE_ADDR_INTVEC, "CODE": BASE_ADDR_CODE, "DATA": BASE_ADDR_DATA},
                 '__MEMINFOEND': maxAddrBySection}
-    currentSection = None
+    currentSection = "SNIPPET_DUMMY_SECTION" if snippetMode else None
     bc = bytes()
     for i,pline in enumerate(parsedCode):
         if len(pline) == 0:

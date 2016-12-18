@@ -12,18 +12,28 @@ var debug_marker = null;
 ws.onmessage = function (event) {
 	obj = JSON.parse(event.data);
 
-    console.log(obj[0]);
     var element = document.getElementById(obj[0]);
     if (element != null) {
         $(element).val(obj[1]);
         $(element).prop("disabled", false);
     } else if (obj[0] == 'disable') {
-        //$(obj[1]).prop("disabled", true);
         $("[name='" + obj[1] + "']").prop("disabled", true);
     } else if (obj[0] == 'codeerror') {
         // row indices are 0-indexed
         editor.session.setAnnotations([{row: obj[1], text: obj[2], type: "error"}]);
+    } else if (obj[0] == 'asm_breakpoints') {
+        editor.session.clearBreakpoints();
+        for (var i = 0; i < obj[1].length; i++) {
+            editor.session.setBreakpoint(obj[1][i]);
+        }
+        
     } else if (obj[0] == 'debugline') {
+        // Re-enable buttons if disabled
+        $("#run").prop('disabled', false);
+        $("#stepin").prop('disabled', false);
+        $("#stepout").prop('disabled', false);
+        $("#stepforward").prop('disabled', false);
+
         if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
         if (obj[1] >= 0) {
             aceRange = ace.require('ace/range').Range;
@@ -32,8 +42,6 @@ ws.onmessage = function (event) {
         } else {
             debug_marker = null;
         }
-        //editableGrid.refreshGrid();
-        //editableGrid.renderGrid("memoryview", "testgrid");
     } else if (obj[0] == 'debuginstrmem') {
         mem_breakpoints_instr = obj[1];
         editableGrid.refreshGrid();
@@ -44,7 +52,6 @@ ws.onmessage = function (event) {
             editableGrid.setValueAt(row, col, obj[1][i][1], false);
         }
         editableGrid.refreshGrid();
-        //editableGrid.renderGrid("memoryview", "testgrid");
     } else if (obj[0] == 'mem') {
         editableGrid.load({"data": obj[1]});
         editableGrid.renderGrid("memoryview", "testgrid");
@@ -67,10 +74,6 @@ ws.onmessage = function (event) {
     } else if (obj[0] == 'error') {
         $("#message_bar").text(obj[1]);
 
-        /*$(this).slideToggle("normal", "easeInOutBack", function(){
-            $("#message_bar").slideToggle("normal", "easeInOutBack");
-        });*/
-
         $("#message_bar").slideDown("normal", "easeInOutBack");
     }
 };
@@ -89,6 +92,11 @@ function assemble() {
 
     asm_breakpoints.length = 0;
     editor.session.clearBreakpoints();
+
+    $("#run").prop('disabled', true);
+    $("#stepin").prop('disabled', true);
+    $("#stepout").prop('disabled', true);
+    $("#stepforward").prop('disabled', true);
 }
 
 function simulate() {
