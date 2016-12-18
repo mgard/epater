@@ -559,6 +559,7 @@
                     Ctrl+click: &Eacute;criture, Shift+click: Lecture, Alt+click: Ex&eacute;cution<br/>
                     <div id="memoryview"></div>
                     <div id="paginator"></div>
+                    <input type="checkbox" id="follow_pc" checked="checked"/>Suivre PC
                 </div>
                 <div class="border_container">
                     <button onclick="assemble()" id="assemble">Assemble</button><br/><br/>
@@ -581,6 +582,7 @@
         var editor = ace.edit("editor");
         var assembly_armMode = ace.require("ace/mode/assembly_arm").Mode;
         editor.getSession().setMode(new assembly_armMode());
+        editor.$blockScrolling = Infinity;
     </script>
 
     <script src="js/jquery-1.11.1.min.js" type="text/javascript" charset="utf-8"></script>
@@ -811,20 +813,20 @@
             // "first" link
             var link = $("<a>").html("<img src='" + image("gofirst.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
             if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-            else link.css("cursor",  "pointer").click(function(event) { editableGrid.firstPage(); });
+            else link.css("cursor",  "pointer").click(function(event) { editableGrid.firstPage(); addHoverMemoryView(); });
             paginator.append(link);
 
             // "prev" link
             link = $("<a>").html("<img src='" + image("prev.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
             if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-            else link.css("cursor",  "pointer").click(function(event) { editableGrid.prevPage(); });
+            else link.css("cursor",  "pointer").click(function(event) { editableGrid.prevPage(); addHoverMemoryView(); });
             paginator.append(link);
 
             var mem_begin = $(".editablegrid-ch:eq(1)").text();
             paginator.append('<input id="jump_memory" type="text" value="' + mem_begin + '"/><input id="jump_memory_go" type="submit" value="Go">');
             $("#jump_memory_go").click(function () {
                 var target = $("#jump_memory").val();
-                var page = Math.floor(parseInt(target) / 16*20);
+                var page = Math.floor(parseInt(target) / (16*20));
                 editableGrid.setPageIndex(page);
                 addHoverMemoryView();
             });
@@ -832,13 +834,13 @@
             // "next" link
             link = $("<a>").html("<img src='" + image("next.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
             if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-            else link.css("cursor",  "pointer").click(function(event) { editableGrid.nextPage(); });
+            else link.css("cursor",  "pointer").click(function(event) { editableGrid.nextPage(); addHoverMemoryView(); });
             paginator.append(link);
 
             // "last" link
             link = $("<a>").html("<img src='" + image("golast.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
             if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-            else link.css("cursor",  "pointer").click(function(event) { editableGrid.lastPage(); });
+            else link.css("cursor",  "pointer").click(function(event) { editableGrid.lastPage(); addHoverMemoryView(); });
             paginator.append(link);
 
             $(".editablegrid-c0, .editablegrid-c1, .editablegrid-c2, .editablegrid-c3, .editablegrid-c4, .editablegrid-c5, .editablegrid-c6, .editablegrid-c7, .editablegrid-c8, .editablegrid-c9, .editablegrid-c10, .editablegrid-c11, .editablegrid-c12, .editablegrid-c13, .editablegrid-c14, .editablegrid-c15").click(function(e) {
