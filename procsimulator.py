@@ -348,7 +348,7 @@ class Memory:
             padding_size = start - len(retList)
             retList += ["--"] * padding_size
 
-            retList += ["{:2X}".format(d) for d in self.data[sec]]
+            retList += ["{:02X}".format(d) for d in self.data[sec]]
 
             padding_size = self.endAddr[sec] - start - len(self.data[sec])
             retList += ["--"] * padding_size
