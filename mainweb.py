@@ -4,6 +4,7 @@ import random
 import asyncio
 import json
 import os
+import sys
 from multiprocessing import Process
 
 import websockets
@@ -20,6 +21,8 @@ from procsimulator import Simulator, Register
 interpreters = {}
 connected = set()
 
+
+DEBUG = 'DEBUG' in sys.argv
 
 async def producer(data_list):
     while True:
@@ -77,8 +80,21 @@ async def handler(websocket, path):
             if to_run_task in done:
                 if not interpreters[websocket].user_asked_stop__:
                     interpreters[websocket].step()
+                    if DEBUG:
+                        if not hasattr(interpreters[websocket], 'num_exec__'):
+                            interpreters[websocket].num_exec__ = 1
+                        else: 
+                            interpreters[websocket].num_exec__ += 1
+                        interpreters[websocket].num_exec__ += 1
                     interpreters[websocket].last_step__ = time.time()
-                    to_send.extend(updateDisplay(interpreters[websocket]))
+                    if ((not hasattr(interpreters[websocket], 'next_report__'))
+                        or interpreters[websocket].next_report__ < time.time()):
+                        if DEBUG:
+                            if hasattr(interpreters[websocket], 'next_report__'):
+                                print("{} in {}".format(interpreters[websocket].num_exec__, time.time() - interpreters[websocket].next_report__ + 0.05))
+                            interpreters[websocket].num_exec__ = 0
+                        interpreters[websocket].next_report__ = time.time() + 0.05
+                        to_send.extend(updateDisplay(interpreters[websocket]))
                 to_run_task = asyncio.ensure_future(run_instance(websocket))
 
     finally:
@@ -317,6 +333,7 @@ SUBS R4,  R2,  R3
 MOVGT R5,  #1
 MOVLE R5,  #2
 MOVEQ R6,  #3
+B main
 
 SECTION DATA
 
