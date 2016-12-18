@@ -17,7 +17,7 @@ if __name__ == '__main__':
     interpreter = BCInterpreter(bytecode, bcinfos)
     with open(args.inputfile) as f:
         lines = f.readlines()
-        for i in range(10):
+        for i in range(30):
             print(i, lines[interpreter.getCurrentLine()][:-1])
             interpreter.step()
             print(interpreter.getCurrentLine(), interpreter.getChanges())

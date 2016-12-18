@@ -325,10 +325,10 @@ def MultipleMemInstructionToBytecode(asmtokens):
         b |= 13 << 16
         # Write-back
         b |= 1 << 21
-    if mnemonic == 'POP':
+    if mnemonic == 'POP':       # POP regs is equivalent to LDM SP!, regs
         # Set mode to UP (add offset)
         b |= 1 << 23
-    if mnemonic == 'PUSH':
+    if mnemonic == 'PUSH':      # PUSH regs is equivalent to STM SP!, regs
         # Pre-increment
         b |= 1 << 24
 
@@ -345,12 +345,15 @@ def MultipleMemInstructionToBytecode(asmtokens):
                 assert dictSeen['LISTREGS'] == 0
                 b |= 1 << tok.value     # Not the real encoding when only one reg is present. Is this an actual issue?
         elif tok.type == 'LISTREGS':
-            for i in range(len(tok.value)):
-                b |= tok.value[i] << i
+            listreg, sbit = tok.value
+            for i in range(len(listreg)):
+                b |= listreg[i] << i
+            if sbit:
+                b |= 1 << 22
         elif tok.type == 'UPDATEMODE':
-            if mnemonic in ('LDM', 'POP'):
+            if mnemonic == 'LDM':
                 b |= updateModeLDMMapping[tok.value] << 23
-            elif mnemonic in ('STM', 'PUSH'):
+            elif mnemonic == 'STM':
                 b |= updateModeSTMMapping[tok.value] << 23
         dictSeen[tok.type] += 1
 
@@ -468,19 +471,12 @@ def DeclareInstructionToBytecode(asmtokens):
     assert asmtokens[0].type == 'DECLARATION', str((asmtokens[0].type, asmtokens[0].value))
     info = asmtokens[0].value
     formatletter = "B" if info.nbits == 8 else "H" if info.nbits == 16 else "I" # 32
+    bitmask = 0xFF if info.nbits == 8 else 0xFFFF if info.nbits == 16 else 0xFFFFFFFF # 32
     if len(info.vals) == 0:
         dimBytes = info.dim * info.nbits // 8
         return struct.pack("<"+"B"*dimBytes, *[getSetting("fillValue")]*dimBytes)
     else:
-        # This sets lowercase formatletter for negative value (signed value)
-        formatletters = []
-        for i,x in enumerate(formatletter*info.dim):
-            if info.vals[i] >= 0:
-                formatletters.append(x)
-            else:
-                formatletters.append(x.lower())
-
-        return struct.pack("<" + "".join(formatletters), *info.vals)
+        return struct.pack("<" + formatletter * info.dim, *[v & bitmask for v in info.vals])
 
 
 def InstructionToBytecode(asmtokens):
@@ -545,8 +541,9 @@ def BytecodeToInstrInfos(bc):
     elif checkMask(instrInt, (27,), (26, 25)):       # Block data transfer
         category = InstrType.multiplememop
         pre = bool(instrInt & (1 << 24))
-        sign = 1 if instrInt & (1 << 22) else -1
-        writeback = bool(instrInt & (1 << 23))
+        sign = 1 if instrInt & (1 << 23) else -1
+        sbit = bool(instrInt & (1 << 22))
+        writeback = bool(instrInt & (1 << 21))
         mode = "LDR" if instrInt & (1 << 20) else "STR"
 
         basereg = (instrInt >> 16) & 0xF
@@ -562,7 +559,8 @@ def BytecodeToInstrInfos(bc):
                     'pre': pre,
                     'sign': sign,
                     'writeback': writeback,
-                    'mode': mode}
+                    'mode': mode,
+                    'sbit': sbit}
 
     elif checkMask(instrInt, (26, 25), (4, 27)) or checkMask(instrInt, (26,), (25, 27)):    # Single data transfer
         category = InstrType.memop
