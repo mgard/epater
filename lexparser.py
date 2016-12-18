@@ -26,8 +26,9 @@ This allows to propagate the error further in the parsing process, making it
 easier to produce a relevant error message to the user.
 """
 
-instructionList = tuple(exportInstrInfo.keys())
-regexpInstr = (r'\s|').join(instructionList) + r'\s'
+instructionList = sorted(tuple(exportInstrInfo.keys()), reverse=True, key=lambda op: len(op))
+print(instructionList)
+regexpInstr = (r'|').join(instructionList)
 
 class LexError(Exception):
     """
