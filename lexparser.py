@@ -135,10 +135,10 @@ def t_REGISTER(t):
     t.value = int(t.value[1:]) if t.value[0] == "R" else ["SP","LR","PC"].index(t.value)+13
     return t
 
-@lex.TOKEN(r'\{[R0-9\-,\s]+}')
+@lex.TOKEN(r'\{[LR0-9\-,\s]+}')
 def t_LISTREGS(t):
     listRegs = [0]*16
-    val = t.value.replace(" ", "").replace("\t", "")
+    val = t.value.replace(" ", "").replace("\t", "").replace("LR", "R14")
     baseRegsPos = [i for i in range(len(val)) if val[i] == "R"]
     baseRegsEndPos = []
     regs = []
