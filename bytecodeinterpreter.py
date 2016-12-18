@@ -43,7 +43,6 @@ class BCInterpreter:
                 while nextLine in self.line2addr and self.line2addr[nextLine] == self.line2addr[lineno]:
                     nextLine += 1
                 self.lineBreakpoints.append(nextLine-1)
-                print(self.lineBreakpoints)
 
     def getBreakpointsMem(self):
         return {

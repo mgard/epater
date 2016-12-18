@@ -318,9 +318,9 @@ class Memory:
                 self.sys.throw(BkptInfo("memory", 2, addr + offset))
 
         sec, offset = resolvedAddr
-        val &= 0xFFFFFFFF
+        val &= 0xFFFFFFFF if size == 4 else 0xFF
         self.history.append((self.sys.countCycles, sec, offset, addr, size, val, self.data[sec][offset:offset+size]))
-        valBytes = struct.pack("<I", val) if size == 4 else struct.pack("<c", val)
+        valBytes = struct.pack("<I", val) if size == 4 else struct.pack("<B", val)
         self.data[sec][offset:offset+size] = valBytes
 
     def serialize(self):
