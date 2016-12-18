@@ -677,7 +677,7 @@
              
             editableGrid = new EditableGrid("DemoGridJsData",  {
                 modelChanged: function(rowIndex,  columnIndex,  oldValue,  newValue,  row) { 
-                     var addr = rowIndex*10 + columnIndex;
+                     var addr = parseInt($("td:first", row).text(), 16) + (columnIndex - 1)
                      ws.send(JSON.stringify(['memchange',  addr,  newValue]));
                 }, 
                 enableSort: false, 
