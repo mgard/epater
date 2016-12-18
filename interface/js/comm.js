@@ -26,7 +26,6 @@ ws.onmessage = function (event) {
         for (var i = 0; i < obj[1].length; i++) {
             editor.session.setBreakpoint(obj[1][i]);
         }
-        
     } else if (obj[0] == 'debugline') {
         // Re-enable buttons if disabled
         $("#run").prop('disabled', false);
@@ -45,7 +44,13 @@ ws.onmessage = function (event) {
         }
     } else if (obj[0] == 'debuginstrmem') {
         mem_breakpoints_instr = obj[1];
-        editableGrid.refreshGrid();
+        if ($("#follow_pc").is(":checked")) {
+            var target = obj[1][0];
+            var page = Math.floor(parseInt(target) / (16*20));
+            editableGrid.setPageIndex(page);
+            addHoverMemoryView();
+            editableGrid.refreshGrid();
+        }
     } else if (obj[0] == 'mempartial') {
         for (var i = 0; i < obj[1].length; i++) {
             var row = Math.floor(obj[1][i][0] / 16);
