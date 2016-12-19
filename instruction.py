@@ -16,6 +16,7 @@ class InstrType(Enum):
     swap = 5
     softinterrupt = 6
     psrtransfer = 7
+    shiftop = 8
     declareOp = 100
 
     @staticmethod
@@ -28,7 +29,8 @@ class InstrType(Enum):
                 InstrType.swap: SwapInstructionToBytecode,
                 InstrType.softinterrupt: SoftinterruptInstructionToBytecode,
                 InstrType.psrtransfer: PSRTransferInstructionToBytecode,
-                InstrType.declareOp: DeclareInstructionToBytecode}[inType]
+                InstrType.declareOp: DeclareInstructionToBytecode,
+                InstrType.shiftop: ShiftInstructionToBytecode}[inType]
 
 exportInstrInfo = {# DATA OPERATIONS
                    'AND': InstrType.dataop,
@@ -47,6 +49,12 @@ exportInstrInfo = {# DATA OPERATIONS
                    'MOV': InstrType.dataop,
                    'BIC': InstrType.dataop,
                    'MVN': InstrType.dataop,
+                    # The next five are not actual operations, but can be translated to a MOV op
+                   'LSR': InstrType.shiftop,
+                   'LSL': InstrType.shiftop,
+                   'ASR': InstrType.shiftop,
+                   'ROR': InstrType.shiftop,
+                   'RRX': InstrType.shiftop,
                     # PROGRAM STATUS REGISTER OPERATIONS
                    'MRS': InstrType.psrtransfer,
                    'MSR': InstrType.psrtransfer,
@@ -212,9 +220,44 @@ def checkTokensCount(tokensDict):
     assert tokensDict['WRITEBACK'] <= 1
     assert tokensDict['UPDATEMODE'] <= 1
 
+def ShiftInstructionToBytecode(asmtokens):
+    mnemonic = asmtokens[0].value
+
+    b = dataOpcodeMapping['MOV'] << 21      # Always MOV
+    dictSeen = defaultdict(int)
+
+    mnemonic = "ROR" if mnemonic == 'RRX' else mnemonic
+    b |= shiftMapping[mnemonic] << 5
+
+    for tok in asmtokens[1:]:
+        if tok.type == 'SETFLAGS':
+            b |= 1 << 20
+        elif tok.type == 'COND':
+            b |= conditionMapping[tok.value] << 28
+        elif tok.type == 'REGISTER':
+            if dictSeen['REGISTER'] == 0:
+                b |= tok.value << 12
+            elif dictSeen['REGISTER'] == 1:
+                b |= tok.value
+            else:
+                # Shift by register
+                b |= 1 << 4
+                b |= tok.value << 8
+        elif tok.type == 'CONSTANT':
+            # Shift by a constant
+            b |= tok.value << 7
+        dictSeen[tok.type] += 1
+
+    if dictSeen['COND'] == 0:
+        b |= conditionMapping['AL'] << 28
+
+    checkTokensCount(dictSeen)
+    return struct.pack("<I", b)
+
 
 def DataInstructionToBytecode(asmtokens):
     mnemonic = asmtokens[0].value
+
     b = dataOpcodeMapping[mnemonic] << 21
 
     dictSeen = defaultdict(int)
@@ -248,6 +291,16 @@ def DataInstructionToBytecode(asmtokens):
                     b |= dataOpcodeMapping['MVN'] << 21     # MVN is 1111 opcode
                 elif mnemonic == 'MVN':
                     b ^= 1 << 22
+                elif mnemonic == 'ADD':
+                    # We replace the ADD opcode by a SUB
+                    b &= (~(0xF << 21)) & 0xFFFFFFFF
+                    b |= dataOpcodeMapping['SUB'] << 21
+                    immval, immrot, inverse = immediateToBytecode(-tok.value)
+                elif mnemonic == 'SUB':
+                    # We replace the SUB opcode by an ADD
+                    b &= (~(0xF << 21)) & 0xFFFFFFFF
+                    b |= dataOpcodeMapping['ADD'] << 21
+                    immval, immrot, inverse = immediateToBytecode(-tok.value)
             b |= immval
             b |= immrot << 8
         elif tok.type == 'SHIFTREG':

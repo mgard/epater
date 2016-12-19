@@ -413,6 +413,7 @@ class Simulator:
         self.sysHandle = SystemHandler()
         self.mem = Memory(memorycontent, self.sysHandle)
         self.pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
+        self.currentpc = 0
 
         self.interruptActive = False
         self.interruptParams = {'b': 0, 'a': 0, 't0': 0, 'type': "FIQ"}       # Interrupt trigged at each a*(t-t0) + b cycles
@@ -510,14 +511,16 @@ class Simulator:
         """
         Execute one instruction
         :param addr: Address of the instruction in memory
-        :return:
+        :return: a boolean indicating if PC was modified by the current instruction
         This function may throw a SimulatorError exception if there's an error, or a Breakpoint exception,
         in which case it is not an error but rather a Breakpoint reached.
         """
 
         # Decode it
         t, regs, cond, misc = BytecodeToInstrInfos(self.fetchedInstr)
+        print("EXECUTING ", t, misc)
         workingFlags = {}
+        pcchanged = False
 
         # Check condition
         # Warning : here we check if the condition is NOT met, hence we use the
@@ -537,7 +540,7 @@ class Simulator:
             cond == "LT" and self.flags['V'] == self.flags['N'] or
             cond == "LE" and (not self.flags['Z'] and self.flags['V'] == self.flags['N'])):
             # Condition not met, return
-            return
+            return pcchanged
 
         # Execute it
         if t == InstrType.softinterrupt:
@@ -547,17 +550,19 @@ class Simulator:
             self.regs.getCPSR().setMode("SVC")                  # Set the interrupt mode in CPSR
             # Does entering SVC interrupt deactivate IRQ and/or FIQ?
             self.regs[14].set(self.regs[15].get())              # Save PC in LR_svc
-            self.regs[15].set(self.pcoffset + 0x08 - 4)         # Set PC to enter the interrupt
+            self.regs[15].set(0x08)                             # Set PC to enter the interrupt
+            pcchanged = True
 
         elif t == InstrType.branch:
             if misc['L']:       # Link
-                self.regs[14].set(self.regs[15].get() - self.pcoffset +4)
+                self.regs[14].set(self.regs[15].get() - self.pcoffset + 4)
                 self.stepCondition += 1         # We are entering a function, we log it (useful for stepForward and stepOut)
             if misc['mode'] == 'imm':
-                self.regs[15].set(self.pcoffset + self.regs[15].get() + misc['offset'] - 4)
+                self.regs[15].set(self.regs[15].get() + misc['offset'])
             else:   # BX
-                self.regs[15].set(self.pcoffset + self.regs[misc['offset']].get() - 4)
+                self.regs[15].set(self.regs[misc['offset']].get())
                 self.stepCondition -= 1         # We are returning from a function, we log it (useful for stepForward and stepOut)
+            pcchanged = True
 
         elif t == InstrType.memop:
             baseval = self.regs[misc['base']].get()
@@ -572,7 +577,7 @@ class Simulator:
             if misc['mode'] == 'LDR':
                 m = self.mem.get(realAddr, size=1 if misc['byte'] else 4)
                 if m is None:       # No such address in the mapped memory, we cannot continue
-                    return
+                    return False
                 res = struct.unpack("<I", m)[0]
                 self.regs[misc['rd']].set(res)
             else:       # STR
@@ -585,7 +590,6 @@ class Simulator:
                 self.regs[misc['base']].set(addr)
 
         elif t == InstrType.multiplememop:
-            print(t, regs, cond, misc)
             # "The lowest-numbereing register is stored to the lowest memory address, through the
             # highest-numbered register to the highest memory address"
             baseAddr = self.regs[misc['base']].get()
@@ -618,7 +622,7 @@ class Simulator:
 
             if misc['writeback']:
                 # Technically, it will break if we use a different bank (e.g. the S bit is set), but the ARM spec
-                # explicitely says that "Base write-back should not be used when this mechanism is employed".
+                # explicitely says that "Base write-back should not be used when this mechanism (the S bit) is employed".
                 # Maybe we could output an explicit error if this is the case?
                 self.regs[misc['base']].set(baseAddr)
 
@@ -681,20 +685,21 @@ class Simulator:
                 workingFlags['V'] = self._checkOverflow(op2, (~op1)+1, res)
             elif misc['opcode'] in ("ADD", "CMN"):
                 res = op1 + op2
+                print(op1, op2, res)
                 workingFlags['C'] = self._checkCarry(op1, op2, res)
                 workingFlags['V'] = self._checkOverflow(op1, op2, res)
             elif misc['opcode'] == "ADC":
-                res = op1 + op2 + int(self.flags['C'].get())
-                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C'].get()), res)
-                workingFlags['V'] = self._checkOverflow(op1, op2 + int(self.flags['C'].get()), res)
+                res = op1 + op2 + int(self.flags['C'])
+                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C']), res)
+                workingFlags['V'] = self._checkOverflow(op1, op2 + int(self.flags['C']), res)
             elif misc['opcode'] == "SBC":
-                res = op1 - op2 + int(self.flags['C'].get()) - 1
-                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C'].get()) - 1, res)
-                workingFlags['V'] = self._checkOverflow(op1, ((~op2) + 1) + int(self.flags['C'].get()) - 1, res)
+                res = op1 - op2 + int(self.flags['C']) - 1
+                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C']) - 1, res)
+                workingFlags['V'] = self._checkOverflow(op1, ((~op2) + 1) + int(self.flags['C']) - 1, res)
             elif misc['opcode'] == "RSC":
-                res = op2 - op1 + int(self.flags['C'].get()) - 1
-                workingFlags['C'] = self._checkCarry(op2, op1 + int(self.flags['C'].get()) - 1, res)
-                workingFlags['V'] = self._checkOverflow(op2, ((~op1) + 1) + int(self.flags['C'].get()) - 1, res)
+                res = op2 - op1 + int(self.flags['C']) - 1
+                workingFlags['C'] = self._checkCarry(op2, op1 + int(self.flags['C']) - 1, res)
+                workingFlags['V'] = self._checkOverflow(op2, ((~op1) + 1) + int(self.flags['C']) - 1, res)
             elif misc['opcode'] == "ORR":
                 res = op1 | op2
             elif misc['opcode'] == "MOV":
@@ -712,6 +717,9 @@ class Simulator:
                 workingFlags['Z'] = True
             if res & 0x80000000:
                 workingFlags['N'] = True            # "N flag will be set to the value of bit 31 of the result" (4.5.1)
+
+            if destrd == 15:
+                pcchanged = True
 
             if misc['setflags']:
                 if destrd == 15:
@@ -732,6 +740,8 @@ class Simulator:
                 # We actually write the result
                 self.regs[destrd].set(res)
 
+        return pcchanged
+
     def nextInstr(self):
         # One more cycle to do!
         self.sysHandle.countCycles += 1
@@ -740,13 +750,11 @@ class Simulator:
         self.sysHandle.clearBreakpoint()
 
         # The instruction should have been fetched by the last instruction
-        self.execInstr()
-        self.regs[15].set(self.regs[15].get()+4)        # PC = PC + 4
-
-        # Retrieve instruction from memory
-        nextInstrBytes = self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True)
-        if nextInstrBytes is not None:          # We did not make an illegal memory access
-            self.fetchedInstr = bytes(nextInstrBytes)
+        pcmodified = self.execInstr()
+        if pcmodified:
+            self.regs[15].set(self.regs[15].get() + self.pcoffset)
+        else:
+            self.regs[15].set(self.regs[15].get() + 4)        # PC = PC + 4
 
         # We look for interrupts
         # The current instruction is always finished before the interrupt
@@ -764,6 +772,11 @@ class Simulator:
                 self.regs[14].set(self.regs[15].get() - 4)                              # Save PC in LR (on the FIQ or IRQ bank)
                 self.regs[15].set(self.pcoffset + (0x18 if self.interruptParams['type'] == "IRQ" else 0x1C))      # Set PC to enter the interrupt
                 self.lastInterruptCycle = self.sysHandle.countCycles
+
+        # Retrieve instruction from memory
+        nextInstrBytes = self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True)
+        if nextInstrBytes is not None:          # We did not make an illegal memory access
+            self.fetchedInstr = bytes(nextInstrBytes)
 
         # Question : if we hit a breakpoint for the _next_ instruction, should we enter the interrupt anyway?
         # Did we hit a breakpoint?

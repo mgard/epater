@@ -74,6 +74,15 @@ tokens = (
 t_ignore_COMMENT = r';.*$'
 t_INNERSEP = r','
 
+def t_SHIFTREG(t):
+    r',\s*(LSL|LSR|ASR|ROR)\s+R[0-9]{1,2}'
+    t.value = ShiftInfo(t.value[1:].strip()[:3], int(t.value[t.value.rindex('R')+1:]))
+    return t
+
+def t_SHIFTIMM(t):
+    r',\s*(LSL|LSR|ASR|ROR)\s+[#][0-9]{1,2}'
+    t.value = ShiftInfo(t.value[1:].strip()[:3], int(t.value[t.value.index('#')+1:]))
+    return t
 
 @lex.TOKEN(regexpInstr)
 def t_INSTR(t):
@@ -114,12 +123,14 @@ def t_MEMACCESSPOST(t):
 
 def t_DECLARATION(t):
     r'D[SC](8|16|32)\s+[^;]+'
+    t.value = t.value.strip()
     bits = int(t.value.split()[0][2:])
-    vals = [int(v, 0) for v in t.value[t.value.find(" ")+1:].split(",")]
-    dectype = "DC" if t.value[1] == "C" else "DS"
+    dectype = "DC" if t.value.split()[0][1] == "C" else "DS"
+    nums = "".join(t.value.strip().split()[1:])
+    vals = [int(v, 0) for v in nums.split(",")]
     if len(vals) < 2 and dectype != "DC":
+        dim = vals[0]
         vals = []
-        dim = int(t.value.split()[1], 0)
     else:
         dim = len(vals)
     t.value = DecInfo(dectype, bits, dim, vals)
@@ -167,16 +178,6 @@ def t_WRITEBACK(t):
 def t_CONSTANT(t):
     r'[#][+-]?(0x[0-9a-fA-F]+|[0-9]+)'
     t.value = int(t.value[1:], 0)
-    return t
-
-def t_SHIFTREG(t):
-    r'(LSL|LSR|ASR|ROR)\s+R[0-9]{1,2}'
-    t.value = ShiftInfo(t.value[:3], int(t.value[t.value.rindex('R')+1:]))
-    return t
-
-def t_SHIFTIMM(t):
-    r'(LSL|LSR|ASR|ROR)\s+[#][0-9]{1,2}'
-    t.value = ShiftInfo(t.value[:3], int(t.value[t.value.index('#')+1:]))
     return t
 
 def t_COND(t):
