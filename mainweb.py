@@ -93,13 +93,18 @@ async def handler(websocket, path):
 
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
-                interpreters[websocket].step()
-                interpreters[websocket].last_step__ = time.time()
+                steps_to_do = 50 if interpreters[websocket].animate_speed__ == 0 else 1
+                for i in range(steps_to_do):
+                    interpreters[websocket].step()
+                    interpreters[websocket].last_step__ = time.time()
 
-                interpreters[websocket].num_exec__ += 1
+                    interpreters[websocket].num_exec__ += 1
 
-                for el in updateDisplay(interpreters[websocket]):
-                    ui_update_queue[el[0]] = el[1:]
+                    for el in updateDisplay(interpreters[websocket]):
+                        ui_update_queue[el[0]] = el[1:]
+
+                    if interpreters[websocket].shouldStop:
+                        break
 
                 to_run_task = asyncio.ensure_future(run_instance(websocket))
 
@@ -320,7 +325,7 @@ B testmov
 testmov
 MOV R0,  #0
 MOV R1,  #0xA
-MOV R2,  #1 LSL R1
+MOV R2,  #1, LSL R1
 MOV R3,  #0xF0000000
 MOV R4,  #0x1000, ASR #3
 MOV R5,  PC
