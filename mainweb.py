@@ -40,9 +40,18 @@ async def run_instance(websocket):
     while True:
         if websocket in interpreters:
             interp = interpreters[websocket]
-            if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (interp.user_asked_stop__ < 2):
+            if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (interp.user_asked_stop__ == False):
                 return
         await asyncio.sleep(0.05)
+
+
+async def update_ui(ws, to_send):
+    while True:
+        if ws in interpreters:
+            interp = interpreters[ws]
+            if (interp.next_report__ < time.time() and len(to_send) < 10 and interp.num_exec__ > 0):
+                return
+        await asyncio.sleep(0.02)
 
 
 async def handler(websocket, path):
@@ -55,11 +64,12 @@ async def handler(websocket, path):
         listener_task = asyncio.ensure_future(websocket.recv())
         producer_task = asyncio.ensure_future(producer(to_send))
         to_run_task = asyncio.ensure_future(run_instance(websocket))
+        update_ui_task = asyncio.ensure_future(update_ui(websocket, to_send))
         while True:
             if not websocket.open:
                 break
             done, pending = await asyncio.wait(
-                [listener_task, producer_task, to_run_task],
+                [listener_task, producer_task, to_run_task, update_ui_task],
                 return_when=asyncio.FIRST_COMPLETED)
 
             if listener_task in done:
@@ -70,7 +80,6 @@ async def handler(websocket, path):
                 if message:
                     received.append(message)
 
-                # TODO: Try là-dessus?
                 data = process(websocket, received)
                 if data:
                     to_send.extend(data)
@@ -84,38 +93,29 @@ async def handler(websocket, path):
 
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
-                if interpreters[websocket].user_asked_stop__ == False:
-                    interpreters[websocket].step()
-                    interpreters[websocket].last_step__ = time.time()
+                interpreters[websocket].step()
+                interpreters[websocket].last_step__ = time.time()
 
-                    if DEBUG:
-                        if not hasattr(interpreters[websocket], 'num_exec__'):
-                            interpreters[websocket].num_exec__ = 1
-                        else: 
-                            interpreters[websocket].num_exec__ += 1
-                        interpreters[websocket].num_exec__ += 1
+                interpreters[websocket].num_exec__ += 1
 
-                else:
-                    interpreters[websocket].user_asked_stop__ = 2
-                
-                if ((not hasattr(interpreters[websocket], 'next_report__'))
-                    or interpreters[websocket].next_report__ < time.time()):
+                for el in updateDisplay(interpreters[websocket]):
+                    ui_update_queue[el[0]] = el[1:]
 
-                    if DEBUG:
-                        if hasattr(interpreters[websocket], 'next_report__'):
-                            print("{} in {}".format(interpreters[websocket].num_exec__, time.time() - interpreters[websocket].next_report__ + UPDATE_THROTTLE_SEC))
-                        interpreters[websocket].num_exec__ = 0
-
-                    interpreters[websocket].next_report__ = time.time() + UPDATE_THROTTLE_SEC
-                    for el in updateDisplay(interpreters[websocket]):
-                        ui_update_queue[el[0]] = el[1:]
-                    for k,v in ui_update_queue.items():
-                        to_send.append([k] + v)
-                    ui_update_queue = OrderedDict()
-                else:
-                    for el in updateDisplay(interpreters[websocket]):
-                        ui_update_queue[el[0]] = el[1:]
                 to_run_task = asyncio.ensure_future(run_instance(websocket))
+
+            if update_ui_task in done:
+                if DEBUG:
+                    print("{} in {}".format(interpreters[websocket].num_exec__, time.time() - interpreters[websocket].next_report__ + UPDATE_THROTTLE_SEC))
+                interpreters[websocket].num_exec__ = 0
+
+                interpreters[websocket].next_report__ = time.time() + UPDATE_THROTTLE_SEC
+                for el in updateDisplay(interpreters[websocket]):
+                    ui_update_queue[el[0]] = el[1:]
+                    ui_update_queue.move_to_end(el[0])
+                for k,v in ui_update_queue.items():
+                    to_send.append([k] + v)
+                ui_update_queue = OrderedDict()
+                update_ui_task = asyncio.ensure_future(update_ui(websocket, to_send))
 
     finally:
         if websocket in interpreters:
@@ -235,7 +235,9 @@ def process(ws, msg_in):
                 interpreters[ws] = BCInterpreter(bytecode, bcinfos)
                 force_update_all = True
                 interpreters[ws].last_step__ = time.time()
+                interpreters[ws].next_report__ = 0
                 interpreters[ws].animate_speed__ = 0.1
+                interpreters[ws].num_exec__ = 0
                 interpreters[ws].user_asked_stop__ = False
             elif data[0] == 'stepinto':
                 interpreters[ws].step()
