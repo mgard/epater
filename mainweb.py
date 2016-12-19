@@ -28,6 +28,7 @@ connected = set()
 
 DEBUG = 'DEBUG' in sys.argv
 
+
 async def producer(data_list):
     while True:
         if data_list:
@@ -39,7 +40,7 @@ async def run_instance(websocket):
     while True:
         if websocket in interpreters:
             interp = interpreters[websocket]
-            if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (not interp.user_asked_stop__):
+            if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (interp.user_asked_stop__ < 2):
                 return
         await asyncio.sleep(0.05)
 
@@ -83,8 +84,9 @@ async def handler(websocket, path):
 
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
-                if not interpreters[websocket].user_asked_stop__:
+                if interpreters[websocket].user_asked_stop__ == False:
                     interpreters[websocket].step()
+                    interpreters[websocket].last_step__ = time.time()
 
                     if DEBUG:
                         if not hasattr(interpreters[websocket], 'num_exec__'):
@@ -93,24 +95,26 @@ async def handler(websocket, path):
                             interpreters[websocket].num_exec__ += 1
                         interpreters[websocket].num_exec__ += 1
 
-                    interpreters[websocket].last_step__ = time.time()
-                    if ((not hasattr(interpreters[websocket], 'next_report__'))
-                        or interpreters[websocket].next_report__ < time.time()):
+                else:
+                    interpreters[websocket].user_asked_stop__ = 2
+                
+                if ((not hasattr(interpreters[websocket], 'next_report__'))
+                    or interpreters[websocket].next_report__ < time.time()):
 
-                        if DEBUG:
-                            if hasattr(interpreters[websocket], 'next_report__'):
-                                print("{} in {}".format(interpreters[websocket].num_exec__, time.time() - interpreters[websocket].next_report__ + UPDATE_THROTTLE_SEC))
-                            interpreters[websocket].num_exec__ = 0
+                    if DEBUG:
+                        if hasattr(interpreters[websocket], 'next_report__'):
+                            print("{} in {}".format(interpreters[websocket].num_exec__, time.time() - interpreters[websocket].next_report__ + UPDATE_THROTTLE_SEC))
+                        interpreters[websocket].num_exec__ = 0
 
-                        interpreters[websocket].next_report__ = time.time() + UPDATE_THROTTLE_SEC
-                        for el in updateDisplay(interpreters[websocket]):
-                            ui_update_queue[el[0]] = el[1:]
-                        for k,v in ui_update_queue.items():
-                            to_send.append([k] + v)
-                        ui_update_queue = OrderedDict()
-                    else:
-                        for el in updateDisplay(interpreters[websocket]):
-                            ui_update_queue[el[0]] = el[1:]
+                    interpreters[websocket].next_report__ = time.time() + UPDATE_THROTTLE_SEC
+                    for el in updateDisplay(interpreters[websocket]):
+                        ui_update_queue[el[0]] = el[1:]
+                    for k,v in ui_update_queue.items():
+                        to_send.append([k] + v)
+                    ui_update_queue = OrderedDict()
+                else:
+                    for el in updateDisplay(interpreters[websocket]):
+                        ui_update_queue[el[0]] = el[1:]
                 to_run_task = asyncio.ensure_future(run_instance(websocket))
 
     finally:
@@ -246,7 +250,7 @@ def process(ws, msg_in):
                 interpreters[ws].last_step__ = time.time()
                 interpreters[ws].animate_speed__ = int(data[1]) / 1000
             elif data[0] == 'run':
-                if interpreters[ws].shouldStop == False and not interpreters[ws].user_asked_stop__:
+                if interpreters[ws].shouldStop == False and (interpreters[ws].user_asked_stop__ == False):
                     interpreters[ws].user_asked_stop__ = True
                 else:
                     interpreters[ws].user_asked_stop__ = False
