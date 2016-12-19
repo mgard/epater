@@ -301,6 +301,14 @@ def DataInstructionToBytecode(asmtokens):
                     b &= (~(0xF << 21)) & 0xFFFFFFFF
                     b |= dataOpcodeMapping['ADD'] << 21
                     immval, immrot, inverse = immediateToBytecode(-tok.value)
+                elif mnemonic == 'AND':
+                    # We replace AND with BIC
+                    # AND is 0000 so we don't have to "erase" it
+                    b |= dataOpcodeMapping['BIC'] << 21
+                elif mnemonic == 'BIC':
+                    # We replace BIC with AND
+                    # AND is 0000 so we just have to set the opcode bits to 0
+                    b &= (~(0xF << 21)) & 0xFFFFFFFF
             b |= immval
             b |= immrot << 8
         elif tok.type == 'SHIFTREG':

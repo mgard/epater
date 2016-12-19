@@ -9,6 +9,19 @@ BASE_ADDR_INTVEC = 0x00
 BASE_ADDR_CODE   = 0x80
 BASE_ADDR_DATA   = 0x1000
 
+
+class AssemblerError(Exception):
+    def __init__(self, msg):
+        super().__init__(msg)
+
+class ParsingError(AssemblerError):
+    def __init__(self, msg):
+        super().__init__(msg)
+
+class RangeError(AssemblerError):
+    def __init__(self, msg):
+        super().__init__(msg)
+
 class ParseError:
     dictErrors = {'SYNTAX': "Erreur de syntaxe",
                   'RANGE' : "Erreur de range",

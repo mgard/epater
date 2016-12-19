@@ -413,7 +413,6 @@ class Simulator:
         self.sysHandle = SystemHandler()
         self.mem = Memory(memorycontent, self.sysHandle)
         self.pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
-        self.currentpc = 0
 
         self.interruptActive = False
         self.interruptParams = {'b': 0, 'a': 0, 't0': 0, 'type': "FIQ"}       # Interrupt trigged at each a*(t-t0) + b cycles
@@ -518,7 +517,6 @@ class Simulator:
 
         # Decode it
         t, regs, cond, misc = BytecodeToInstrInfos(self.fetchedInstr)
-        print("EXECUTING ", t, misc)
         workingFlags = {}
         pcchanged = False
 
@@ -685,7 +683,6 @@ class Simulator:
                 workingFlags['V'] = self._checkOverflow(op2, (~op1)+1, res)
             elif misc['opcode'] in ("ADD", "CMN"):
                 res = op1 + op2
-                print(op1, op2, res)
                 workingFlags['C'] = self._checkCarry(op1, op2, res)
                 workingFlags['V'] = self._checkOverflow(op1, op2, res)
             elif misc['opcode'] == "ADC":
