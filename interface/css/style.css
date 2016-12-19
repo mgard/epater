@@ -132,6 +132,9 @@ img {
     font-family: monospace;
 }
 
+.testgrid td {
+    border: 1px solid white;
+}
 .mem_r {
     background-color: red;
 }
@@ -142,10 +145,10 @@ img {
     background-color: yellow;
 }
 .mem_e {
-    border: 1px solid red;
+    border: 1px solid red !important;
 }
 .mem_instr {
-    border: 1px solid green;
+    border: 1px solid green !important;
 }
 
 #paginator {
