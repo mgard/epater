@@ -495,9 +495,8 @@ def SwapInstructionToBytecode(asmtokens):
 
 
 def PSRTransferInstructionToBytecode(asmtokens):
-    # Todo
     mnemonic = asmtokens[0].value
-    b = 0x2 << 23
+    b = 1 << 24
     if mnemonic == 'MRS':
         # Read the PSR
         b |= 0xF << 16
@@ -505,9 +504,32 @@ def PSRTransferInstructionToBytecode(asmtokens):
         # Write the PSR
         b |= 0x28F << 12
 
+    dictSeen = defaultdict(int)
+    for tok in asmtokens[1:]:
+        if tok.type == 'COND':
+            b |= conditionMapping[tok.value] << 28
+        elif tok.type == 'REGISTER':
+            if mnemonic == 'MRS':   # Destination register
+                b |= tok.value << 12
+            else:                   # Source register
+                b |= tok.value
+        elif tok.type == 'CONTROLREG':
+            # Which PSR to read/write
+            if tok.value[0] == 'SPSR':
+                b |= 1 << 22
+            if tok.value[1] == 'all' and mnemonic == 'MSR':
+                b |= 1 << 16
+        elif tok.type == 'CONSTANT':
+            b |= 1 << 25
+            # TODO : add shift
+            b |= tok.value
+        dictSeen[tok.type] += 1
 
+    if dictSeen['COND'] == 0:
+        b += conditionMapping['AL'] << 28
 
-    raise NotImplementedError()
+    checkTokensCount(dictSeen)
+    return struct.pack("<I", b)
 
 
 def SoftinterruptInstructionToBytecode(asmtokens):

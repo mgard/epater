@@ -17,13 +17,13 @@ if __name__ == '__main__':
     interpreter = BCInterpreter(bytecode, bcinfos)
     with open(args.inputfile) as f:
         lines = f.readlines()
-        for i in range(30):
+        a = time.time()
+        for i in range(10000):
             print(i, lines[interpreter.getCurrentLine()][:-1])
             interpreter.step()
             print(interpreter.getCurrentLine(), interpreter.getChanges())
-
             print("################")
-
+    print("Time execute {} instructions : {}".format(i, time.time() - a))
 
 
 

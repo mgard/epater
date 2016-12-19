@@ -50,6 +50,7 @@ MemAccessPreInfo = namedtuple("MemAccessPretInfo", ['base', 'offsettype', 'offse
 tokens = (
    'INSTR',
    'REGISTER',
+   'CONTROLREG',
    'LISTREGS',
    'CONSTANT',
    'COMMENT',
@@ -60,6 +61,7 @@ tokens = (
    'WRITEBACK',
    'COND',
    'BYTEONLY',
+   'HALFONLY',
    'UPDATEMODE',
    'LABEL',
    'REFLABEL',
@@ -146,6 +148,13 @@ def t_REGISTER(t):
     t.value = int(t.value[1:]) if t.value[0] == "R" else ["SP","LR","PC"].index(t.value)+13
     return t
 
+def t_CONTROLREG(t):
+    r'(CPSR|SPSR)(_cxsf|_flg|_all|_f)?'
+    mode = t.value.split("_")[1] if "_" in t.value else "all"
+    flagreg = t.value.split("_")[0] if "_" in t.value else t.value().strip()
+    t.value = (flagreg, mode)
+    return t
+
 @lex.TOKEN(r'\{(R[0-9]{1,2}|SP|LR|PC|-|,)+}[\^]?')
 def t_LISTREGS(t):
     listRegs = [0]*16
@@ -195,6 +204,10 @@ def t_SETFLAGS(t):
 
 def t_BYTEONLY(t):
     r'((?<=(LDR|STR))|(?<=((LDR|STR)[A-Z]{2})))B\s+'
+    return t
+
+def t_HALFONLY(t):
+    r'((?<=(LDR|STR))|(?<=((LDR|STR)[A-Z]{2})))H\s+'
     return t
 
 def t_SWICONSTANT(t):
