@@ -155,7 +155,7 @@ def t_CONTROLREG(t):
     t.value = (flagreg, mode)
     return t
 
-@lex.TOKEN(r'\{(R[0-9]{1,2}|SP|LR|PC|-|,)+}[\^]?')
+@lex.TOKEN(r'\{(R[0-9]{1,2}|SP|LR|PC|-|,|\s)+}[\^]?')
 def t_LISTREGS(t):
     listRegs = [0]*16
     val = t.value.replace(" ", "").replace("\t", "").replace("LR", "R14").replace("PC", "R15").replace("SP", "R13")
