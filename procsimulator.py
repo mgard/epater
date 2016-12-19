@@ -198,9 +198,13 @@ class BankedRegisters:
         # By default, we are in user mode
         self.setCurrentBank("User")
 
-    def setCurrentBank(self, bankname):
+    def setCurrentBank(self, bankname, logToHistory=True):
         self.currentBank = bankname
-        self.history.append((self.sys.countCycles, bankname))
+        if logToHistory:
+            # Sometimes we just want to switch banks 2 times in the same cycle for internal reasons (like storing
+            # registers from User bank in privileged mode), so this optionnal argument controls if this switch has to be
+            # logged and transfered to the UI
+            self.history.append((self.sys.countCycles, bankname))
 
     def __getitem__(self, item):
         if not isinstance(item, int) or item < 0 or item > 15:
@@ -389,7 +393,7 @@ class Memory:
     def stepBack(self):
         # Set the memory as it was one step back in the past
         while self.history[-1][0] >= self.sys.countCycles:
-            _, sec, offset, virtualAddr, size, val, previousValBytes, valBytes = self.history.pop()
+            _, sec, offset, virtualAddr, size, val, previousValBytes,  = self.history.pop()
             self.data[sec][offset:offset+size] = previousValBytes
 
 
@@ -579,6 +583,48 @@ class Simulator:
 
             if misc['writeback']:
                 self.regs[misc['base']].set(addr)
+
+        elif t == InstrType.multiplememop:
+            print(t, regs, cond, misc)
+            # "The lowest-numbereing register is stored to the lowest memory address, through the
+            # highest-numbered register to the highest memory address"
+            baseAddr = self.regs[misc['base']].get()
+            if misc['pre']:
+                baseAddr += misc['sign'] * 4
+
+            currentbank = self.regs.currentBank
+            if currentbank != "User" and misc['sbit'] and (misc['mode'] == "STR" or 15 not in regs):
+                # "For both LDM and STM instructions, the User bank registers are transferred rather thathe register
+                #  bank corresponding to the current mode. This is useful for saving the usestate on process switches.
+                #  Base write-back should not be used when this mechanism is employed."
+                self.regs.setCurrentBank("User", logToHistory=False)
+
+            if misc['mode'] == 'LDR':
+                for reg in regs[::misc['sign']]:
+                    m = self.mem.get(baseAddr, size=4)
+                    val = struct.unpack("<I", m)[0]
+                    self.regs[reg].set(val)
+                    baseAddr += misc['sign'] * 4
+                if misc['sbit'] and 15 in regs:
+                    # "If the instruction is a LDM then SPSR_<mode> is transferred to CPSR at the same time as R15 is loaded."
+                    self.regs.getCPSR().set(self.regs.getSPSR().get())
+            else:   # STR
+                for reg in regs[::misc['sign']]:
+                    val = self.regs[reg].get()
+                    self.mem.set(baseAddr, val, size=4)
+                    baseAddr += misc['sign'] * 4
+            if misc['pre']:
+                baseAddr -= misc['sign'] * 4        # If we are in pre-increment mode, we remove the last increment
+
+            if misc['writeback']:
+                # Technically, it will break if we use a different bank (e.g. the S bit is set), but the ARM spec
+                # explicitely says that "Base write-back should not be used when this mechanism is employed".
+                # Maybe we could output an explicit error if this is the case?
+                self.regs[misc['base']].set(baseAddr)
+
+            if currentbank != self.regs.currentBank:
+                self.regs.setCurrentBank(currentbank, logToHistory=False)
+
 
         elif t == InstrType.psrtransfer:
             if misc['write']:
