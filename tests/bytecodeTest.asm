@@ -1,0 +1,162 @@
+  MOV R0, #10
+  MOV R1, #0
+  MOV R2, #255
+  MOV R3, #256
+  MOV R4, #260
+  MOV R5, #1024
+  MOV R6, #4096
+  MOV R7, #8192
+  MOV R8, #65536
+  MOV R9, #0x80000000
+  MOV R10, #-1
+  MOV R11, #-2
+  MOV R12, #-255
+  MOV R13, #0xffffffbf
+  MOV R14, #0x01
+  MVN R0, #-2
+  MVN R1, #0xf
+  
+  ; SHIFTS
+  MOV R0, R0, LSL #10
+  MOV R1, R2, LSL #1
+  MOV R1, R2, LSL #0
+  MOV R2, R3, LSR #2
+  MOV R3, R4, LSR #0x13
+  MOV R3, R4, LSR #32
+  MOV R8, R9, ASR #2
+  MOV R8, R9, ASR #32
+  MOV R4, R5, ROR #14
+  MOV R5, R6, RRX
+  
+  ; PSEUDO INSTRUCTIONS SHIFTS
+  LSR R0, R1, R1
+  LSR R0, R1, #1
+  LSL R0, R1, #20
+  ASR R0, R1, #32
+  ROR R0, R1, R7
+  ROR R0, R1, #0xe
+  RRX R3, R2
+  
+  ; DATA OP (ARITHMETIC)
+  ADD R0, R0, R1
+  ADD R2, R3, R4, LSL #2
+  ADD R2, R0, #4
+  ADD R2, R0, #-8
+  SUB R6, R6, R5
+  SUB R6, R6, R5, LSR #3
+  SUB R7, R7, #0x10
+  SUB R7, R7, #-77
+  ADC R8, R9, R9
+  ADC R8, R10, #264
+  ADC R10, R11, #10
+  RSB R8, R9, R10
+  RSB R8, R9, #0x4F
+  RSB R10, R9, #8
+  SBC R2, R0, R1
+  SBC R2, R3, #4
+  SBC R2, R3, #0xFF
+  ADDS R0, R0, R1
+  
+  ; DATA OP (LOGICAL)
+  AND R0, R1, R2
+  AND R0, R1, #0xFF000000
+  AND R0, R1, #0xFFFFFFFF
+  BIC R2, R3, R4
+  BIC R2, R3, #0x8F
+  BIC R2, R3, #-1
+  EOR R5, R6, R7
+  EOR R5, R6, #31
+  EOR R5, R6, #0xF2
+  ORR R6, R7, R5
+  ORR R6, R7, #11
+  ORRS R7, R8, R9
+  
+  ; DATA OP (conditions)
+  CMP R3, R4
+  CMP R3, #4
+  CMP R3, #-1
+  CMP R3, #0xFF010000
+  CMP R3, #0x0FFFFFFF
+  CMN R4, R8
+  CMN R7, #12
+  CMN R7, #0
+  CMN R10, #-5
+  TST R9, R10
+  TST R9, #0xF
+  TEQ R9, R10
+  TEQ R10, #0x22
+  
+  ; CONDITIONS
+  MOVEQ R0, R1
+  MOVNE R0, R1
+  MOVCS R0, R1
+  MOVCC R0, R1
+  MOVMI R0, R1
+  MOVPL R0, R1
+  MOVVS R0, R1
+  MOVVC R0, R1
+  MOVHI R0, R1
+  MOVLS R0, R1
+  MOVGE R0, R1
+  MOVLT R0, R1
+  MOVGT R0, R1
+  MOVLE R0, R1
+  MOVAL R0, R1
+  
+  ; BRANCH
+  BX LR
+  BX R2
+  B main
+  BL main
+  
+  ; LDR / STR
+  LDR R0, [R1]
+  LDR R0, [R1, R2]
+  LDR R0, [R1, R2, LSL #4]
+  LDR R0, [R1, R2, LSR #4]
+  LDR R0, [R1, R2, ROR #4]
+  LDR R0, [R1, R2, RRX]
+  LDR R0, [R1, R2]!
+  LDR R0, [R1], R2
+  LDRB R0, [R1], R2
+  STR R0, [R1]
+  STR R0, [R1, #16]
+  STR R0, [R1, #18]
+  STR R0, [R1, #-16]
+  STR R0, [R1, #0xFFF]
+  
+  ; BLOCK DATA TRANSFER (LDM/STM/PUSH/POP)
+  PUSH {R1}
+  PUSH {R2, R3,R4}
+  PUSH {R2-R7}
+  PUSH {R8-R10, R12, LR, PC}
+  POP {R1,R2,R3,R6-R9,LR}
+  LDM R4, {R1, R2, R3}
+  LDM R5, {R6}
+  LDM R4!, {R1, R2, R3}
+  STM R7, {R1, R2}
+  STM R8!, {R10-R12}^
+  LDMED R1, {R2-R8,R9}
+  LDMIB R1, {R2-R8, R9}
+  LDMFD R1, {R2-R8,R9}
+  LDMIA R1, {R2-R8, R9}
+  LDMEA R1, {R2-R8,R9}
+  LDMDB R1, {R2-R8, R9}
+  STMFA R1, {R2-R8,R9}
+  STMIB R1, {R2-R8, R9}
+  STMEA R1, {R2-R8,R9}
+  STMIA R1, {R2-R8, R9}
+  STMFD R1, {R2-R8,R9}
+  STMDB R1, {R2-R8, R9}
+  STMED R1, {R2-R8,R9}
+  STMDA R1, {R2-R8, R9}
+  
+  ; SOFTWARE INTERRUPT
+  SWI #0xFF1422
+  SWI 0xFF1422
+  SVC 0xFF1422
+  
+  ; MULTIPLICATION
+  MUL R1, R2, R3
+  MUL R2, R3, LR
+  MLA R3, R4, R5, R6 
