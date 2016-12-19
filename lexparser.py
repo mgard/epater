@@ -151,11 +151,11 @@ def t_REGISTER(t):
 def t_CONTROLREG(t):
     r'(CPSR|SPSR)(_cxsf|_flg|_all|_f)?'
     mode = t.value.split("_")[1] if "_" in t.value else "all"
-    flagreg = t.value.split("_")[0] if "_" in t.value else t.value().strip()
+    flagreg = t.value.split("_")[0] if "_" in t.value else t.value.strip()
     t.value = (flagreg, mode)
     return t
 
-@lex.TOKEN(r'\{(R[0-9]{1,2}|SP|LR|PC|-|,)+}[\^]?')
+@lex.TOKEN(r'\{(R[0-9]{1,2}|SP|LR|PC|-|,|\s)+}[\^]?')
 def t_LISTREGS(t):
     listRegs = [0]*16
     val = t.value.replace(" ", "").replace("\t", "").replace("LR", "R14").replace("PC", "R15").replace("SP", "R13")
