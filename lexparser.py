@@ -147,7 +147,7 @@ def t_REGISTER(t):
     r'(R1[0-5]{1}|R[0-9]{1})|SP|LR|PC'
     t.value = int(t.value[1:]) if t.value[0] == "R" else ["SP","LR","PC"].index(t.value)+13
     return t
-
+-2
 def t_CONTROLREG(t):
     r'(CPSR|SPSR)(_cxsf|_flg|_all|_f)?'
     mode = t.value.split("_")[1] if "_" in t.value else "all"

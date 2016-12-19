@@ -2,7 +2,7 @@
 
 ### An ARM emulator in Python for educational purposes
 
-**epater** is an ARM emulator targeted for academic and learning purposes. It is a two parts project, consisting of:
+**epater** (*Environnement de Programmation ARM Téléopéré *) is an ARM emulator targeted for academic and learning purposes. It is a two parts project, consisting of:
 
 1. An assembler program able to translate ARM assembly to ARMv7 bytecode
 2. An emulator running ARMv7 bytecode
@@ -29,7 +29,8 @@ These features are currently unsupported, but might be included in a future rele
 * Multiply long instruction
 * Prefetch Abort, Data Abort, and Undefined instruction interrupts
 * Real-life PC mode: currently, the user may choose between using a virtualized program counter pointing to the currently executed instruction (that is, as if there was no pipeline) or a PC with a +8 offset to account for the pipeline. In some very specific cases (for instance, when PC is used as an operand, and shifted using another register, or when PC acts as the source register of a STR instruction), the ARM specification reports a PC offset of +12 (see ARM7TDMI reference manual, sec. 4.5.5 and 4.9.4). The simulator currently assumes that the offset is constant, and therefore does not support this mode.
-* Hardware interrupts, except for a timer interruption, e.g. one cannot simulate a keyboard with this emulator
+* Hardware interrupts, except for a timer interrupt, e.g. one cannot simulate a keyboard with this emulator
+* Load multiple / Store multiple instructions and interrupts: these instructions are special because they may be interrupted in the middle of their execution (whereas all other instructions are atomic regarding the interrupt handling). Currently, LDM and STM are not interrupted.
 
 ## Unsupported features
 
@@ -37,6 +38,7 @@ These features are not of great use in a simulation context and/or for academic 
 
 * Thumb mode
 * Jazelle mode
+* Accurate processor cycles simulation
 * Coprocessor instructions
 * Single data swap instructions
 * Vectorized / Neon / SIMD instructions
