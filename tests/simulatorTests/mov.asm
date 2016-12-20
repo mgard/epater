@@ -1,0 +1,14 @@
+; MOV with different constants
+MOV R0, #42
+ASSERT R0=42
+MOV R0, #-1
+ASSERT R0=-1
+MOV R0, #0xFF
+ASSERT R0=255
+MOV R0, #260
+ASSERT R0=260
+; MOV from register
+MOV R1, R0
+ASSERT R1=260,R0=260
+MVN R2, #0
+ASSERT R2=-1
