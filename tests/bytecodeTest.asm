@@ -167,3 +167,11 @@ label
   MUL R1, R2, R3
   MUL R2, R3, LR
   MLA R3, R4, R5, R6
+
+  ; MSR/MRS
+  MRS R0, CPSR
+  MRS R0, SPSR
+  MSR CPSR, R4
+  MSR SPSR, R1
+  MSR CPSR_f, R4
+  MSR CPSR_cxsf, R9
