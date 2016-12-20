@@ -116,6 +116,26 @@ img {
     /* this makes the Breakpoints work. */
 }
 
+.ace_asmcomment {
+    color: #666;
+    font-style: italic;
+}
+
+.ace_sectiontitle {
+    font-weight: bold;
+    color: #600;
+}
+
+.ace_memdeclare {
+    color: #A00;
+    font-weight: bold;
+}
+
+.ace_label {
+    color: #00A;
+    font-weight: ;
+}
+
 .debug_line {
     position: absolute;
     background: rgba(100,200,100,0.5);
