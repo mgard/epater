@@ -643,9 +643,9 @@ class Simulator:
                         if misc['op2'][1][2] != 0:
                             _, valToSet = self._shiftVal(valToSet, misc['op2'][1])
                     else:
-                        valToSet = self.regs[misc['op2'][0]] & 0xF0000000   # We only keep the condition flag bits
+                        valToSet = self.regs[misc['op2'][0]].get() & 0xF0000000   # We only keep the condition flag bits
                 else:
-                    valToSet = self.regs[misc['op2'][0]]
+                    valToSet = self.regs[misc['op2'][0]].get()
                 if misc['usespsr']:
                     self.regs.getSPSR().set(valToSet)
                 else:
