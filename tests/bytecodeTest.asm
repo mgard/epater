@@ -1,5 +1,3 @@
-main
-  ; MOV and MVN
   MOV R0, #10
   MOV R1, #0
   MOV R2, #255
@@ -107,16 +105,19 @@ main
   MOVAL R0, R1
 
   ; BRANCH
-etiquette
   BX LR
   BX R2
-  B etiquette
-  BL etiquette
+etiquette  B etiquette
+etiquette2  BL etiquette2
 
   ; LDR / STR
-label
   LDR R0, [R1]
   LDR R0, [R1, R2]
+  LDR R0, [R1, #8]
+  LDR R0, [R1, #-8]
+  LDR R0, [R1, #0xFF]
+  LDR R0, [R1, #0xFFF]
+  LDR R0, [R1, #-0xFFF]
   LDR R0, [R1, R2, LSL #4]
   LDR R0, [R1, R2, LSR #4]
   LDR R0, [R1, R2, ROR #4]
@@ -129,8 +130,8 @@ label
   STR R0, [R1, #18]
   STR R0, [R1, #-16]
   STR R0, [R1, #0xFFF]
-  LDR R0, label
-  STR R1, label
+label  LDR R0, label
+label2  STR R1, label2
 
   ; BLOCK DATA TRANSFER (LDM/STM/PUSH/POP)
   PUSH {R1}
@@ -174,4 +175,4 @@ label
   MSR CPSR, R4
   MSR SPSR, R1
   MSR CPSR_f, R4
-  MSR CPSR_cxsf, R9
+  MSR SPSR_f, R1

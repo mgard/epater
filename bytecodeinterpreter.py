@@ -102,9 +102,10 @@ class BCInterpreter:
         # If no breakpoint has been trigged in the last instruction, then return None
         return self.sim.sysHandle.breakpointInfo if self.sim.sysHandle.breakpointTrigged else None
 
-    def step(self, stepMode="into"):
+    def step(self, stepMode=None):
         # stepMode= "into" | "forward" | "out" | "run"
-        if stepMode != "into":
+        # None means to keep the current mode, whatever it is
+        if stepMode is not None:
             self.sim.setStepCondition(stepMode)
         self.sim.nextInstr()
 

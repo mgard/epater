@@ -386,6 +386,7 @@ def MemInstructionToBytecode(asmtokens):
 
     b = 1 << 26
     b |= (1 << 20 if mnemonic == "LDR" else 0)
+    setWB0 = False
     dictSeen = defaultdict(int)
     for tok in asmtokens[1:]:
         if tok.type == 'COND':
@@ -415,6 +416,7 @@ def MemInstructionToBytecode(asmtokens):
             elif tok.value.offsettype == "reg":
                 b |= 1 << 25
                 b |= tok.value.offset
+            setWB0 = True
         elif tok.type == 'SHIFTIMM':
             # Should be post increment
             b |= shiftMapping[tok.value.type] << 5
@@ -425,6 +427,12 @@ def MemInstructionToBytecode(asmtokens):
 
     if dictSeen['COND'] == 0:
         b |= conditionMapping['AL'] << 28
+
+    if setWB0:
+        # "In the case of post-indexed addressing, the write back bit is redundant and must be set to zero,
+        #  since the old base value can be retained by setting the offset to zero. Therefore post-indexed
+        #  data transfers always write back the modified base" (4.9.1)
+        b &= (~(1 << 21)) & 0xFFFFFFFF
 
     checkTokensCount(dictSeen)
     return struct.pack("<I", b)
@@ -713,7 +721,7 @@ def BytecodeToInstrInfos(bc):
         pre = bool(instrInt & (1 << 24))
         sign = 1 if instrInt & (1 << 23) else -1
         byte = bool(instrInt & (1 << 22))
-        writeback = bool(instrInt & (1 << 21))
+        writeback = bool(instrInt & (1 << 21)) or not pre       # See 4.9.1 (with post, writeback is redundant and always on)
         mode = "LDR" if instrInt & (1 << 20) else "STR"
 
         basereg = (instrInt >> 16) & 0xF
