@@ -49,8 +49,8 @@ ws.onmessage = function (event) {
             var page = Math.floor(parseInt(target) / (16*20));
             editableGrid.setPageIndex(page);
             addHoverMemoryView();
-            editableGrid.refreshGrid();
         }
+        editableGrid.refreshGrid();
     } else if (obj[0] == 'mempartial') {
         for (var i = 0; i < obj[1].length; i++) {
             var row = Math.floor(obj[1][i][0] / 16);
