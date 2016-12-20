@@ -461,7 +461,7 @@ class Simulator:
 
 
     def setStepCondition(self, stepMode):
-        assert stepMode in ("out", "forward", "run")
+        assert stepMode in ("into", "out", "forward", "run")
         self.stepMode = stepMode
         self.stepCondition = 1
         self.runIteration = self.sysHandle.countCycles
