@@ -7,6 +7,7 @@ var mem_breakpoints_w = [];
 var mem_breakpoints_rw = [];
 var mem_breakpoints_e = [];
 var mem_breakpoints_instr = [];
+var current_debugline = -1;
 var debug_marker = null;
 
 ws.onmessage = function (event) {
@@ -37,7 +38,10 @@ ws.onmessage = function (event) {
         if (obj[1] >= 0) {
             aceRange = ace.require('ace/range').Range;
             debug_marker = editor.session.addMarker(new aceRange(obj[1], 0, obj[1] + 1, 0), "debug_line", "text");
-            editor.scrollToLine(obj[1], true, true, function () {});
+            if (current_debugline != obj[1]) {
+                editor.scrollToLine(obj[1], true, true, function () {});
+            }
+            current_debugline = obj[1];
             // TODO: Ajouter une annotation? Gutter decoration?
         } else {
             debug_marker = null;
