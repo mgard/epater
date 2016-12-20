@@ -105,6 +105,7 @@ function assemble() {
     asm_breakpoints.length = 0;
     editor.session.clearBreakpoints();
 
+    $("#interrupt_active").attr('checked', false);
     $("#run").prop('disabled', true);
     $("#stepin").prop('disabled', true);
     $("#stepout").prop('disabled', true);
