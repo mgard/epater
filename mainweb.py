@@ -59,7 +59,7 @@ async def handler(websocket, path):
     connected.add(websocket)
     to_send = []
     received = []
-    ui_update_queue = OrderedDict()
+    ui_update_queue = []
     try:
         listener_task = asyncio.ensure_future(websocket.recv())
         producer_task = asyncio.ensure_future(producer(to_send))
@@ -97,11 +97,9 @@ async def handler(websocket, path):
                 for i in range(steps_to_do):
                     interpreters[websocket].step()
                     interpreters[websocket].last_step__ = time.time()
-
                     interpreters[websocket].num_exec__ += 1
 
-                    for el in updateDisplay(interpreters[websocket]):
-                        ui_update_queue[el[0]] = el[1:]
+                    ui_update_queue.extend(updateDisplay(interpreters[websocket]))
 
                     if interpreters[websocket].shouldStop:
                         break
@@ -114,12 +112,23 @@ async def handler(websocket, path):
                 interpreters[websocket].num_exec__ = 0
 
                 interpreters[websocket].next_report__ = time.time() + UPDATE_THROTTLE_SEC
-                for el in updateDisplay(interpreters[websocket]):
-                    ui_update_queue[el[0]] = el[1:]
-                    ui_update_queue.move_to_end(el[0])
-                for k,v in ui_update_queue.items():
+                ui_update_dict = OrderedDict()
+                mem_update = OrderedDict()
+                for el in ui_update_queue:
+                    if el[0] == "mempartial":
+                        for k,v in el[1]:
+                            mem_update[k] = v
+                    else:
+                        ui_update_dict[el[0]] = el[1:]
+                        ui_update_dict.move_to_end(el[0])
+
+                if mem_update:
+                    ui_update_dict["mempartial"] = [[[k,v] for k,v in mem_update.items()]]
+                    print(ui_update_dict)
+
+                for k,v in ui_update_dict.items():
                     to_send.append([k] + v)
-                ui_update_queue = OrderedDict()
+                ui_update_queue = []
                 update_ui_task = asyncio.ensure_future(update_ui(websocket, to_send))
 
     finally:
