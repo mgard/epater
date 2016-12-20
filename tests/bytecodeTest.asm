@@ -1,3 +1,4 @@
+main
   MOV R0, #10
   MOV R1, #0
   MOV R2, #255

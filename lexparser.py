@@ -77,13 +77,15 @@ t_ignore_COMMENT = r';.*$'
 t_INNERSEP = r','
 
 def t_SHIFTREG(t):
-    r',\s*(LSL|LSR|ASR|ROR)\s+R[0-9]{1,2}'
+    r',\s*(LSL|LSR|ASR|ROR|RRX)\s+R[0-9]{1,2}'
     t.value = ShiftInfo(t.value[1:].strip()[:3], int(t.value[t.value.rindex('R')+1:]))
     return t
 
 def t_SHIFTIMM(t):
-    r',\s*(LSL|LSR|ASR|ROR)\s+[#][0-9]{1,2}'
-    t.value = ShiftInfo(t.value[1:].strip()[:3], int(t.value[t.value.index('#')+1:]))
+    r',\s*((LSL|LSR|ASR|ROR)\s+[#][0-9A-Fa-fx]+|RRX)'
+    typeshift = t.value[1:].strip()[:3]
+    valshift = int(t.value[t.value.index('#')+1:], 0) if typeshift != 'RRX' else 0
+    t.value = ShiftInfo(typeshift, valshift)
     return t
 
 @lex.TOKEN(regexpInstr)
@@ -91,7 +93,7 @@ def t_INSTR(t):
     t.value = t.value.strip()
     return t
 
-@lex.TOKEN(r'\[\s*(R[0-9]{1,2}|SP|LR|PC)\s*,\s*(([#](\+|-)?(0x)?[0-9a-fA-F]+)|((\+|-)?R[0-9]{1,2}|SP|LR|PC)(\s*,\s*(LSL|LSR|ASR|ROR)\s+[#][0-9]{1,2})?)\s*]')
+@lex.TOKEN(r'\[\s*(R[0-9]{1,2}|SP|LR|PC)\s*,\s*(([#](\+|-)?(0x)?[0-9a-fA-F]+)|((\+|-)?R[0-9]{1,2}|SP|LR|PC)(\s*,\s*((LSL|LSR|ASR|ROR)\s+[#][0-9A-Fa-fx]+|RRX))?)\s*]')
 def t_MEMACCESSPRE(t):
     rbase = re.search(r'R[0-9]{1,2}|SP|LR|PC', t.value).group(0)
     rbase = int(rbase[1:]) if rbase[0] == "R" else ["SP","LR","PC"].index(rbase)+13
@@ -103,8 +105,12 @@ def t_MEMACCESSPRE(t):
         shiftInfo = ShiftInfo("LSL", 0)
     else:
         other = int(t.value[t.value[:t.value.rindex(",")].rindex("R")+1:t.value.rindex(",")])
-        tmp = re.search(r'(LSL|LSR|ASR|ROR)\s+[#][0-9]{1,2}', t.value).group(0)
-        shiftInfo = ShiftInfo(tmp[:3], int(tmp[tmp.index('#')+1:]))
+        tmp = re.search(r'(LSL|LSR|ASR|ROR)\s+[#][0-9]{1,2}', t.value)
+        if tmp is None:
+            shiftInfo = ShiftInfo('RRX', 0)
+        else:
+            tmp = tmp.group(0)
+            shiftInfo = ShiftInfo(tmp[:3], int(tmp[tmp.index('#')+1:], 0))
     direction = -1 if "-" in t.value else 1
     t.value = MemAccessPreInfo(rbase, mode, other, direction, shiftInfo)
     return t
@@ -249,7 +255,7 @@ t_ignore  = ' \t'
 
 # Error handling rule
 def t_error(t):
-    raise LexError("Caractere invalide (colonne {}) : {}".format(t.lexpos, t.value[0]))
+    raise LexError("Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
     #print("Illegal character '%s'" % t.value[0])
     #t.lexer.skip(1)
 

@@ -108,8 +108,8 @@ conditionMappingR = {v: k for k,v in conditionMapping.items()}
 shiftMapping = {'LSL': 0,
                 'LSR': 1,
                 'ASR': 2,
-                'ROR': 3}
-# TODO Add RRX rotate mode (special case of ROR)
+                'ROR': 3,
+                'RRX': 3}
 
 shiftMappingR = {v: k for k,v in shiftMapping.items()}
 
@@ -141,7 +141,7 @@ dataOpcodeMapping = {'AND': 0,
 
 dataOpcodeMappingR = {v: k for k,v in dataOpcodeMapping.items()}
 
-def immediateToBytecode(imm):
+def immediateToBytecode(imm, mode=None, alreadyinverted=False):
     """
     The immediate operand rotate field is a 4 bit unsigned integer which specifies a shift
     operation on the 8 bit immediate value. This value is zero extended to 32 bits, and then
@@ -149,31 +149,60 @@ def immediateToBytecode(imm):
     :param imm:
     :return:
     """
+    def tryInvert():
+        if mode is None:
+            return None
+        if mode == 'logical':
+            invimm = (~imm) & 0xFFFFFFFF
+        elif mode == 'arithmetic':
+            invimm = (~imm + 1) & 0xFFFFFFFF
+        ret2 = immediateToBytecode(invimm, mode, True)
+        if ret2:
+            return ret2[0], ret2[1], True
+        return None
+
+    imm &= 0xFFFFFFFF
     if imm == 0:
         return 0, 0, False
-    if imm < 0:
-        val, rot, _ = immediateToBytecode(~imm)
-        return val, rot, True
+    if imm < 256:
+        return imm, 0, False
 
-    mostSignificantOne = int(math.log2(imm))
-    leastSignificantOne = int(math.log2((1 + (imm ^ (imm-1))) >> 1))
-    if mostSignificantOne < 8:
-        # Are we already able to fit the value in the immediate field?
-        return imm & 0xFF, 0, False
-    elif mostSignificantOne - leastSignificantOne < 8:
-        # Does it fit in 8 bits?
-        # If so, we want to put the MSB to the utmost left possible in 8 bits
-        # Remember that we can only do an EVEN number of right rotations
-        if mostSignificantOne % 2 == 0:
-            val = imm >> (mostSignificantOne - 6)
-            rot = (32 - (mostSignificantOne - 6)) // 2
-        else:
-            val = imm >> (mostSignificantOne - 7)
-            rot = (32 - (mostSignificantOne - 7)) // 2
-        return val & 0xFF, rot, False
+    if imm < 0:
+        if alreadyinverted:
+            return None
+        return tryInvert()
+
+    def _rotLeftPos(onep, n):
+        return [(k+n) % 32 for k in onep]
+
+    def _rotLeftBin(binlist, n):
+        return binlist[n:] + binlist[:n]
+
+    immBin = [int(b) for b in "{:032b}".format(imm)]
+    onesPos = [31-i for i in range(len(immBin)) if immBin[i] == 1]
+    for i in range(31):
+        rotatedPos = _rotLeftPos(onesPos, i)
+        if max(rotatedPos) < 8:
+            # Does it fit in 8 bits?
+            # If so, we want to use the put the constant to the far left of the unsigned field
+            # (that is, we want as many rotations as possible)
+            # Remember that we can only do an EVEN number of right rotations
+            rotReal = i + (7 - max(rotatedPos))
+            if rotReal % 2 == 1:
+                if max(rotatedPos) < 7:
+                    rotReal -= 1
+                else:
+                    return None
+            immBinRot = [str(b) for b in _rotLeftBin(immBin, rotReal)]
+            val = int("".join(immBinRot), 2) & 0xFF
+            rot = rotReal // 2
+            break
     else:
-        # It is impossible to generate the requested value
-        return None
+        if alreadyinverted:
+            return None
+        return tryInvert()
+    return val, rot, False
+
 
 # TEST CODE
 def _immShiftTestCases():
@@ -245,7 +274,11 @@ def ShiftInstructionToBytecode(asmtokens):
                 b |= tok.value << 8
         elif tok.type == 'CONSTANT':
             # Shift by a constant
-            b |= tok.value << 7
+            if mnemonic in ('LSR', 'ASR') and tok.value == 32:
+                # Special case, see ARM datasheet, 4.5.2
+                pass        # Nothing to do, we actually want to encode "0"
+            else:
+                b |= tok.value << 7
         dictSeen[tok.type] += 1
 
     if dictSeen['COND'] == 0:
@@ -284,23 +317,38 @@ def DataInstructionToBytecode(asmtokens):
                 b |= tok.value << 16
         elif tok.type == 'CONSTANT':
             b |= 1 << 25
-            immval, immrot, inverse = immediateToBytecode(tok.value)
-            if inverse:
-                # We can fit the constant, but we have to swap MOV<->MVN in order to do so
+            typeInverse = None
+            if mnemonic in ('MOV', 'MVN', 'AND', 'BIC'):
+                typeInverse = 'logical'
+            elif mnemonic in ('ADD', 'SUB', 'CMP', 'CMN'):
+                typeInverse = 'arithmetic'
+            ret = immediateToBytecode(tok.value, typeInverse)
+            if ret is None:
+                # Error : cannot generate the constant!
+                assert False
+            immval, immrot, inverse = ret
+            if typeInverse is not None and inverse:
+                # We can fit the constant, but we have to swap instructions in order to do so
                 if mnemonic == 'MOV':
+                    # We replace the MOV opcode by a MVN
                     b |= dataOpcodeMapping['MVN'] << 21     # MVN is 1111 opcode
                 elif mnemonic == 'MVN':
+                    # We replace the MVN opcode by a MOV
                     b ^= 1 << 22
                 elif mnemonic == 'ADD':
                     # We replace the ADD opcode by a SUB
                     b &= (~(0xF << 21)) & 0xFFFFFFFF
                     b |= dataOpcodeMapping['SUB'] << 21
-                    immval, immrot, inverse = immediateToBytecode(-tok.value)
                 elif mnemonic == 'SUB':
                     # We replace the SUB opcode by an ADD
                     b &= (~(0xF << 21)) & 0xFFFFFFFF
                     b |= dataOpcodeMapping['ADD'] << 21
-                    immval, immrot, inverse = immediateToBytecode(-tok.value)
+                elif mnemonic == 'CMP':
+                    # We replace CMP by CMN
+                    b |= 1 << 21
+                elif mnemonic == 'CMN':
+                    # We replace CMN by CMP
+                    b &= (~(0x1 << 21)) & 0xFFFFFFFF
                 elif mnemonic == 'AND':
                     # We replace AND with BIC
                     # AND is 0000 so we don't have to "erase" it
@@ -317,7 +365,13 @@ def DataInstructionToBytecode(asmtokens):
             b |= tok.value[1] << 8
         elif tok.type == 'SHIFTIMM':
             b |= shiftMapping[tok.value[0]] << 5
-            b |= tok.value[1] << 7
+            if tok.value[0] in ('LSR', 'ASR') and tok.value[1] == 32:
+                # Special case, see ARM datasheet, 4.5.2
+                pass        # Nothing to do, we actually want to encode "0"
+            elif tok.value[0] == 'RRX':
+                pass        # Nothing to do, we actually want to encode "0" with ROR mode
+            else:
+                b |= tok.value[1] << 7
         dictSeen[tok.type] += 1
 
     if dictSeen['COND'] == 0:
