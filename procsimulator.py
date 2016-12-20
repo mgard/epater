@@ -737,6 +737,7 @@ class Simulator:
                     if self.regs.getCPSR().getMode() == "User":
                         assert False, "Error, using S flag and PC as destination register in user mode!"
                     self.regs.getCPSR().set(self.regs.getSPSR().get())          # Put back the saved SPSR in CPSR
+                    self.regs.setCurrentBank("User")
                 else:
                     for flag in workingFlags:
                         self.flags[flag] = workingFlags[flag]
