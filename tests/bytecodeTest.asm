@@ -113,6 +113,11 @@ etiquette2  BL etiquette2
   ; LDR / STR
   LDR R0, [R1]
   LDR R0, [R1, R2]
+  LDR R0, [R1, #8]
+  LDR R0, [R1, #-8]
+  LDR R0, [R1, #0xFF]
+  LDR R0, [R1, #0xFFF]
+  LDR R0, [R1, #-0xFFF]
   LDR R0, [R1, R2, LSL #4]
   LDR R0, [R1, R2, LSR #4]
   LDR R0, [R1, R2, ROR #4]
