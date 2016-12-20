@@ -124,7 +124,6 @@ async def handler(websocket, path):
 
                 if mem_update:
                     ui_update_dict["mempartial"] = [[[k,v] for k,v in mem_update.items()]]
-                    print(ui_update_dict)
 
                 for k,v in ui_update_dict.items():
                     to_send.append([k] + v)
