@@ -253,7 +253,7 @@ def process(ws, msg_in):
                 interpreters[ws].num_exec__ = 0
                 interpreters[ws].user_asked_stop__ = False
             elif data[0] == 'stepinto':
-                interpreters[ws].step()
+                interpreters[ws].step('into')
             elif data[0] == 'stepforward':
                 interpreters[ws].step('forward')
                 interpreters[ws].user_asked_stop__ = False
