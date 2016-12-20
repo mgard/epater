@@ -1,4 +1,5 @@
 main
+  ; MOV and MVN
   MOV R0, #10
   MOV R1, #0
   MOV R2, #255
@@ -16,7 +17,7 @@ main
   MOV R14, #0x01
   MVN R0, #-2
   MVN R1, #0xf
-  
+
   ; SHIFTS
   MOV R0, R0, LSL #10
   MOV R1, R2, LSL #1
@@ -28,7 +29,7 @@ main
   MOV R8, R9, ASR #32
   MOV R4, R5, ROR #14
   MOV R5, R6, RRX
-  
+
   ; PSEUDO INSTRUCTIONS SHIFTS
   LSR R0, R1, R1
   LSR R0, R1, #1
@@ -37,7 +38,7 @@ main
   ROR R0, R1, R7
   ROR R0, R1, #0xe
   RRX R3, R2
-  
+
   ; DATA OP (ARITHMETIC)
   ADD R0, R0, R1
   ADD R2, R3, R4, LSL #2
@@ -57,7 +58,7 @@ main
   SBC R2, R3, #4
   SBC R2, R3, #0xFF
   ADDS R0, R0, R1
-  
+
   ; DATA OP (LOGICAL)
   AND R0, R1, R2
   AND R0, R1, #0xFF000000
@@ -71,12 +72,13 @@ main
   ORR R6, R7, R5
   ORR R6, R7, #11
   ORRS R7, R8, R9
-  
+
   ; DATA OP (conditions)
   CMP R3, R4
   CMP R3, #4
   CMP R3, #-1
   CMP R3, #0xFF010000
+  SUB R3, R3, #0xFF010000
   CMP R3, #0x0FFFFFFF
   CMN R4, R8
   CMN R7, #12
@@ -86,7 +88,7 @@ main
   TST R9, #0xF
   TEQ R9, R10
   TEQ R10, #0x22
-  
+
   ; CONDITIONS
   MOVEQ R0, R1
   MOVNE R0, R1
@@ -103,14 +105,16 @@ main
   MOVGT R0, R1
   MOVLE R0, R1
   MOVAL R0, R1
-  
+
   ; BRANCH
+etiquette
   BX LR
   BX R2
-  B main
-  BL main
-  
+  B etiquette
+  BL etiquette
+
   ; LDR / STR
+label
   LDR R0, [R1]
   LDR R0, [R1, R2]
   LDR R0, [R1, R2, LSL #4]
@@ -125,7 +129,9 @@ main
   STR R0, [R1, #18]
   STR R0, [R1, #-16]
   STR R0, [R1, #0xFFF]
-  
+  LDR R0, label
+  STR R1, label
+
   ; BLOCK DATA TRANSFER (LDM/STM/PUSH/POP)
   PUSH {R1}
   PUSH {R2, R3,R4}
@@ -151,13 +157,13 @@ main
   STMDB R1, {R2-R8, R9}
   STMED R1, {R2-R8,R9}
   STMDA R1, {R2-R8, R9}
-  
+
   ; SOFTWARE INTERRUPT
   SWI #0xFF1422
   SWI 0xFF1422
   SVC 0xFF1422
-  
+
   ; MULTIPLICATION
   MUL R1, R2, R3
   MUL R2, R3, LR
-  MLA R3, R4, R5, R6 
+  MLA R3, R4, R5, R6

@@ -88,15 +88,37 @@ def t_SHIFTIMM(t):
     t.value = ShiftInfo(typeshift, valshift)
     return t
 
+def t_BYTEONLY(t):
+    r'((?<=(LDR|STR))|(?<=((LDR|STR)[A-Z]{2})))B\s+'
+    return t
+
 @lex.TOKEN(regexpInstr)
 def t_INSTR(t):
     t.value = t.value.strip()
     return t
 
-@lex.TOKEN(r'\[\s*(R[0-9]{1,2}|SP|LR|PC)\s*,\s*(([#](\+|-)?(0x)?[0-9a-fA-F]+)|((\+|-)?R[0-9]{1,2}|SP|LR|PC)(\s*,\s*((LSL|LSR|ASR|ROR)\s+[#][0-9A-Fa-fx]+|RRX))?)\s*]')
+
+@lex.TOKEN(r'\[\s*(R[0-9]{1,2}|SP|LR|PC)\s*](,\s*(([#](\+|-)?(0x)?[0-9a-fA-F]+)|((\+|-)?R[0-9]{1,2}|SP|LR|PC))){1}')
+def t_MEMACCESSPOST(t):
+    rbase = re.search(r'R[0-9]{1,2}|SP|LR|PC', t.value).group(0)
+    rbase = int(rbase[1:]) if rbase[0] == "R" else ["SP","LR","PC"].index(rbase)+13
+
+    if t.value[-1] == "]":
+        t.value = MemAccessPostInfo(rbase, "imm", 0, 1)
+    else:
+        mode = "imm" if "#" in t.value else "reg"
+        other = abs(int(t.value[t.value.index("#")+1:], 0)) if mode == "imm" else int(t.value[t.value.rindex("R")+1:])
+        direction = -1 if "-" in t.value else 1
+        t.value = MemAccessPostInfo(rbase, mode, other, direction)
+    return t
+
+@lex.TOKEN(r'(\[\s*(R[0-9]{1,2}|SP|LR|PC)\s*]|\[\s*(R[0-9]{1,2}|SP|LR|PC)\s*,\s*(([#](\+|-)?(0x)?[0-9a-fA-F]+)|((\+|-)?R[0-9]{1,2}|SP|LR|PC)(\s*,\s*((LSL|LSR|ASR|ROR)\s+[#][0-9A-Fa-fx]+|RRX))?)\s*])')
 def t_MEMACCESSPRE(t):
     rbase = re.search(r'R[0-9]{1,2}|SP|LR|PC', t.value).group(0)
     rbase = int(rbase[1:]) if rbase[0] == "R" else ["SP","LR","PC"].index(rbase)+13
+    if t.value.count(",") == 0:
+        t.value = MemAccessPreInfo(rbase, "imm", 0, 1, ShiftInfo("LSL", 0))
+        return t
 
     mode = "reg" if "R" in t.value.split(",")[1] else "imm"
     shift = mode =="reg" and t.value.count(",") > 1
@@ -115,19 +137,6 @@ def t_MEMACCESSPRE(t):
     t.value = MemAccessPreInfo(rbase, mode, other, direction, shiftInfo)
     return t
 
-@lex.TOKEN(r'\[\s*(R[0-9]{1,2}|SP|LR|PC)\s*](,\s*(([#](\+|-)?(0x)?[0-9a-fA-F]+)|((\+|-)?R[0-9]{1,2}|SP|LR|PC)))?')
-def t_MEMACCESSPOST(t):
-    rbase = re.search(r'R[0-9]{1,2}|SP|LR|PC', t.value).group(0)
-    rbase = int(rbase[1:]) if rbase[0] == "R" else ["SP","LR","PC"].index(rbase)+13
-
-    if t.value[-1] == "]":
-        t.value = MemAccessPostInfo(rbase, "imm", 0, 1)
-    else:
-        mode = "imm" if "#" in t.value else "reg"
-        other = abs(int(t.value[t.value.index("#")+1:], 0)) if mode == "imm" else int(t.value[t.value.rindex("R")+1:])
-        direction = -1 if "-" in t.value else 1
-        t.value = MemAccessPostInfo(rbase, mode, other, direction)
-    return t
 
 def t_DECLARATION(t):
     r'D[SC](8|16|32)\s+[^;]+'
@@ -206,10 +215,6 @@ def t_UPDATEMODE(t):
 
 def t_SETFLAGS(t):
     r'(?<=[A-Z])S\s+'
-    return t
-
-def t_BYTEONLY(t):
-    r'((?<=(LDR|STR))|(?<=((LDR|STR)[A-Z]{2})))B\s+'
     return t
 
 def t_HALFONLY(t):

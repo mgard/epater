@@ -475,6 +475,12 @@ def MultipleMemInstructionToBytecode(asmtokens):
     if dictSeen['COND'] == 0:
         b |= conditionMapping['AL'] << 28
 
+    if dictSeen['UPDATEMODE'] == 0:
+        if mnemonic == 'LDM':
+            b |= updateModeLDMMapping["IA"] << 23
+        elif mnemonic == 'STM':
+            b |= updateModeLDMMapping["IA"] << 23
+
     checkTokensCount(dictSeen)
     return struct.pack("<I", b)
 
@@ -499,9 +505,10 @@ def BranchInstructionToBytecode(asmtokens):
             # When we find a label in the previous parsing stage,
             # we replace it with a MEMACCESSPRE token, even if this
             # token cannot appear in actual code
-            b |= tok.value.offset if tok.value.direction >= 0 else (~tok.value.offset + 1) & 0xFFFFFF
+            val = tok.value.offset >> 2 if tok.value.direction >= 0 else (((~tok.value.offset)+1) >> 2) & 0xFFFFFF
+            b |= val
         elif tok.type == 'CONSTANT':
-            b |= tok.value
+            b |= tok.value >> 2
         dictSeen[tok.type] += 1
 
     if dictSeen['COND'] == 0:
@@ -593,7 +600,7 @@ def SoftinterruptInstructionToBytecode(asmtokens):
     for tok in asmtokens[1:]:
         if tok.type == 'COND':
             b |= conditionMapping[tok.value] << 28
-        elif tok.type == 'SWICONSTANT':
+        elif tok.type == 'SWICONSTANT' or tok.type == 'CONSTANT':
             b |= tok.value & 0xFFFFFF       # Only 24 bits
         dictSeen[tok.type] += 1
 
@@ -673,7 +680,7 @@ def BytecodeToInstrInfos(bc):
             offset = -2**24 + offset
         miscInfo = {'mode': 'imm',
                     'L': setlr,
-                    'offset': offset}
+                    'offset': offset << 2}
 
     elif checkMask(instrInt, (27,), (26, 25)):       # Block data transfer
         category = InstrType.multiplememop
