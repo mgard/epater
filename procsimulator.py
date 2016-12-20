@@ -299,7 +299,11 @@ class Memory:
     def get(self, addr, size=4, execMode=False, mayTriggerBkpt=True):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
-            self.sys.throw(BkptInfo("memory", 8, addr))
+            if execMode:
+                desc = "Tentative de lecture d'une instruction a une adresse non initialisée : {}".format(hex(addr))
+            else:
+                desc = "Acces mémoire en lecture fautif a l'adresse {}".format(hex(addr))
+            self.sys.throw(BkptInfo("memory", 8, {'addr': addr, 'desc': desc}))
             return None
 
         for offset in range(size):
@@ -529,7 +533,7 @@ class Simulator:
             cond == "CS" and not self.flags['C'] or
             cond == "CC" and self.flags['C'] or
             cond == "MI" and not self.flags['N'] or
-            cond == "PI" and self.flags['N'] or
+            cond == "PL" and self.flags['N'] or
             cond == "VS" and not self.flags['V'] or
             cond == "VC" and self.flags['V'] or
             cond == "HI" and (not self.flags['C'] or self.flags['Z']) or
