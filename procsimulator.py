@@ -59,9 +59,9 @@ class Register:
 
     def stepBack(self):
         # Set the register as it was one step back
-        while self.history[-1][0] >= self.sys.countCycles:
-            self.history.pop()
+        while (len(self.history) > 0) and (self.history[-1][0] >= self.sys.countCycles):
             self.val = self.history[-1][1]
+            self.history.pop()
 
     def getChanges(self):
         if len(self.history) == 0 or self.history[-1][0] != self.sys.countCycles:
@@ -153,9 +153,9 @@ class ControlRegister:
 
     def stepBack(self):
         # Set the program status registers as they were one step back
-        while self.history[-1][0] >= self.sys.countCycles:
-            self.history.pop()
+        while (len(self.history) > 0) and (self.history[-1][0] >= self.sys.countCycles):
             self.val = self.history[-1][1]
+            self.history.pop()
 
 
 class BankedRegisters:
@@ -250,11 +250,13 @@ class BankedRegisters:
         # Set the registers and flags as they were one step back
         for bank in self.banks.values():
             for reg in bank:
-                reg.stepBack()
+                reg[0].stepBack()
+                if reg[1]:
+                    reg[1].stepBack()
 
-        while self.history[-1][0] >= self.sys.countCycles:
-            self.history.pop()
+        while (len(self.history) > 0) and (self.history[-1][0] >= self.sys.countCycles):
             self.currentBank = self.history[-1][1]
+            self.history.pop()
 
 
 class Memory:
@@ -396,7 +398,7 @@ class Memory:
 
     def stepBack(self):
         # Set the memory as it was one step back in the past
-        while self.history[-1][0] >= self.sys.countCycles:
+        while (len(self.history) > 0) and (self.history[-1][0] >= self.sys.countCycles):
             _, sec, offset, virtualAddr, size, val, previousValBytes,  = self.history.pop()
             self.data[sec][offset:offset+size] = previousValBytes
 
