@@ -1,7 +1,7 @@
 import operator
 import struct
 from enum import Enum
-from collections import defaultdict, namedtuple
+from collections import defaultdict, namedtuple, deque
 
 from settings import getSetting
 from instruction import BytecodeToInstrInfos, InstrType
@@ -39,7 +39,7 @@ class Register:
         self.sys = systemHandle
         self.altname = altname
         self.breakpoint = 0
-        self.history = []
+        self.history = deque([], getSetting('maxhistorylength'))
 
     @property
     def name(self):
@@ -79,8 +79,8 @@ class ControlRegister:
         self.regname = name
         self.sys = systemHandle
         self.val = 0
-        self.history = []
-        self.historyFlags = []
+        self.history = deque([], getSetting('maxhistorylength'))
+        self.historyFlags = deque([], getSetting('maxhistorylength'))
         self.setMode("User")
         self.breakpoints = {flag:0 for flag in self.flag2index.keys()}
 
@@ -162,7 +162,7 @@ class BankedRegisters:
 
     def __init__(self, systemHandle):
         self.sys = systemHandle
-        self.history = []
+        self.history = deque([], getSetting('maxhistorylength'))
         # Create regular registers
         self.banks = {}
         regs = [Register(i, systemHandle) for i in range(16)]
@@ -262,7 +262,7 @@ class Memory:
     def __init__(self, memcontent, systemHandle, initval=0):
         self.size = sum(len(b) for b in memcontent)
         self.initval = initval
-        self.history = []
+        self.history = deque([], getSetting('maxhistorylength'))
         self.sys = systemHandle
         self.startAddr = memcontent['__MEMINFOSTART']
         self.endAddr = memcontent['__MEMINFOEND']
