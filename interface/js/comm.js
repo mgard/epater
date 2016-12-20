@@ -85,6 +85,9 @@ ws.onmessage = function (event) {
         $("#message_bar").text(obj[1]);
 
         $("#message_bar").slideDown("normal", "easeInOutBack");
+    } else {
+        console.log("Unknown command:");
+        console.log(obj);
     }
 };
 
@@ -104,6 +107,8 @@ function assemble() {
 
     asm_breakpoints.length = 0;
     editor.session.clearBreakpoints();
+
+    $("#cycles_count").val("0");
 
     $("#interrupt_active").attr('checked', false);
     $("#run").prop('disabled', true);
