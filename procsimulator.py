@@ -536,6 +536,7 @@ class Simulator:
             cond == "LS" and (self.flags['C'] and not self.flags['Z']) or
             cond == "GE" and not self.flags['V'] == self.flags['N'] or
             cond == "LT" and self.flags['V'] == self.flags['N'] or
+            cond == "GT" and (self.flags['Z'] or self.flags['V'] != self.flags['N']) or
             cond == "LE" and (not self.flags['Z'] and self.flags['V'] == self.flags['N'])):
             # Condition not met, return
             return pcchanged
@@ -563,12 +564,11 @@ class Simulator:
             pcchanged = True
 
         elif t == InstrType.memop:
-            baseval = self.regs[misc['base']].get()
-            addr = baseval
+            addr = baseval = self.regs[misc['base']].get()
             if misc['imm']:
                 addr += misc['sign'] * misc['offset']
             else:
-                sval, _ = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
+                _, sval = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
                 addr += misc['sign'] * sval
 
             realAddr = addr if misc['pre'] else baseval
@@ -647,6 +647,8 @@ class Simulator:
                 self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
 
         elif t == InstrType.dataop:
+            workingFlags['C'] = 0
+            workingFlags['V'] = 0
             # Get first operand value
             op1 = self.regs[misc['rn']].get()
             # Get second operand value
@@ -710,10 +712,8 @@ class Simulator:
 
             res &= 0xFFFFFFFF           # Get the result back to 32 bits, if applicable (else it's just a no-op)
 
-            if res == 0:
-                workingFlags['Z'] = True
-            if res & 0x80000000:
-                workingFlags['N'] = True            # "N flag will be set to the value of bit 31 of the result" (4.5.1)
+            workingFlags['Z'] = res == 0
+            workingFlags['N'] = res & 0x80000000            # "N flag will be set to the value of bit 31 of the result" (4.5.1)
 
             if destrd == 15:
                 pcchanged = True
