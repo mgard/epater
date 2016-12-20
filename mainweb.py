@@ -216,7 +216,7 @@ def updateDisplay(interp, force_all=False):
             if "memory" in changed_vals:
                 retval.append(["mempartial", [[k, "{:02x}".format(v).upper()] for k, v in changed_vals["memory"]]])
             if "bank" in changed_vals:
-                retval.append(["banking", changed_vals["banking"]])
+                retval.append(["banking", changed_vals["bank"]])
 
     diff_bp = interp.getBreakpointInstr(diff=True)
     if diff_bp:
