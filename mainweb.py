@@ -215,6 +215,8 @@ def updateDisplay(interp, force_all=False):
                     retval.append([k, v])
             if "memory" in changed_vals:
                 retval.append(["mempartial", [[k, "{:02x}".format(v).upper()] for k, v in changed_vals["memory"]]])
+            if "bank" in changed_vals:
+                retval.append(["banking", changed_vals["banking"]])
 
     diff_bp = interp.getBreakpointInstr(diff=True)
     if diff_bp:
@@ -222,6 +224,8 @@ def updateDisplay(interp, force_all=False):
         bpm = interp.getBreakpointsMem()
         retval.extend([["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]],
                        ["mempartial", []]])
+
+    retval.append(["cycles_count", interp.getCycleCount()])
 
     # TODO: check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
     if interp.currentBreakpoint:
