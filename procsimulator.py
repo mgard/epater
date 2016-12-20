@@ -556,6 +556,9 @@ class Simulator:
             self.regs[15].set(0x08)                             # Set PC to enter the interrupt
             pcchanged = True
 
+        elif t == InstrType.nopop:
+            pass        # Nothing to do
+
         elif t == InstrType.branch:
             if misc['L']:       # Link
                 self.regs[14].set(self.regs[15].get() - self.pcoffset + 4)
