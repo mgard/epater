@@ -257,6 +257,9 @@ def process(ws, msg_in):
                 interpreters[ws].animate_speed__ = 0.1
                 interpreters[ws].num_exec__ = 0
                 interpreters[ws].user_asked_stop__ = False
+            elif data[0] == 'stepback':
+                interpreters[ws].stepBack()
+                force_update_all = True
             elif data[0] == 'stepinto':
                 interpreters[ws].step('into')
             elif data[0] == 'stepforward':
