@@ -17,6 +17,8 @@ class InstrType(Enum):
     softinterrupt = 6
     psrtransfer = 7
     shiftop = 8
+    nopop = 9
+    otherop = 10
     declareOp = 100
 
     @staticmethod
@@ -30,7 +32,8 @@ class InstrType(Enum):
                 InstrType.softinterrupt: SoftinterruptInstructionToBytecode,
                 InstrType.psrtransfer: PSRTransferInstructionToBytecode,
                 InstrType.declareOp: DeclareInstructionToBytecode,
-                InstrType.shiftop: ShiftInstructionToBytecode}[inType]
+                InstrType.shiftop: ShiftInstructionToBytecode,
+                InstrType.nopop: NopInstructionToBytecode}[inType]
 
 exportInstrInfo = {# DATA OPERATIONS
                    'AND': InstrType.dataop,
@@ -79,6 +82,8 @@ exportInstrInfo = {# DATA OPERATIONS
                     # SOFTWARE INTERRUPT OPERATIONS
                    'SWI': InstrType.softinterrupt,
                    'SVC': InstrType.softinterrupt,      # Same opcode, but two different mnemonics
+                    # NOP
+                   'NOP': InstrType.nopop,
                    }
 
 globalInstrInfo = dict(exportInstrInfo)
@@ -248,6 +253,19 @@ def checkTokensCount(tokensDict):
     assert tokensDict['MEMACCESSPRE'] + tokensDict['MEMACCESSPOST'] <= 1
     assert tokensDict['WRITEBACK'] <= 1
     assert tokensDict['UPDATEMODE'] <= 1
+
+def NopInstructionToBytecode(asmtokens):
+    b = 0x320F000
+    dictSeen = defaultdict(int)
+    for tok in asmtokens[1:]:
+        if tok.type == 'COND':
+            b |= conditionMapping[tok.value] << 28
+        dictSeen[tok.type] += 1
+
+    if dictSeen['COND'] == 0:
+        b |= conditionMapping['AL'] << 28
+    return struct.pack("<I", b)
+
 
 def ShiftInstructionToBytecode(asmtokens):
     mnemonic = asmtokens[0].value
@@ -773,6 +791,9 @@ def BytecodeToInstrInfos(bc):
     elif checkMask(instrInt, (7, 4, 24), (27, 26, 25, 23, 21, 20, 11, 10, 9, 8, 6, 5)): # Swap
         category = InstrType.swap
         # TODO
+
+    elif checkMask(instrInt, (25, 24, 21), (27, 26, 23, 22, 20, 19, 18, 17, 16)):       # NOP
+        category = InstrType.nopop
 
     elif checkMask(instrInt, (19, 24), (27, 26, 23, 20)):       # MRS or MSR
         # This one is tricky
