@@ -249,10 +249,10 @@ class BankedRegisters:
     def stepBack(self):
         # Set the registers and flags as they were one step back
         for bank in self.banks.values():
-            for reg in bank:
-                reg[0].stepBack()
-                if reg[1]:
-                    reg[1].stepBack()
+            for reg in bank[0]:
+                reg.stepBack()
+            for flag in [f for f in bank[1] if f]:
+                flag.stepBack()
 
         while (len(self.history) > 0) and (self.history[-1][0] >= self.sys.countCycles):
             self.currentBank = self.history[-1][1]
