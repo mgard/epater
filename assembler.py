@@ -91,13 +91,16 @@ def parse(code):
 
             if pline[0].value == "INTVEC":
                 currentSection = "INTVEC"
-                currentAddr = BASE_ADDR_INTVEC
+                currentAddr = max(BASE_ADDR_INTVEC, currentAddr)
             elif pline[0].value == "CODE":
                 currentSection = "CODE"
-                currentAddr = BASE_ADDR_CODE
+                currentAddr = max(BASE_ADDR_CODE, currentAddr)
             elif pline[0].value == "DATA":
                 currentSection = "DATA"
-                currentAddr = BASE_ADDR_DATA
+                currentAddr = max(BASE_ADDR_DATA, currentAddr)
+
+            # Ensure word alignement
+            currentAddr += 4 - currentAddr % 4 if currentAddr % 4 != 0 else 0
 
         if pline[0].type == "LABEL":
             if currentAddr == -1:
