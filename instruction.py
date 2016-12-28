@@ -144,6 +144,11 @@ dataOpcodeMapping = {'AND': 0,
                      'BIC': 14,
                      'MVN': 15}
 
+dataOpcodeInvert = {'MOV': 'MVN', 'MVN': 'MOV',
+                    'ADD': 'SUB', 'SUB': 'ADD',
+                    'AND': 'BIC', 'BIC': 'AND',
+                    'CMP': 'CMN', 'CMN': 'CMP'}
+
 dataOpcodeMappingR = {v: k for k,v in dataOpcodeMapping.items()}
 
 def immediateToBytecode(imm, mode=None, alreadyinverted=False):

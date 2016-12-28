@@ -94,6 +94,18 @@ tokens = (
    'RANGE',
 )
 
+
+
+class ParserError(Exception):
+    """
+    The exception class used when the parser encounter an invalid syntax.
+    """
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+
 # A comment is always a comment
 t_ANY_COMMENT = r'\s+;.*$'
 
@@ -116,12 +128,12 @@ def t_section_SECTIONNAME(t):
 
 # A constant or variable declaration
 def t_CONSTDEC(t):
-    r'DC[8|16|32]\s+'
+    r'(?<=[\t ])DC[8|16|32]\s+'
     t.lexer.begin('decwithvalues')
     return t
 
 def t_VARDEC(t):
-    r'DS[8|16|32]\s+'
+    r'(?<=[\t ])DS[8|16|32]\s+'
     t.lexer.begin('decwithsize')
     return t
 
@@ -412,7 +424,7 @@ t_multiplememinstr_CLOSEBRACE = r'}'
 t_multiplememinstr_CARET = r'\^'
 t_multiplememinstr_RANGE = r'-'
 
-t_SPACEORTAB = r'[ \t]+'
+t_ANY_SPACEORTAB = r'[ \t]+'
 t_ignore_SPACES = r'\s'
 
 # A label can be :
