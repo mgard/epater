@@ -1,5 +1,6 @@
 import re
 from collections import namedtuple
+from itertools import chain
 import ply.lex as lex
 
 import instruction as instrInfos
@@ -72,10 +73,10 @@ tokens = (
    'BYTEONLY',
    'HALFONLY',
    'MODIFYFLAGS',
-   'LDMMODE',
-   'STMMODE',
+   'LDMSTMMODE',
    'PSR',
    'REG',
+   'LISTREGS',
    'CONST',
    'LISTINIT',
    'INNERSHIFT',
@@ -161,7 +162,7 @@ def t_OPDATA3OP(t):
     return t
 
 # May or may not set the flags
-def t_dataopcode_shiftopcode_MODIFYFLAGS(t):
+def t_dataopcode_shiftopcode_mulopcode_MODIFYFLAGS(t):
     r'S'
     if 'S' in t.lexer.suffixesSeen:
         assert False, "More than one occurrence of setflags mode!"
@@ -254,23 +255,12 @@ def t_OPMULTIPLEMEM(t):
     t.lexer.suffixesSeen = set()
     return t
 
-@lex.TOKEN(r'(' + "|".join(instrInfos.updateModeLDMMapping.keys())+')')
-def t_multiplememopcode_LDMMODE(t):
-    if t.lexer.currentMnemonic != "LDM":
-        assert False, "Wrong mnemonic!"
+@lex.TOKEN(r'(' + "|".join(chain(instrInfos.updateModeLDMMapping.keys(), instrInfos.updateModeSTMMapping.keys()))+')')
+def t_multiplememopcode_LDMSTMMODE(t):
     for elem in t.lexer.suffixesSeen:
-        if elem in instrInfos.updateModeLDMMapping.keys():
+        if elem in chain(instrInfos.updateModeLDMMapping.keys(), instrInfos.updateModeSTMMapping.keys()):
             assert False, "Only one multiple load mode!"
     t.lexer.suffixesSeen.add(t.value)
-    return t
-
-@lex.TOKEN(r'(' + "|".join(instrInfos.updateModeSTMMapping.keys())+')')
-def t_multiplememopcode_STMMODE(t):
-    if t.lexer.currentMnemonic != "STM":
-        assert False, "Wrong mnemonic!"
-    for elem in t.lexer.suffixesSeen:
-        if elem in instrInfos.updateModeSTMMapping.keys():
-            assert False, "Only one multiple store mode!"
     return t
 
 # We transition into the instruction arguments
@@ -401,6 +391,30 @@ def t_decwithvalues_LISTINIT(t):
 
 def t_datainstr_cmpinstr_meminstr_INNERSHIFT(t):
     r'(LSL|LSR|ASR|ROR|RRX)'
+    return t
+
+def t_multiplememinstr_LISTREGS(t):
+    r'(?<={)(R1[0-5]|R[0-9]|SP|LR|PC|-|,|\s)+(?=})'
+    listRegs = [0] * 16
+    val = t.value.replace(" ", "").replace("\t", "").replace("LR", "R14").replace("PC", "R15").replace("SP", "R13")
+    baseRegsPos = [i for i in range(len(val)) if val[i] == "R"]
+    baseRegsEndPos = []
+    regs = []
+    for i in baseRegsPos:
+        j = i + 1
+        regs.append("")
+        while j < len(val) and val[j].isdigit():
+            regs[-1] += val[j]
+            j += 1
+        regs[-1] = int(regs[-1])
+        baseRegsEndPos.append(j)
+    for i, (r, end) in enumerate(zip(regs, baseRegsEndPos)):
+        if end == len(val) or val[end] == ',':
+            listRegs[r] = 1
+        elif val[end] == '-':
+            for j in range(r, regs[i + 1]):  # Last register not included
+                listRegs[j] = 1
+    t.value = listRegs
     return t
 
 # PSR transfer might use CPSR or SPSR, with an optionnal suffix

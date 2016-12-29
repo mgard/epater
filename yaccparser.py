@@ -49,7 +49,10 @@ def p_instruction(p):
                    | meminstruction
                    | branchinstruction
                    | multiplememinstruction
-                   | shiftinstruction"""
+                   | shiftinstruction
+                   | psrinstruction
+                   | svcinstruction
+                   | multiplyinstruction"""
     # We just shift the instruction bytecode and dependencies to the next level
     p[0] = p[1]
 
@@ -513,12 +516,161 @@ def p_branchinstruction(p):
         p[0] = (struct.pack("<I", p[0]), ("addrbranch", plist[-1]))
 
 
+
 def p_multiplememinstruction(p):
-    """multiplememinstruction : OPMULTIPLEMEM logmnemonic SPACEORTAB OPENBRACE REG CLOSEBRACE
-                              | OPMULTIPLEMEM logmnemonic REG COMMA OPENBRACE REG CLOSEBRACE"""
-    p[0] = "MULTIPLEMEM"
+    """multiplememinstruction : stackinstruction
+                              | stmldminstruction"""
+    # A multiple memory access instruction is always complete (e.g. it never depends on the location of a label),
+    # so we just pack it in a bytes object
+    p[0] = (struct.pack("<I", p[1]), None)
+
+def p_listregswithpsr(p):
+    """listregswithpsr : OPENBRACE LISTREGS CLOSEBRACE
+                       | OPENBRACE LISTREGS CLOSEBRACE CARET"""
+    plist = list(p)
+    p[0] = 0
+    if len(p) == 5:
+        # PSR and force user bit
+        p[0] |= 1 << 22
+
+    # Set the registers
+    for i in range(len(plist[2])):
+        p[0] |= plist[2][i] << i
+
+def p_stackinstruction(p):
+    """stackinstruction : OPMULTIPLEMEM logmnemonic SPACEORTAB listregswithpsr
+                        | OPMULTIPLEMEM logmnemonic CONDITION listregswithpsr"""
+    global currentMnemonic
+    assert currentMnemonic in ("PUSH", "POP")
+    plist = list(p)
+
+    p[0] = 1 << 27
+    # SP is always used as base register with PUSH and POP
+    p[0] |= 13 << 16
+    # Write-back
+    p[0] |= 1 << 21
+
+    if currentMnemonic == "PUSH":
+        # PUSH regs is equivalent to STM SP!, regs
+        # Pre-increment
+        p[0] |= 1 << 24
+    else:   # POP
+        # POP regs is equivalent to LDM SP!, regs
+        p[0] |= 1 << 20
+        # Set mode to UP (add offset)
+        p[0] |= 1 << 23
+
+    if len(plist[3].strip()) > 0:
+        # We have a condition
+        p[0] |= instruction.conditionMapping[plist[3]] << 28
+    else:
+        # Set AL condition
+        p[0] |= instruction.conditionMapping['AL'] << 28
+
+    # Set the registers and optionnally the PSR bit
+    p[0] |= plist[-1]
+
+def p_stmldmtargetreg(p):
+    """stmldmtargetreg : REG
+                       | REG EXCLAMATION"""
+    p[0] = p[1] << 16
+    if len(p) == 3:
+        # Set writeback
+        p[0] |= 1 << 21
+
+def p_stmldminstruction(p):
+    """stmldminstruction : OPMULTIPLEMEM logmnemonic SPACEORTAB stmldmtargetreg COMMA listregswithpsr
+                         | OPMULTIPLEMEM logmnemonic LDMSTMMODE SPACEORTAB stmldmtargetreg COMMA listregswithpsr
+                         | OPMULTIPLEMEM logmnemonic CONDITION SPACEORTAB stmldmtargetreg COMMA listregswithpsr
+                         | OPMULTIPLEMEM logmnemonic LDMSTMMODE CONDITION SPACEORTAB stmldmtargetreg COMMA listregswithpsr"""
+    plist = list(p)
+    p[0] = 1 << 27
+    # Set base register and write-back
+    p[0] |= plist[-3]
+
+    conditionSet = False
+    if len(p) == 7:
+        if p[3] in instruction.conditionMapping.keys():
+            # Set condition
+            p[0] |= instruction.conditionMapping[plist[3]] << 28
+        else:
+            # Set mode
+            if currentMnemonic == "LDM":
+                assert plist[3] in instruction.updateModeLDMMapping
+                p[0] |= instruction.updateModeLDMMapping[plist[3]] << 28
+            else:   # STM
+                assert plist[3] in instruction.updateModeSTMMapping
+                p[0] |= instruction.updateModeSTMMapping[plist[3]] << 28
+    elif len(p) == 8:
+        # Set mode
+        if currentMnemonic == "LDM":
+            assert plist[3] in instruction.updateModeLDMMapping
+            p[0] |= instruction.updateModeLDMMapping[plist[3]] << 28
+        else:  # STM
+            assert plist[3] in instruction.updateModeSTMMapping
+            p[0] |= instruction.updateModeSTMMapping[plist[3]] << 28
+
+        # Set condition
+        p[0] |= instruction.conditionMapping[plist[4]] << 28
+        conditionSet = True
+
+    if not conditionSet:
+        # Set AL condition
+        p[0] |= instruction.conditionMapping['AL'] << 28
+
+    # Set the registers and optionnally the PSR bit
+    p[0] |= plist[-1]
 
 
+def p_psrinstruction(p):
+    """psrinstruction : OPPSR logmnemonic SPACEORTAB REG COMMA PSR
+                      | OPPSR logmnemonic SPACEORTAB PSR COMMA REG
+                      | OPPSR logmnemonic CONDITION SPACEORTAB REG COMMA PSR
+                      | OPPSR logmnemonic CONDITION SPACEORTAB PSR COMMA REG"""
+    plist = list(p)
+    p[0] = 1 << 24
+    
+    # TODO
+
+    if len(plist) > 7:
+        # Set condition
+        p[0] |= instruction.conditionMapping[plist[3]] << 28
+    else:
+        # Set AL condition
+        p[0] |= instruction.conditionMapping['AL'] << 28
+
+
+def p_svcinstruction(p):
+    """svcinstruction : OPSVC logmnemonic SPACEORTAB CONST
+                      | OPSVC logmnemonic SPACEORTAB SHARP CONST
+                      | OPSVC logmnemonic CONDITION SPACEORTAB CONST
+                      | OPSVC logmnemonic CONDITION SPACEORTAB SHARP CONST"""
+    plist = list(p)
+    p[0] = 0xF << 24
+    p[0] |= plist[-1] & 0xFFFFFF        # 24 bits only
+                                        # TODO : add a formal check?
+
+    if len(plist) > 4 and plist[3] != "#":
+        # Set condition
+        p[0] |= instruction.conditionMapping[plist[3]] << 28
+    else:
+        # Set AL condition
+        p[0] |= instruction.conditionMapping['AL'] << 28
+
+
+def p_multiplyinstruction(p):
+    """multiplyinstruction : OPMUL logmnemonic SPACEORTAB REG COMMA REG COMMA REG
+                           | OPMUL logmnemonic MODIFYFLAGS SPACEORTAB REG COMMA REG COMMA REG
+                           | OPMUL logmnemonic CONDITION SPACEORTAB REG COMMA REG COMMA REG
+                           | OPMUL logmnemonic MODIFYFLAGS CONDITION SPACEORTAB REG COMMA REG COMMA REG
+                           | OPMUL logmnemonic SPACEORTAB REG COMMA REG COMMA REG COMMA REG
+                           | OPMUL logmnemonic MODIFYFLAGS SPACEORTAB REG COMMA REG COMMA REG COMMA REG
+                           | OPMUL logmnemonic CONDITION SPACEORTAB REG COMMA REG COMMA REG COMMA REG
+                           | OPMUL logmnemonic MODIFYFLAGS CONDITION SPACEORTAB REG COMMA REG COMMA REG COMMA REG"""
+    # TODO : factorize these rules
+    plist = list(p)
+    p[0] = 9 << 4
+    # TODO
 
 def p_error(p):
     print(p)
