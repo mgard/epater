@@ -56,6 +56,8 @@ tokens = (
    'COMMENT',
    'SECTION',
    'SECTIONNAME',
+   'ASSERTION',
+   'ASSERTIONDATA',
    'CONSTDEC',
    'VARDEC',
    'SPACEORTAB',
@@ -129,6 +131,14 @@ def t_section_SECTIONNAME(t):
     r'\w+'
     return t
 
+def t_ASSERTION(t):
+    r'ASSERTION\s+'
+    t.lexer.begin('assertion')
+    return t
+
+def t_assertion_ASSERTIONDATA(t):
+    r'(\s*(R1[0-5]|R[0-9]|SP|LR|PC|Z|V|N|O|M0x[0-9a-fA-F]+)=[+-]?(0x[0-9a-fA-F]+|[0-9]+),?)'
+    return t
 
 # A constant or variable declaration
 def t_CONSTDEC(t):

@@ -68,6 +68,7 @@ def parse(code):
     bytecode = {'__MEMINFOSTART': {"SNIPPET_DUMMY_SECTION": 0},
                 '__MEMINFOEND': {"SNIPPET_DUMMY_SECTION": 0}}
     unresolvedDepencencies = {}
+    assertions = {}
     for i,line in enumerate(code):
         if len(line.strip()) == 0:
             # Empty line
@@ -106,6 +107,9 @@ def parse(code):
             # Ensure word alignement
             currentAddr += 4 - currentAddr % 4 if currentAddr % 4 != 0 else 0
             bytecode[currentSection] = bytearray()
+
+        if "ASSERTION" in parsedLine:
+            assertions[currentAddr] = parsedLine["ASSERTION"]
 
         if ("LABEL" in parsedLine or "BYTECODE" in parsedLine) and currentAddr == -1:
             # No section defined, but we have a label or an instruction; we switch to snippet mode

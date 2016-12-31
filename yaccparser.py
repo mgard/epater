@@ -25,7 +25,8 @@ def p_line(p):
             | linelabelinstr ENDLINESPACES
             | lineinstruction ENDLINESPACES
             | sectiondeclaration ENDLINESPACES
-            | linedeclaration ENDLINESPACES"""
+            | linedeclaration ENDLINESPACES
+            | lineassertion ENDLINESPACES"""
     p[0] = p[1] if isinstance(p[1], dict) else {}
 
 
@@ -38,6 +39,11 @@ def p_sectiondeclaration(p):
     """sectiondeclaration : SECTION SECTIONNAME
                           | SECTION SECTIONNAME COMMENT"""
     p[0] = {'SECTION': p[2]}
+
+def p_lineassertion(p):
+    """lineassertion : ASSERTION ASSERTIONDATA
+                     | ASSERTION ASSERTIONDATA COMMENT"""
+    p[0] = {'ASSERTION': p[2]}
 
 def p_linedeclaration(p):
     """linedeclaration : LABEL SPACEORTAB declarationconst
