@@ -2,20 +2,32 @@ import struct
 import ply.yacc as yacc
 
 from tokenizer import tokens, ParserError
+from settings import getSetting
 
 import instruction
 
+class YaccError(ParserError):
+    """
+    The exception class used when the lexer encounter an invalid syntax.
+    """
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
 
 currentMnemonic = ""
 
 def p_line(p):
-    """line : COMMENT ENDLINESPACES
+    """line : ENDLINESPACES
+            | COMMENT ENDLINESPACES
             | linelabel ENDLINESPACES
             | linelabelinstr ENDLINESPACES
             | lineinstruction ENDLINESPACES
             | sectiondeclaration ENDLINESPACES
             | linedeclaration ENDLINESPACES"""
-    p[0] = p[1]
+    p[0] = p[1] if isinstance(p[1], dict) else {}
+
 
 def p_linelabel(p):
     """linelabel : LABEL
@@ -28,21 +40,21 @@ def p_sectiondeclaration(p):
     p[0] = {'SECTION': p[2]}
 
 def p_linedeclaration(p):
-    """linedeclaration : LABEL SPACEORTAB CONSTDEC LISTINIT
-                       | LABEL SPACEORTAB CONSTDEC LISTINIT COMMENT
-                       | LABEL SPACEORTAB VARDEC CONST
-                       | LABEL SPACEORTAB VARDEC CONST COMMENT"""
-    p[0] = {'LABEL': p[1], 'DECLARATION': (p[3], p[4])}
+    """linedeclaration : LABEL SPACEORTAB declarationconst
+                       | LABEL SPACEORTAB declarationconst COMMENT
+                       | LABEL SPACEORTAB declarationsize
+                       | LABEL SPACEORTAB declarationsize COMMENT"""
+    p[0] = {'LABEL': p[1], 'BYTECODE': p[3]}
 
 def p_lineinstruction(p):
     """lineinstruction : instruction
                        | instruction COMMENT"""
-    p[0] = {'INSTR': p[1]}
+    p[0] = {'BYTECODE': p[1]}
 
 def p_linelabelinstr(p):
     """linelabelinstr : LABEL SPACEORTAB instruction
                       | LABEL SPACEORTAB instruction COMMENT"""
-    p[0] = {'LABEL': p[1], 'INSTR': p[3]}
+    p[0] = {'LABEL': p[1], 'BYTECODE': p[3]}
 
 def p_instruction(p):
     """instruction : datainstruction
@@ -213,7 +225,7 @@ def p_op2(p):
     elif len(plist) == 4:
         # Shifted register
         p[0] = plist[1]
-        p[0] |= plist[3] << 4
+        p[0] |= plist[3]
 
 def p_op2_error(p):
     """op2 : error"""
@@ -229,7 +241,7 @@ def p_shift(p):
     if len(plist) == 2:
         # Special case, must be RRX
         assert p[1] == "RRX"
-    elif len(plist) == 3:
+    elif len(plist) == 4:
         # Shift by register
         p[0] |= 1 << 4
         p[0] |= p[3] << 8
@@ -250,7 +262,7 @@ def p_shiftinstruction(p):
 
     # A shift instruction is always complete (e.g. it never depends on the location of a label),
     # so we just pack it in a bytes object
-    p[0] = (struct.pack("<I", p[1]), None)
+    p[0] = (struct.pack("<I", p[0]), None)
 
 def p_shiftinstrrrx(p):
     """shiftinstrrrx : OPSHIFT logmnemonic SPACEORTAB REG COMMA REG
@@ -260,6 +272,12 @@ def p_shiftinstrrrx(p):
     plist = list(p)
     assert p[1] == "RRX"
     p[0] = instruction.shiftMapping[p[1]] << 5
+
+    # Source register
+    p[0] |= plist[-1]
+    # Destination register
+    p[0] |= plist[-3] << 12
+
     conditionSet = False
     if len(plist) == 8:
         if plist[3] == 'S':
@@ -285,18 +303,20 @@ def p_shiftinstrconst(p):
                        | OPSHIFT logmnemonic MODIFYFLAGS SPACEORTAB REG COMMA REG COMMA SHARP CONST
                        | OPSHIFT logmnemonic CONDITION SPACEORTAB REG COMMA REG COMMA SHARP CONST
                        | OPSHIFT logmnemonic MODIFYFLAGS CONDITION SPACEORTAB REG COMMA REG COMMA SHARP CONST"""
+    global currentMnemonic
     plist = list(p)
     # Shift mode
     p[0] = instruction.shiftMapping[p[1]] << 5
     # We shift by a constant
     # Destination register
-    p[0] |= plist[-5] << 12
+    p[0] |= plist[-6] << 12
     # Source register
-    p[0] |= plist[-3]
+    p[0] |= plist[-4]
     # Retrieve and check the constant value
     const = plist[-1]
     assert 0 <= const <= 32
-    p[0] |= const << 7
+    if not (currentMnemonic in ('LSR', 'ASR') and const == 32):     # Special cases
+        p[0] |= const << 7
 
     conditionSet = False
     if len(plist) == 11:
@@ -425,16 +445,20 @@ def p_memaccesspre(p):
 
     if len(plist) > 4:
         if plist[4] == "#":     # Constant offset
-            if plist[5] > 0:
+            if plist[5] >= 0:
                 p[0] |= 1 << 23
             offset = abs(plist[5])
             if offset > 2**12-1:
                 assert False        # Cannot encode the offset
             p[0] |= offset & 0xFFF
         else:                   # Register offset
+            p[0] |= 1 << 25
+            p[0] |= 1 << 23         # We always add the offset if it is a register
             p[0] |= plist[4]
             if ',' in plist[5]:     # We have a shift
                 p[0] |= plist[6]
+    else:
+        p[0] |= 1 << 23     # Default mode is UP (even if there is no offset)
 
     p[0] = (p[0], None)     # No external dependencies (this instruction is self contained, no reference to labels)
 
@@ -466,6 +490,8 @@ def p_memacesspost(p):
             assert False        # Cannot encode the offset
         p[0] |= offset & 0xFFF
     else:                   # Register offset
+        p[0] |= 1 << 25
+        p[0] |= 1 << 23  # We always add the offset if it is a register
         p[0] |= plist[5]
         if len(plist) > 7:  # We have a shift
             p[0] |= plist[7]
@@ -474,11 +500,19 @@ def p_memacesspost(p):
 
 def p_memaccesslabel(p):
     """memaccesslabel : LABEL"""
-    p[0] = (0, ("addr", p[1]))     # This instruction cannot be assembled yet: we need to know the label's address
+    # We will use PC as label
+    b = 15 << 16
+    # Pre-indexing
+    b |= 1 << 24
+    p[0] = (b, ("addr", p[1]))     # This instruction cannot be assembled yet: we need to know the label's address
 
 def p_memaccesslabeladdr(p):
     """memaccesslabeladdr : EQUALS LABEL"""
-    p[0] = (0, ("addrptr", p[1]))     # This instruction cannot be assembled yet: we need to know the label's address
+    # We will use PC as label
+    b = 15 << 16
+    # Pre-indexing
+    b |= 1 << 24
+    p[0] = (b, ("addrptr", p[1]))     # This instruction cannot be assembled yet: we need to know the label's address
 
 
 def p_branchinstruction(p):
@@ -588,35 +622,51 @@ def p_stmldminstruction(p):
     # Set base register and write-back
     p[0] |= plist[-3]
 
+    if currentMnemonic == "LDM":
+        p[0] |= 1 << 20     # Set load
+
     conditionSet = False
-    if len(p) == 7:
+    modeSet = False
+    if len(p) == 8:
         if p[3] in instruction.conditionMapping.keys():
             # Set condition
             p[0] |= instruction.conditionMapping[plist[3]] << 28
+            conditionSet = True
         else:
             # Set mode
+            mode = plist[3]
             if currentMnemonic == "LDM":
-                assert plist[3] in instruction.updateModeLDMMapping
-                p[0] |= instruction.updateModeLDMMapping[plist[3]] << 28
+                assert mode in instruction.updateModeLDMMapping
+                p[0] |= instruction.updateModeLDMMapping[mode] << 23
             else:   # STM
-                assert plist[3] in instruction.updateModeSTMMapping
-                p[0] |= instruction.updateModeSTMMapping[plist[3]] << 28
-    elif len(p) == 8:
+                assert mode in instruction.updateModeSTMMapping
+                p[0] |= instruction.updateModeSTMMapping[mode] << 23
+            modeSet = True
+    elif len(p) == 9:
         # Set mode
+        mode = plist[3]
         if currentMnemonic == "LDM":
-            assert plist[3] in instruction.updateModeLDMMapping
-            p[0] |= instruction.updateModeLDMMapping[plist[3]] << 28
+            assert mode in instruction.updateModeLDMMapping
+            p[0] |= instruction.updateModeLDMMapping[mode] << 23
         else:  # STM
-            assert plist[3] in instruction.updateModeSTMMapping
-            p[0] |= instruction.updateModeSTMMapping[plist[3]] << 28
+            assert mode in instruction.updateModeSTMMapping
+            p[0] |= instruction.updateModeSTMMapping[mode] << 23
 
         # Set condition
         p[0] |= instruction.conditionMapping[plist[4]] << 28
         conditionSet = True
+        modeSet = True
 
     if not conditionSet:
         # Set AL condition
         p[0] |= instruction.conditionMapping['AL'] << 28
+
+    if not modeSet:
+        # Set IA mode
+        if currentMnemonic == "LDM":
+            p[0] |= instruction.updateModeLDMMapping['IA'] << 23
+        else:   # STM
+            p[0] |= instruction.updateModeSTMMapping['IA'] << 23
 
     # Set the registers and optionnally the PSR bit
     p[0] |= plist[-1]
@@ -625,19 +675,46 @@ def p_stmldminstruction(p):
 def p_psrinstruction(p):
     """psrinstruction : OPPSR logmnemonic SPACEORTAB REG COMMA PSR
                       | OPPSR logmnemonic SPACEORTAB PSR COMMA REG
+                      | OPPSR logmnemonic SPACEORTAB PSR COMMA SHARP CONST
                       | OPPSR logmnemonic CONDITION SPACEORTAB REG COMMA PSR
-                      | OPPSR logmnemonic CONDITION SPACEORTAB PSR COMMA REG"""
+                      | OPPSR logmnemonic CONDITION SPACEORTAB PSR COMMA REG
+                      | OPPSR logmnemonic CONDITION SPACEORTAB PSR COMMA SHARP CONST"""
+    global currentMnemonic
     plist = list(p)
-    p[0] = 1 << 24
-    
-    # TODO
+    b = 1 << 24
 
-    if len(plist) > 7:
+    if currentMnemonic == "MRS":
+        assert isinstance(plist[-1], list)
+        # Read the PSR
+        b |= 0xF << 16
+        b |= plist[-3] << 12
+        if plist[-1][0] == "SPSR":
+            b |= 1 << 22
+    else:
+        assert isinstance(plist[-3], list)
+        # Write the PSR
+        b |= 0x28F << 12
+        if plist[-1] == '#':
+            # Immediate
+            raise NotImplementedError()
+        else:
+            # Register
+            b |= plist[-1]
+        if plist[-3][0] == "SPSR":
+            b |= 1 << 22
+        if len(plist[-3]) == 1 or (len(plist[-3]) > 1 and plist[-3][1] != "f"):
+            b |= 1 << 16        # Transfer to the whole PSR (not just the flags)
+
+    if len(plist[3].strip()):
         # Set condition
-        p[0] |= instruction.conditionMapping[plist[3]] << 28
+        b |= instruction.conditionMapping[plist[3]] << 28
     else:
         # Set AL condition
-        p[0] |= instruction.conditionMapping['AL'] << 28
+        b |= instruction.conditionMapping['AL'] << 28
+
+    # An PSR instruction is always complete (e.g. it never depends on the location of a label),
+    # so we just pack it in a bytes object
+    p[0] = (struct.pack("<I", b), None)
 
 
 def p_svcinstruction(p):
@@ -646,16 +723,20 @@ def p_svcinstruction(p):
                       | OPSVC logmnemonic CONDITION SPACEORTAB CONST
                       | OPSVC logmnemonic CONDITION SPACEORTAB SHARP CONST"""
     plist = list(p)
-    p[0] = 0xF << 24
-    p[0] |= plist[-1] & 0xFFFFFF        # 24 bits only
+    b = 0xF << 24
+    b |= plist[-1] & 0xFFFFFF        # 24 bits only
                                         # TODO : add a formal check?
 
-    if len(plist) > 4 and plist[3] != "#":
+    if len(plist[3].strip()) > 0:
         # Set condition
-        p[0] |= instruction.conditionMapping[plist[3]] << 28
+        b |= instruction.conditionMapping[plist[3]] << 28
     else:
         # Set AL condition
-        p[0] |= instruction.conditionMapping['AL'] << 28
+        b |= instruction.conditionMapping['AL'] << 28
+
+    # An SVC/SWI instruction is always complete (e.g. it never depends on the location of a label),
+    # so we just pack it in a bytes object
+    p[0] = (struct.pack("<I", b), None)
 
 
 def p_multiplyinstruction(p):
@@ -668,9 +749,56 @@ def p_multiplyinstruction(p):
                            | OPMUL logmnemonic CONDITION SPACEORTAB REG COMMA REG COMMA REG COMMA REG
                            | OPMUL logmnemonic MODIFYFLAGS CONDITION SPACEORTAB REG COMMA REG COMMA REG COMMA REG"""
     # TODO : factorize these rules
+    global currentMnemonic
     plist = list(p)
     p[0] = 9 << 4
-    # TODO
+    if currentMnemonic == 'MLA':
+        p[0] |= 1 << 21
+        assert ',' in plist[-6]     # Check if we have 4 registers
+        p[0] |= plist[-1] << 12     # Set Rn
+        p[0] |= plist[-3] << 8      # Set Rs
+        p[0] |= plist[-5]           # Set Rm
+        p[0] |= plist[-7] << 16     # Set Rd
+    else:
+        p[0] |= plist[-1] << 8      # Set Rs
+        p[0] |= plist[-3]           # Set Rm
+        p[0] |= plist[-5] << 16     # Set Rd
+
+    conditionSet = False
+    if plist[3] == 'S':
+        # Set flags
+        p[0] |= 1 << 20
+        if len(plist[4].strip()) > 0:
+            # Set condition
+            p[0] |= instruction.conditionMapping[plist[4]] << 28
+            conditionSet = True
+    elif len(plist[3].strip()) > 0:
+        # Set condition
+        p[0] |= instruction.conditionMapping[plist[3]] << 28
+        conditionSet = True
+
+    if not conditionSet:
+        p[0] |= instruction.conditionMapping['AL'] << 28
+
+    # A multiply instruction is always complete (e.g. it never depends on the location of a label),
+    # so we just pack it in a bytes object
+    p[0] = (struct.pack("<I", p[0]), None)
+
+
+# Declarations (with initialization values or with size)
+
+def p_declarationconst(p):
+    """declarationconst : CONSTDEC LISTINIT"""
+    formatletter = "B" if p[1] == 8 else "H" if p[1] == 16 else "I"  # 32
+    bitmask = 2**(p[1]) - 1
+    p[0] = (struct.pack("<" + formatletter * len(p[2]), *[v & bitmask for v in p[2]]), None)
+
+def p_declarationsize(p):
+    """declarationsize : VARDEC CONST"""
+    dimBytes = p[2] * p[1] // 8
+    assert dimBytes <= 8192, "Too large memory allocation requested! ({} bytes)".format(dimBytes)
+    p[0] = (struct.pack("<" + "B" * dimBytes, *[getSetting("fillValue")] * dimBytes), None)
+
 
 def p_error(p):
     print(p)
@@ -680,7 +808,10 @@ parser = yacc.yacc()
 
 
 if __name__ == '__main__':
-    a = parser.parse("MOVinterne MOV R1, #15\n")
-    print(a, hex(a['INSTR']))
+    a = parser.parse("  LSR R0, R1, R1\n")
+    print(a)
+    #print(a, hex(a['BYTECODE']))
+    a = parser.parse("\n")
+    print(">>>", a, "<<<")
     a = parser.parse("MOV R1, R3, ASR #4\n")
     print(a, hex(a['INSTR']))

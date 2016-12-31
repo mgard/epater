@@ -1,8 +1,10 @@
 import struct
 from collections import defaultdict
 
-from lexparser import lexer, MemAccessPreInfo, ShiftInfo, DummyToken, LexError
-from instruction import InstructionToBytecode
+#from lexparser import lexer, MemAccessPreInfo, ShiftInfo, DummyToken, LexError
+#from instruction import InstructionToBytecode
+from tokenizer import ParserError
+import yaccparser
 from settings import getSetting
 
 BASE_ADDR_INTVEC = 0x00
@@ -49,150 +51,134 @@ def parse(code):
         raise NotImplementedError("Actual PC behavior not implemented yet")
     pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
 
-    # First pass : lexical parsing
-    parsedCode = []
-    for line in code:
-        parsedCode.append([])
 
-        try:
-            lexer.input(line)
-        except LexError as e:
-            listErrors.append(str(e))
-            continue
-            
-        while True:
-            tok = lexer.token()
-            if not tok:
-                break      # End of line
-            else:
-                parsedCode[-1].append(tok)
-
-    # Second pass : assign memory and define labels
-    assignedAddr = [-1]*len(parsedCode)
+    # First pass : the input code is passed through the lexer and the parser
+    # Each line is parsed independently
+    # The parser always returns a dictionnary
+    assignedAddr = []
     addrToLine = defaultdict(list)
     currentAddr, currentSection = -1, None
     labelsAddr = {}
+    requiredLabelsPtr = []
     maxAddrBySection = {"INTVEC": BASE_ADDR_INTVEC,
                         "CODE": BASE_ADDR_CODE,
                         "DATA": BASE_ADDR_DATA}
     snippetMode = False
-    for i,pline in enumerate(parsedCode):
-        assignedAddr[i] = max(currentAddr, 0)
-        addrToLine[max(currentAddr, 0)].append(i)
-        if len(pline) == 0:
-            # We have to keep these empty lines in order to keep track of the line numbers
+    # We add a special field in the bytecode info to tell the simulator the start address of each section
+    bytecode = {'__MEMINFOSTART': {"SNIPPET_DUMMY_SECTION": 0},
+                '__MEMINFOEND': {"SNIPPET_DUMMY_SECTION": 0}}
+    unresolvedDepencencies = {}
+    for i,line in enumerate(code):
+        if len(line.strip()) == 0:
+            # Empty line
             continue
-        idxToken = 0
+        print(">>>>", line)
+        try:
+            parsedLine = yaccparser.parser.parse(input=line)
+        except ParserError as e:
+            listErrors.append(str(e))
+            print("ERROR")
+            continue
 
-        if pline[0].type == "SECTION":
+        # We also assign an address to each line
+        assignedAddr.append(max(currentAddr, 0))
+        addrToLine[max(currentAddr, 0)].append(i)
+
+        if "SECTION" in parsedLine:
             assert not snippetMode, "SECTION keyword found in snippet mode!"
+            if "SNIPPET_DUMMY_SECTION" in bytecode['__MEMINFOSTART']:
+                bytecode['__MEMINFOSTART'] = maxAddrBySection
+                bytecode['__MEMINFOEND'] = maxAddrBySection
             if currentSection is not None:
                 maxAddrBySection[currentSection] = currentAddr
+                bytecode['__MEMINFOEND'][currentSection] = currentAddr
 
-            if pline[0].value == "INTVEC":
+            if parsedLine["SECTION"] == "INTVEC":
                 currentSection = "INTVEC"
                 currentAddr = max(BASE_ADDR_INTVEC, currentAddr)
-            elif pline[0].value == "CODE":
+            elif parsedLine["SECTION"] == "CODE":
                 currentSection = "CODE"
                 currentAddr = max(BASE_ADDR_CODE, currentAddr)
-            elif pline[0].value == "DATA":
+            elif parsedLine["SECTION"] == "DATA":
                 currentSection = "DATA"
                 currentAddr = max(BASE_ADDR_DATA, currentAddr)
 
             # Ensure word alignement
             currentAddr += 4 - currentAddr % 4 if currentAddr % 4 != 0 else 0
+            bytecode[currentSection] = bytearray()
 
-        if pline[0].type == "LABEL":
-            if currentAddr == -1:
-                # No section defined, but we have a label; we run in snippet mode
-                snippetMode = True
-                currentAddr = 0
-                currentSection = "SNIPPET_DUMMY_SECTION"
-            labelsAddr[pline[0].value] = currentAddr
-            idxToken += 1
+        if ("LABEL" in parsedLine or "BYTECODE" in parsedLine) and currentAddr == -1:
+            # No section defined, but we have a label or an instruction; we switch to snippet mode
+            snippetMode = True
+            currentAddr = 0
+            currentSection = "SNIPPET_DUMMY_SECTION"
+            bytecode[currentSection] = bytearray()
 
-        if idxToken >= len(pline):
+        if "LABEL" in parsedLine:
+            labelsAddr[parsedLine["LABEL"]] = currentAddr
+
+        if "BYTECODE" in parsedLine:
+            # The BYTECODE field contains a tuple
+            # The first element is a bytes object containing the bytecode (so we just add it to the current one)
+            # The second is the eventual missing dependencies (when using a label in a jump or mem operation)
+            bytecode[currentSection].extend(parsedLine["BYTECODE"][0])
+            # If there are some unresolved dependencies, we note it
+            dep = parsedLine["BYTECODE"][1]
+            if dep is not None:
+                unresolvedDepencencies[(currentSection, currentAddr)] = dep
+                if dep[0] == "addrptr":
+                    # We will need to add a constant with this label address at the end of the section
+                    requiredLabelsPtr.append((dep[1], i))
+            # We add the size of the object to the current address (so this always points to the address of the next element)
+            currentAddr += len(parsedLine["BYTECODE"][0])
+
+    # We resolve the pointer dependencies (that is, the instructions using =label)
+    labelsPtrAddr = {}
+    sectionToUse = "CODE" if "CODE" in bytecode['__MEMINFOSTART'] else "SNIPPET_DUMMY_SECTION"
+    # At the end of the CODE section, we write all the label adresses referenced
+    currentAddr = bytecode['__MEMINFOEND'][sectionToUse]
+    for labelPtr,lineNo in requiredLabelsPtr:
+        assert labelPtr in labelsAddr
+        if labelPtr in labelsPtrAddr:
+            # Already added (it's just referenced at two different places)
             continue
+        bytecode[sectionToUse].extend(struct.pack("<I", labelsAddr[labelPtr] & 0xFFFFFFFF))
+        labelsPtrAddr[labelPtr] = currentAddr
+        currentAddr += 4
+    bytecode['__MEMINFOEND'][sectionToUse] = currentAddr
 
-        if pline[idxToken].type == "DECLARATION":
-            if currentAddr == -1:
-                # No section defined, but we have a declaration; we run in snippet mode
-                snippetMode = True
-                currentAddr = 0
-                currentSection = "SNIPPET_DUMMY_SECTION"
-            psize = pline[idxToken].value.nbits // 8 * pline[idxToken].value.dim
-            assert psize <= 8192, "Too large memory allocation requested! ({} bytes)".format(psize)
-            currentAddr += psize
-        elif pline[idxToken].type == "INSTR":
-            if currentAddr == -1:
-                # No section defined, but we have an instruction; we run in snippet mode
-                snippetMode = True
-                currentAddr = 0
-                currentSection = "SNIPPET_DUMMY_SECTION"
-            currentAddr += 4        # Size of an instruction
-    if snippetMode:
-        maxAddrBySection = {"SNIPPET_DUMMY_SECTION": currentAddr}
-    else:
-        maxAddrBySection[currentSection] = currentAddr
+    if len(listErrors) > 0:
+        # At least one line did not assemble, we cannot continue
+        return # TODO
 
-    # Third pass : replace all the labels in the instructions
-    labelsAddrAddr = {}     # Contains to position of the address of a given label once it have been generated (so we do not generate it again)
-    labelsAddrBySection = defaultdict(list)
-    currentSection = "SNIPPET_DUMMY_SECTION" if snippetMode else None
-    for i,pline in enumerate(parsedCode):
-        if len(pline) == 0:
-            # We have to keep these empty lines in order to keep track of the line numbers
-            continue
+    # At this point, all dependencies should have been resolved (e.g. all the labels should have been seen)
+    # We fix the bytecode of the affected instructions
+    for (sec, addr), depInfo in unresolvedDepencencies.items():
+        # We retrieve the instruction and fit it into a 32 bit integer
+        reladdr = addr - bytecode['__MEMINFOSTART'][sec]
+        instrInt = struct.unpack("<I", bytecode[sec][reladdr:reladdr+4])[0]
+        if depInfo[0] in ('addr', 'addrptr'):
+            # A LDR/STR on a label or a label's address
+            addrToReach = (labelsAddr if depInfo[0] == 'addr' else labelsPtrAddr)[depInfo[1]]
+            diff = addrToReach - (addr + pcoffset)
+            if diff >= 0:
+                instrInt |= 1 << 23
+            instrInt |= abs(diff)
+        elif depInfo[0] == 'addrbranch':
+            # A branch on a given label
+            # This is different than the previous case, since the offset is divided by 4
+            # (when taking the branch, the offset is "shifted left two bits, sign extended to 32 bits"
+            addrToReach = labelsAddr[depInfo[1]]
+            diff = addrToReach - (addr + pcoffset)
+            assert diff % 4 == 0
+            instrInt |= (diff // 4) & 0xFFFFFF
+        else:
+            assert False
 
-        if pline[0].type == "SECTION":
-            currentSection = pline[0].value
+        # We put back the modified instruction in the bytecode
+        b = struct.pack("<I", instrInt)
+        bytecode[sec][reladdr:reladdr+4] = b
 
-        for j,token in enumerate(pline):
-            if token.type == "REFLABEL":
-                addrToReach = labelsAddr[token.value]
-                diff = addrToReach - (assignedAddr[i] + pcoffset)
-                sign = diff // abs(diff) if diff != 0 else 1
-                pline[j] = DummyToken("MEMACCESSPRE",
-                                      MemAccessPreInfo(15, "imm", abs(diff), sign, ShiftInfo("LSL", 0)))
-            elif token.type == "REFLABELADDR":
-                if token.value not in labelsAddrAddr:
-                    # We must put the address at the end of the current section
-                    # We will have to put these values in memory thereafter
-                    labelsAddrAddr[token.value] = maxAddrBySection[currentSection]
-                    labelsAddrBySection[currentSection].append(labelsAddr[token.value])
-                    maxAddrBySection[currentSection] += 4
-                addrToReach = labelsAddrAddr[token.value]
-                diff = addrToReach - (assignedAddr[i] + pcoffset)
-                sign = diff // abs(diff) if diff != 0 else 1
-                pline[j] = DummyToken("MEMACCESSPRE",
-                                      MemAccessPreInfo(15, "imm", abs(diff), sign, ShiftInfo("LSL", 0)))
-
-    # Fourth pass : create bytecode
-    # At this point, we should have only valid ARM instructions, so let's parse them
-    # At the end of each section, we also add the address defined on the previous pass
-
-    # We add a special field in the bytecode info to tell the simulator the start address of each section
-    bytecode = {'__MEMINFOSTART': {"SNIPPET_DUMMY_SECTION": 0} if snippetMode else {"INTVEC": BASE_ADDR_INTVEC, "CODE": BASE_ADDR_CODE, "DATA": BASE_ADDR_DATA},
-                '__MEMINFOEND': maxAddrBySection}
-    currentSection = "SNIPPET_DUMMY_SECTION" if snippetMode else None
-    bc = bytes()
-    for i,pline in enumerate(parsedCode):
-        if len(pline) == 0:
-            # We have to keep these empty lines in order to keep track of the line numbers
-            continue
-
-        if pline[0].type == "SECTION":
-            if currentSection is not None:
-                for val in labelsAddrBySection[currentSection]:
-                    bc += struct.pack("<I", val)
-                bytecode[currentSection] = bc
-                bc = bytes()
-            currentSection = pline[0].value
-
-        for j,token in enumerate(pline):
-            if token.type in ("INSTR", "DECLARATION"):
-                bc += InstructionToBytecode(pline[j:])
-    bytecode[currentSection] = bc
 
     return bytecode, addrToLine
 

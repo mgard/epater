@@ -60,7 +60,7 @@ tokens = (
    'VARDEC',
    'SPACEORTAB',
    'ENDLINESPACES',
-   'SPACES',
+   'STARTSPACES',
    'COMMA',
    'SHARP',
    'OPENBRACKET',
@@ -95,11 +95,14 @@ tokens = (
    'RANGE',
 )
 
-
-
 class ParserError(Exception):
     """
-    The exception class used when the parser encounter an invalid syntax.
+    Generic class for all lexer/parser errors.
+    """
+
+class LexError(ParserError):
+    """
+    The exception class used when the lexer encounter an invalid syntax.
     """
     def __init__(self, msg):
         self.msg = msg
@@ -129,13 +132,15 @@ def t_section_SECTIONNAME(t):
 
 # A constant or variable declaration
 def t_CONSTDEC(t):
-    r'(?<=[\t ])DC[8|16|32]\s+'
+    r'(?<=[\t ])DC(8|16|32)\s+'
     t.lexer.begin('decwithvalues')
+    t.value = int(t.value[2:])
     return t
 
 def t_VARDEC(t):
-    r'(?<=[\t ])DS[8|16|32]\s+'
+    r'(?<=[\t ])DS(8|16|32)\s+'
     t.lexer.begin('decwithsize')
+    t.value = int(t.value[2:])
     return t
 
 
@@ -327,7 +332,7 @@ def t_mulopcode_SPACEORTAB(t):
 
 
 # SVC/SWI
-@lex.TOKEN(r'(' + r'(?=[A-Z\t ])|'.join([k for k,v in instrInfos.exportInstrInfo.items() if v == instrInfos.InstrType.multiply])+r'(?=[A-Z\t ]))')
+@lex.TOKEN(r'(' + r'(?=[A-Z\t ])|'.join([k for k,v in instrInfos.exportInstrInfo.items() if v == instrInfos.InstrType.softinterrupt])+r'(?=[A-Z\t ]))')
 def t_OPSVC(t):
     t.lexer.begin('svcopcode')
     t.lexer.currentMnemonic = t.value
@@ -352,6 +357,39 @@ def t_dataopcode_shiftopcode_cmpopcode_memopcode_multiplememopcode_branchopcode_
         if elem in instrInfos.conditionMapping.keys():
             assert False, "Only one condition!"
     t.lexer.suffixesSeen.add(t.value)
+    return t
+
+# Must come _before_ REG rule
+def t_multiplememinstr_LISTREGS(t):
+    r'(?<={)(R1[0-5]|R[0-9]|SP|LR|PC|-|,|\s)+(?=})'
+    listRegs = [0] * 16
+    val = t.value.replace(" ", "").replace("\t", "").replace("LR", "R14").replace("PC", "R15").replace("SP", "R13")
+    baseRegsPos = [i for i in range(len(val)) if val[i] == "R"]
+    baseRegsEndPos = []
+    regs = []
+    for i in baseRegsPos:
+        j = i + 1
+        regs.append("")
+        while j < len(val) and val[j].isdigit():
+            regs[-1] += val[j]
+            j += 1
+        regs[-1] = int(regs[-1])
+        baseRegsEndPos.append(j)
+    for i, (r, end) in enumerate(zip(regs, baseRegsEndPos)):
+        if end == len(val) or val[end] == ',':
+            listRegs[r] = 1
+        elif val[end] == '-':
+            for j in range(r, regs[i + 1]):  # Last register not included
+                listRegs[j] = 1
+    t.value = listRegs
+    return t
+
+
+# PSR transfer might use CPSR or SPSR, with an optionnal suffix
+# Must be before REG rule, because else SPSR will be parsed as "SP + SR"
+def t_psrinstr_PSR(t):
+    r'(SPSR|CPSR)(_cxsf|_flg|_all|_f)?'
+    t.value = t.value.split("_")
     return t
 
 # These kinds of instructions may contains register as argument :
@@ -380,7 +418,7 @@ def t_datainstr_shiftinstr_cmpinstr_meminstr_generalinstr_psrinstr_svcinstr_decw
 
 # The constant declaration (DC) is the only case where we may have multiple constants on the same line
 def t_decwithvalues_LISTINIT(t):
-    r'([+-]?(0x[0-9a-fA-F]+|[0-9]+),?\s*)+'
+    r'([+-]?(\s*0x[0-9a-fA-F]+|[0-9]+),?)+'
     valsStr = t.value.split(",")
     valsInt = []
     for v in valsStr:
@@ -393,35 +431,6 @@ def t_datainstr_cmpinstr_meminstr_INNERSHIFT(t):
     r'(LSL|LSR|ASR|ROR|RRX)'
     return t
 
-def t_multiplememinstr_LISTREGS(t):
-    r'(?<={)(R1[0-5]|R[0-9]|SP|LR|PC|-|,|\s)+(?=})'
-    listRegs = [0] * 16
-    val = t.value.replace(" ", "").replace("\t", "").replace("LR", "R14").replace("PC", "R15").replace("SP", "R13")
-    baseRegsPos = [i for i in range(len(val)) if val[i] == "R"]
-    baseRegsEndPos = []
-    regs = []
-    for i in baseRegsPos:
-        j = i + 1
-        regs.append("")
-        while j < len(val) and val[j].isdigit():
-            regs[-1] += val[j]
-            j += 1
-        regs[-1] = int(regs[-1])
-        baseRegsEndPos.append(j)
-    for i, (r, end) in enumerate(zip(regs, baseRegsEndPos)):
-        if end == len(val) or val[end] == ',':
-            listRegs[r] = 1
-        elif val[end] == '-':
-            for j in range(r, regs[i + 1]):  # Last register not included
-                listRegs[j] = 1
-    t.value = listRegs
-    return t
-
-# PSR transfer might use CPSR or SPSR, with an optionnal suffix
-def t_psrinstr_PSR(t):
-    r'(SPSR|CPSR)(_cxsf|_flg|_all|_f)?'
-    t.lexer.countArgs += 1
-    return t
 
 # A branch cannot contain a comma
 t_datainstr_shiftinstr_cmpinstr_meminstr_multiplememinstr_psrinstr_mulinstr_decwithvalues_COMMA = r'[\t ]*,[\t ]*'
@@ -429,7 +438,7 @@ t_datainstr_shiftinstr_cmpinstr_meminstr_multiplememinstr_psrinstr_mulinstr_decw
 # Only memory instructions may have brackets
 t_meminstr_OPENBRACKET = r'\['
 t_meminstr_CLOSEBRACKET = r'\]'
-t_meminstr_EXCLAMATION = r'!'
+t_meminstr_multiplememinstr_EXCLAMATION = r'!'
 t_meminstr_EQUALS = r'='
 
 # Only multiple mem instructions may have braces
@@ -438,8 +447,8 @@ t_multiplememinstr_CLOSEBRACE = r'}'
 t_multiplememinstr_CARET = r'\^'
 t_multiplememinstr_RANGE = r'-'
 
+t_ignore_ANY_STARTSPACES = r'^([ \t]*(?=\w+)|(?=\w+))'
 t_ANY_SPACEORTAB = r'[ \t]+'
-t_ignore_SPACES = r'\s'
 
 # A label can be :
 # - Alone, at the beginning of a line
@@ -529,4 +538,4 @@ def t_error(t):
     #print("Illegal character '%s'" % t.value[0])
     #t.lexer.skip(1)
 
-lex.lex()
+lexer = lex.lex()
