@@ -1,0 +1,7 @@
+beautifulsoup4==4.5.3
+bottle==0.12.13
+bs4==0.0.1
+gevent==1.2.0
+greenlet==0.4.11
+ply==3.9
+websockets==3.2
