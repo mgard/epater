@@ -29,9 +29,9 @@
                 <input id="dec" type="radio" name="representation" value="dec" onclick="changeBase(10);" checked="checked" /> dec
                 <input id="hex" type="radio" name="representation" value="hex" onclick="changeBase(16);"/> hex <br> -->
                 <select id="valueformat">
-                    <option>Hexad&eacute;cimal</option>
-                    <option>D&eacute;cimal</option>
-                    <option>Binaire</option>
+                    <option value="hex">Hexad&eacute;cimal</option>
+                    <option value="dec">D&eacute;cimal</option>
+                    <option value="bin">Binaire</option>
                 </select>
                 <div id="tab-container" class="tab-container">
                     <ul class="etabs">
@@ -53,97 +53,97 @@
                             </thead>
                             <tr>
                                 <td>r0</td>
-                                <td><input class="regVal" id="r0" type="text" name="r0"/></td>
+                                <td><input class="regVal formatted_value" id="r0" type="text" name="r0"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r0" id="bp_r_r0"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r0" id="bp_w_r0"/></td>
                             </tr>
                             <tr>
                                 <td>r1</td>
-                                <td><input class="regVal" id="r1" type="text" name="r1"/></td>
+                                <td><input class="regVal formatted_value" id="r1" type="text" name="r1"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r1" id="bp_r_r1"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r1" id="bp_w_r1"/></td>
                             </tr>
                             <tr>
                                 <td>r2</td>
-                                <td><input class="regVal" id="r2" type="text" name="r2"/></td>
+                                <td><input class="regVal formatted_value" id="r2" type="text" name="r2"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r2" id="bp_r_r2"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r2" id="bp_w_r2"/></td>
                             </tr>
                             <tr>
                                 <td>r3</td>
-                                <td><input class="regVal" id="r3" type="text" name="r3"/></td>
+                                <td><input class="regVal formatted_value" id="r3" type="text" name="r3"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r3" id="bp_r_r3"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r3" id="bp_w_r3"/></td>
                             </tr>
                             <tr>
                                 <td>r4</td>
-                                <td><input class="regVal" id="r4" type="text" name="r4"/></td>
+                                <td><input class="regVal formatted_value" id="r4" type="text" name="r4"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r4" id="bp_r_r4"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r4" id="bp_w_r4"/></td>
                             </tr>
                             <tr>
                                 <td>r5</td>
-                                <td><input class="regVal" id="r5" type="text" name="r5"/></td>
+                                <td><input class="regVal formatted_value" id="r5" type="text" name="r5"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r5" id="bp_r_r5"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r5" id="bp_w_r5"/></td>
                             </tr>
                             <tr>
                                 <td>r6</td>
-                                <td><input class="regVal" id="r6" type="text" name="r6"/></td>
+                                <td><input class="regVal formatted_value" id="r6" type="text" name="r6"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r6" id="bp_r_r6"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r6" id="bp_w_r6"/></td>
                             </tr>
                             <tr>
                                 <td>r7</td>
-                                <td><input class="regVal" id="r7" type="text" name="r7"/></td>
+                                <td><input class="regVal formatted_value" id="r7" type="text" name="r7"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r7" id="bp_r_r7"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r7" id="bp_w_r7"/></td>
                             </tr>
                             <tr>
                                 <td>r8</td>
-                                <td><input class="regVal" id="r8" type="text" name="r8"/></td>
+                                <td><input class="regVal formatted_value" id="r8" type="text" name="r8"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r8" id="bp_r_r8"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r8" id="bp_w_r8"/></td>
                             </tr>
                             <tr>
                                 <td>r9</td>
-                                <td><input class="regVal" id="r9" type="text" name="r9"/></td>
+                                <td><input class="regVal formatted_value" id="r9" type="text" name="r9"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r9" id="bp_r_r19"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r9" id="bp_w_r19"/></td>
                             </tr>
                             <tr>
                                 <td>r10 (sl)</td>
-                                <td><input class="regVal" id="r10" type="text" name="r10"/></td>
+                                <td><input class="regVal formatted_value" id="r10" type="text" name="r10"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r10" id="bp_r_r10"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r10" id="bp_w_r10"/></td>
                             </tr>
                             <tr>
                                 <td>r11 (fp)</td>
-                                <td><input class="regVal" id="r11" type="text" name="r11"/></td>
+                                <td><input class="regVal formatted_value" id="r11" type="text" name="r11"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r11" id="bp_r_r11"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r11" id="bp_w_r11"/></td>
                             </tr>
                             <tr>
                                 <td>r12 (ip)</td>
-                                <td><input class="regVal" id="r12" type="text" name="r12"/></td>
+                                <td><input class="regVal formatted_value" id="r12" type="text" name="r12"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r12" id="bp_r_r12"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r12" id="bp_w_r12"/></td>
                             </tr>
                             <tr>
                                 <td>r13 (sp)</td>
-                                <td><input class="regVal" id="r13" type="text" name="r13"/></td>
+                                <td><input class="regVal formatted_value" id="r13" type="text" name="r13"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r13" id="bp_r_r13"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r13" id="bp_w_r13"/></td>
                             </tr>
                             <tr>
                                 <td>r14 (lr)</td>
-                                <td><input class="regVal" id="r14" type="text" name="r14"/></td>
+                                <td><input class="regVal formatted_value" id="r14" type="text" name="r14"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r14" id="bp_r_r14"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r14" id="bp_w_r14"/></td>
                             </tr>
                             <tr>
                                 <td>r15 (pc)</td>
-                                <td><input class="regVal" id="r15" type="text" name="r15"/></td>
+                                <td><input class="regVal formatted_value" id="r15" type="text" name="r15"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r15" id="bp_r_r15"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r15" id="bp_w_r15"/></td>
                             </tr>
@@ -162,97 +162,97 @@
                             </thead>
                             <tr>
                                 <td>r0</td>
-                                <td><input class="regVal" id="FIQ_r0" type="text" name="r0"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r0" type="text" name="r0"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r0" id="bp_r_r0"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r0" id="bp_w_r0"/></td>
                             </tr>
                             <tr>
                                 <td>r1</td>
-                                <td><input class="regVal" id="FIQ_r1" type="text" name="r1"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r1" type="text" name="r1"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r1" id="bp_r_r1"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r1" id="bp_w_r1"/></td>
                             </tr>
                             <tr>
                                 <td>r2</td>
-                                <td><input class="regVal" id="FIQ_r2" type="text" name="r2"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r2" type="text" name="r2"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r2" id="bp_r_r2"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r2" id="bp_w_r2"/></td>
                             </tr>
                             <tr>
                                 <td>r3</td>
-                                <td><input class="regVal" id="FIQ_r3" type="text" name="r3"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r3" type="text" name="r3"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r3" id="bp_r_r3"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r3" id="bp_w_r3"/></td>
                             </tr>
                             <tr>
                                 <td>r4</td>
-                                <td><input class="regVal" id="FIQ_r4" type="text" name="r4"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r4" type="text" name="r4"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r4" id="bp_r_r4"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r4" id="bp_w_r4"/></td>
                             </tr>
                             <tr>
                                 <td>r5</td>
-                                <td><input class="regVal" id="FIQ_r5" type="text" name="r5"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r5" type="text" name="r5"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r5" id="bp_r_r5"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r5" id="bp_w_r5"/></td>
                             </tr>
                             <tr>
                                 <td>r6</td>
-                                <td><input class="regVal" id="FIQ_r6" type="text" name="r6"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r6" type="text" name="r6"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r6" id="bp_r_r6"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r6" id="bp_w_r6"/></td>
                             </tr>
                             <tr>
                                 <td>r7</td>
-                                <td><input class="regVal" id="FIQ_r7" type="text" name="r7"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r7" type="text" name="r7"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r7" id="bp_r_r7"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r7" id="bp_w_r7"/></td>
                             </tr>
                             <tr>
                                 <td>r8</td>
-                                <td><input class="regVal" id="FIQ_r8" type="text" name="r8"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r8" type="text" name="r8"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r8" id="bp_r_r8"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r8" id="bp_w_r8"/></td>
                             </tr>
                             <tr>
                                 <td>r9</td>
-                                <td><input class="regVal" id="FIQ_r9" type="text" name="r9"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r9" type="text" name="r9"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r9" id="bp_r_r19"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r9" id="bp_w_r19"/></td>
                             </tr>
                             <tr>
                                 <td>r10 (sl)</td>
-                                <td><input class="regVal" id="FIQ_r10" type="text" name="r10"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r10" type="text" name="r10"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r10" id="bp_r_r10"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r10" id="bp_w_r10"/></td>
                             </tr>
                             <tr>
                                 <td>r11 (fp)</td>
-                                <td><input class="regVal" id="FIQ_r11" type="text" name="r11"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r11" type="text" name="r11"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r11" id="bp_r_r11"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r11" id="bp_w_r11"/></td>
                             </tr>
                             <tr>
                                 <td>r12 (ip)</td>
-                                <td><input class="regVal" id="FIQ_r12" type="text" name="r12"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r12" type="text" name="r12"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r12" id="bp_r_r12"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r12" id="bp_w_r12"/></td>
                             </tr>
                             <tr>
                                 <td>r13 (sp)</td>
-                                <td><input class="regVal" id="FIQ_r13" type="text" name="r13"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r13" type="text" name="r13"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r13" id="bp_r_r13"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r13" id="bp_w_r13"/></td>
                             </tr>
                             <tr>
                                 <td>r14 (lr)</td>
-                                <td><input class="regVal" id="FIQ_r14" type="text" name="r14"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r14" type="text" name="r14"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r14" id="bp_r_r14"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r14" id="bp_w_r14"/></td>
                             </tr>
                             <tr>
                                 <td>r15 (pc)</td>
-                                <td><input class="regVal" id="FIQ_r15" type="text" name="r15"/></td>
+                                <td><input class="regVal formatted_value" id="FIQ_r15" type="text" name="r15"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r15" id="bp_r_r15"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r15" id="bp_w_r15"/></td>
                             </tr>
@@ -271,97 +271,97 @@
                             </thead>
                             <tr>
                                 <td>r0</td>
-                                <td><input class="regVal" id="IRQ_r0" type="text" name="r0"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r0" type="text" name="r0"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r0" id="bp_r_r0"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r0" id="bp_w_r0"/></td>
                             </tr>
                             <tr>
                                 <td>r1</td>
-                                <td><input class="regVal" id="IRQ_r1" type="text" name="r1"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r1" type="text" name="r1"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r1" id="bp_r_r1"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r1" id="bp_w_r1"/></td>
                             </tr>
                             <tr>
                                 <td>r2</td>
-                                <td><input class="regVal" id="IRQ_r2" type="text" name="r2"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r2" type="text" name="r2"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r2" id="bp_r_r2"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r2" id="bp_w_r2"/></td>
                             </tr>
                             <tr>
                                 <td>r3</td>
-                                <td><input class="regVal" id="IRQ_r3" type="text" name="r3"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r3" type="text" name="r3"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r3" id="bp_r_r3"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r3" id="bp_w_r3"/></td>
                             </tr>
                             <tr>
                                 <td>r4</td>
-                                <td><input class="regVal" id="IRQ_r4" type="text" name="r4"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r4" type="text" name="r4"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r4" id="bp_r_r4"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r4" id="bp_w_r4"/></td>
                             </tr>
                             <tr>
                                 <td>r5</td>
-                                <td><input class="regVal" id="IRQ_r5" type="text" name="r5"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r5" type="text" name="r5"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r5" id="bp_r_r5"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r5" id="bp_w_r5"/></td>
                             </tr>
                             <tr>
                                 <td>r6</td>
-                                <td><input class="regVal" id="IRQ_r6" type="text" name="r6"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r6" type="text" name="r6"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r6" id="bp_r_r6"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r6" id="bp_w_r6"/></td>
                             </tr>
                             <tr>
                                 <td>r7</td>
-                                <td><input class="regVal" id="IRQ_r7" type="text" name="r7"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r7" type="text" name="r7"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r7" id="bp_r_r7"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r7" id="bp_w_r7"/></td>
                             </tr>
                             <tr>
                                 <td>r8</td>
-                                <td><input class="regVal" id="IRQ_r8" type="text" name="r8"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r8" type="text" name="r8"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r8" id="bp_r_r8"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r8" id="bp_w_r8"/></td>
                             </tr>
                             <tr>
                                 <td>r9</td>
-                                <td><input class="regVal" id="IRQ_r9" type="text" name="r9"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r9" type="text" name="r9"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r9" id="bp_r_r19"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r9" id="bp_w_r19"/></td>
                             </tr>
                             <tr>
                                 <td>r10 (sl)</td>
-                                <td><input class="regVal" id="IRQ_r10" type="text" name="r10"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r10" type="text" name="r10"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r10" id="bp_r_r10"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r10" id="bp_w_r10"/></td>
                             </tr>
                             <tr>
                                 <td>r11 (fp)</td>
-                                <td><input class="regVal" id="IRQ_r11" type="text" name="r11"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r11" type="text" name="r11"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r11" id="bp_r_r11"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r11" id="bp_w_r11"/></td>
                             </tr>
                             <tr>
                                 <td>r12 (ip)</td>
-                                <td><input class="regVal" id="IRQ_r12" type="text" name="r12"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r12" type="text" name="r12"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r12" id="bp_r_r12"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r12" id="bp_w_r12"/></td>
                             </tr>
                             <tr>
                                 <td>r13 (sp)</td>
-                                <td><input class="regVal" id="IRQ_r13" type="text" name="r13"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r13" type="text" name="r13"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r13" id="bp_r_r13"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r13" id="bp_w_r13"/></td>
                             </tr>
                             <tr>
                                 <td>r14 (lr)</td>
-                                <td><input class="regVal" id="IRQ_r14" type="text" name="r14"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r14" type="text" name="r14"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r14" id="bp_r_r14"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r14" id="bp_w_r14"/></td>
                             </tr>
                             <tr>
                                 <td>r15 (pc)</td>
-                                <td><input class="regVal" id="IRQ_r15" type="text" name="r15"/></td>
+                                <td><input class="regVal formatted_value" id="IRQ_r15" type="text" name="r15"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r15" id="bp_r_r15"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r15" id="bp_w_r15"/></td>
                             </tr>
@@ -380,97 +380,97 @@
                             </thead>
                             <tr>
                                 <td>r0</td>
-                                <td><input class="regVal" id="SVC_r0" type="text" name="r0"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r0" type="text" name="r0"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r0" id="bp_r_r0"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r0" id="bp_w_r0"/></td>
                             </tr>
                             <tr>
                                 <td>r1</td>
-                                <td><input class="regVal" id="SVC_r1" type="text" name="r1"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r1" type="text" name="r1"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r1" id="bp_r_r1"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r1" id="bp_w_r1"/></td>
                             </tr>
                             <tr>
                                 <td>r2</td>
-                                <td><input class="regVal" id="SVC_r2" type="text" name="r2"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r2" type="text" name="r2"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r2" id="bp_r_r2"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r2" id="bp_w_r2"/></td>
                             </tr>
                             <tr>
                                 <td>r3</td>
-                                <td><input class="regVal" id="SVC_r3" type="text" name="r3"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r3" type="text" name="r3"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r3" id="bp_r_r3"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r3" id="bp_w_r3"/></td>
                             </tr>
                             <tr>
                                 <td>r4</td>
-                                <td><input class="regVal" id="SVC_r4" type="text" name="r4"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r4" type="text" name="r4"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r4" id="bp_r_r4"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r4" id="bp_w_r4"/></td>
                             </tr>
                             <tr>
                                 <td>r5</td>
-                                <td><input class="regVal" id="SVC_r5" type="text" name="r5"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r5" type="text" name="r5"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r5" id="bp_r_r5"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r5" id="bp_w_r5"/></td>
                             </tr>
                             <tr>
                                 <td>r6</td>
-                                <td><input class="regVal" id="SVC_r6" type="text" name="r6"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r6" type="text" name="r6"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r6" id="bp_r_r6"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r6" id="bp_w_r6"/></td>
                             </tr>
                             <tr>
                                 <td>r7</td>
-                                <td><input class="regVal" id="SVC_r7" type="text" name="r7"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r7" type="text" name="r7"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r7" id="bp_r_r7"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r7" id="bp_w_r7"/></td>
                             </tr>
                             <tr>
                                 <td>r8</td>
-                                <td><input class="regVal" id="SVC_r8" type="text" name="r8"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r8" type="text" name="r8"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r8" id="bp_r_r8"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r8" id="bp_w_r8"/></td>
                             </tr>
                             <tr>
                                 <td>r9</td>
-                                <td><input class="regVal" id="SVC_r9" type="text" name="r9"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r9" type="text" name="r9"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r9" id="bp_r_r19"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r9" id="bp_w_r19"/></td>
                             </tr>
                             <tr>
                                 <td>r10 (sl)</td>
-                                <td><input class="regVal" id="SVC_r10" type="text" name="r10"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r10" type="text" name="r10"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r10" id="bp_r_r10"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r10" id="bp_w_r10"/></td>
                             </tr>
                             <tr>
                                 <td>r11 (fp)</td>
-                                <td><input class="regVal" id="SVC_r11" type="text" name="r11"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r11" type="text" name="r11"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r11" id="bp_r_r11"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r11" id="bp_w_r11"/></td>
                             </tr>
                             <tr>
                                 <td>r12 (ip)</td>
-                                <td><input class="regVal" id="SVC_r12" type="text" name="r12"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r12" type="text" name="r12"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r12" id="bp_r_r12"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r12" id="bp_w_r12"/></td>
                             </tr>
                             <tr>
                                 <td>r13 (sp)</td>
-                                <td><input class="regVal" id="SVC_r13" type="text" name="r13"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r13" type="text" name="r13"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r13" id="bp_r_r13"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r13" id="bp_w_r13"/></td>
                             </tr>
                             <tr>
                                 <td>r14 (lr)</td>
-                                <td><input class="regVal" id="SVC_r14" type="text" name="r14"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r14" type="text" name="r14"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r14" id="bp_r_r14"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r14" id="bp_w_r14"/></td>
                             </tr>
                             <tr>
                                 <td>r15 (pc)</td>
-                                <td><input class="regVal" id="SVC_r15" type="text" name="r15"/></td>
+                                <td><input class="regVal formatted_value" id="SVC_r15" type="text" name="r15"/></td>
                                 <td><input class="reg_r_cb" type="checkbox" name="bp_r_r15" id="bp_r_r15"/></td>
                                 <td><input class="reg_w_cb" type="checkbox" name="bp_w_r15" id="bp_w_r15"/></td>
                             </tr>
@@ -809,6 +809,36 @@
         $("#stepin").tooltipster({ content: "Pas à l'intérieur (Step Into)", position: 'top' });
         $("#stepforward").tooltipster({ content: 'Pas avant (Step Forward)', position: 'top' });
         $("#stepout").tooltipster({ content: 'Pas en dehors (Step Out)', position: 'top' });
+
+        var previous_format = "hex";
+
+        $("#valueformat").change(function () {
+            $(".formatted_value").each(function () {
+                format_ = $("#valueformat").val();
+                target_val = NaN;
+
+                if (previous_format == "dec") {
+                    target_val = parseInt($(this).val());
+                } else if (previous_format == "bin") {
+                    target_val = parseInt($(this).val(), 2);
+                } else if (previous_format == "hex") {
+                    target_val = parseInt($(this).val(), 16);
+                }
+
+                if (isNaN(target_val)) {
+                    return;
+                }
+
+                if (format_ == "dec") {
+                    $(this).val(target_val.toString());
+                } else if (format_ == "bin") {
+                    $(this).val(target_val.toString(2));
+                } else if (format_ == "hex") {
+                    $(this).val(target_val.toString(16));
+                }
+            });
+            previous_format = $("#valueformat").val();
+        });
 
         // From editablegrid's demo
         function image(relativePath) {
