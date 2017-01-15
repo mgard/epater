@@ -25,6 +25,14 @@ ws.onmessage = function (event) {
 
     var element = document.getElementById(obj[0]);
     if (element != null) {
+        // Convert to target format
+        format_ = $("#formatValue").val();
+        if (format_ == "dec") {
+
+        } else if (format_ == "bin") {
+            
+        }
+
         $(element).val(obj[1]);
         $(element).prop("disabled", false);
     } else if (obj[0] == 'disable') {
@@ -92,9 +100,7 @@ ws.onmessage = function (event) {
             $("#spsr_title").text("SPSR (" + obj[1] + ")");
         }
     } else if (obj[0] == 'error') {
-        $("#message_bar").text(obj[1]);
-
-        $("#message_bar").slideDown("normal", "easeInOutBack");
+        displayErrorMsg(obj[1]);
     } else {
         console.log("Unknown command:");
         console.log(obj);
@@ -107,7 +113,7 @@ function removeCodeErrors() {
 }
 
 function assemble() {
-    ws.send(JSON.stringify(['assemble', editor.getValue()]));
+    sendData(JSON.stringify(['assemble', editor.getValue()]));
     
     // Remove code errors tooltips
     codeerrors = {};
@@ -129,13 +135,34 @@ function assemble() {
 
 function simulate(type) {
     var animate_speed = $('#animate_speed').val();
-    ws.send(JSON.stringify([type, animate_speed]));
+    sendData(JSON.stringify([type, animate_speed]));
 }
 
 function sendBreakpointsInstr() {
-    ws.send(JSON.stringify(['breakpointsinstr', asm_breakpoints]));
+    sendData(JSON.stringify(['breakpointsinstr', asm_breakpoints]));
 }
 
 function sendMsg(msg) {
-    ws.send(JSON.stringify([msg]));
+    sendData(JSON.stringify([msg]));
+}
+
+function sendCmd(cmd) {
+    sendData(JSON.stringify(cmd));
+}
+
+function sendData(data) {
+    // Convert to hex if from another format
+    format_ = $("#valueformat").val()
+    if (format_ == "dec") {
+
+    } else if (format_ == "bin") {
+
+    }
+
+    if (ws.readyState !== 1) {
+        displayErrorMsg("Perte de la connexion au simulateur.");
+        $("input").prop("disabled", true);
+    } else {
+        ws.send(data);
+    }
 }

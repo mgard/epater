@@ -640,18 +640,18 @@
 
             $("input").change(function () {
                 if ($(this).attr("id") != "interrupt_active") {
-                    ws.send(JSON.stringify(["update",  $(this).attr("id"),  $(this).val()]));
+                    sendCmd(["update", $(this).attr("id"), $(this).val()]);
                 } else {
                     if (document.getElementById('interrupt_active').checked) {
-                        ws.send(JSON.stringify(["interrupt", true, $("#interrupt_type").val(), parseInt($("#interrupt_cycles").val()), parseInt($("#interrupt_cycles_first").val())]));
+                        sendCmd(["interrupt", true, $("#interrupt_type").val(), parseInt($("#interrupt_cycles").val()), parseInt($("#interrupt_cycles_first").val())]);
                     } else {
-                        ws.send(JSON.stringify(["interrupt", false, $("#interrupt_type").val(), parseInt($("#interrupt_cycles").val()), parseInt($("#interrupt_cycles_first").val())]));
+                        sendCmd(["interrupt", false, $("#interrupt_type").val(), parseInt($("#interrupt_cycles").val()), parseInt($("#interrupt_cycles_first").val())]);
                     }
                 }
             });
 
             $(".flag_btn").click(function() {
-                ws.send(JSON.stringify(["update",  $(this).attr("name")]));
+                sendCmd(["update", $(this).attr("name")]);
             })
 
             // Memory viewer
@@ -684,7 +684,7 @@
             editableGrid = new EditableGrid("DemoGridJsData",  {
                 modelChanged: function(rowIndex,  columnIndex,  oldValue,  newValue,  row) { 
                      var addr = parseInt($("td:first", row).text(), 16) + (columnIndex - 1)
-                     ws.send(JSON.stringify(['memchange',  addr,  newValue]));
+                     sendCmd(['memchange',  addr,  newValue]);
                 }, 
                 enableSort: false, 
                 pageSize: 20, 
@@ -889,13 +889,13 @@
               suffix = parseInt(suffix).toString(16);
               var addr = $('td:first', $(e.target).closest('tr')).text().slice(0,9) + suffix;
               if(e.shiftKey) {
-                ws.send(JSON.stringify(['breakpointsmem', addr, 'r']));
+                sendCmd(['breakpointsmem', addr, 'r']);
               }
               if(e.ctrlKey) {
-                ws.send(JSON.stringify(['breakpointsmem', addr, 'w']));
+                sendCmd(['breakpointsmem', addr, 'w']);
               }
               if(e.altKey) {
-                ws.send(JSON.stringify(['breakpointsmem', addr, 'e']));
+                sendCmd(['breakpointsmem', addr, 'e']);
               }
             });
         };
