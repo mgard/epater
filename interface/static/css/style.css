@@ -236,7 +236,7 @@ img {
   height: 50px;
   line-height: 50px;
   width: 100%;
-  background: rgba(200, 100, 100, 0.5);
+  background: rgba(200, 100, 100, 0.8);
   z-index: 1000;
   vertical-align: middle;
   text-align: center;

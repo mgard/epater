@@ -134,6 +134,7 @@ function assemble() {
     editor.session.clearBreakpoints();
 
     $("#cycles_count").val("0");
+    $("#message_bar").slideUp("normal", "easeInOutBack", function() {});
 
     $("#interrupt_active").attr('checked', false);
     $("#run").prop('disabled', true);
