@@ -80,6 +80,13 @@ function updateMemoryBreakpointsView() {
   }
 }
 
+function changeMemoryViewPage() {
+  var target = $("#jump_memory").val();
+  var page = Math.floor(parseInt(target) / (16*20));
+  editableGrid.setPageIndex(page);
+  addHoverMemoryView();
+}
+
 $(document).ready(function() {
   EditableGrid.prototype.updatePaginator = function()
   {
@@ -100,12 +107,9 @@ $(document).ready(function() {
 
       var mem_begin = $(".editablegrid-ch:eq(1)").text();
       paginator.append('<input id="jump_memory" type="text" value="' + mem_begin + '"/><input id="jump_memory_go" type="submit" value="Go">');
-      $("#jump_memory_go").click(function () {
-        var target = $("#jump_memory").val();
-        var page = Math.floor(parseInt(target) / (16*20));
-        editableGrid.setPageIndex(page);
-        addHoverMemoryView();
-      });
+
+      $("#jump_memory").keyup(function(e){ if (e.keyCode == 13) { changeMemoryViewPage(); } });
+      $("#jump_memory_go").click(changeMemoryViewPage);
 
       // "next" link
       link = $("<a>").html("<img src='" + image("next.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
