@@ -6,8 +6,11 @@ import asyncio
 import json
 import os
 import sys
+from copy import copy
 from collections import OrderedDict
 from multiprocessing import Process
+import smtplib
+from email.mime.text import MIMEText
 
 import websockets
 from bs4 import BeautifulSoup
@@ -18,6 +21,9 @@ from bottle import route, get, template, static_file, request
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
 from procsimulator import Simulator, Register
+
+with open("emailpass.txt") as fhdl:
+    email_password = fhdl.read().strip()
 
 
 UPDATE_THROTTLE_SEC = 0.2
@@ -130,11 +136,50 @@ async def handler(websocket, path):
                 ui_update_queue = []
                 update_ui_task = asyncio.ensure_future(update_ui(websocket, to_send))
 
+    except Exception as e:
+        ex = traceback.format_exc()
+        print("Simulator crashed:\n{}".format(ex))
+        try:
+            code = interpreters[websocket].code__
+        except (KeyError, AttributeError):
+            code = ""
+        try:
+            hist = interpreters[websocket].history__
+        except (KeyError, AttributeError):
+            hist = []
+        body = """<html><head></head>
+(Simulator crash)
+<h4>Traceback:</h4>
+<pre>{ex}</pre>
+<h4>Code:</h4>
+<pre>{code}</pre>
+<h4>Operation history:</h4>
+<pre>{hist}</pre>
+</html>""".format(code=code, ex=ex, hist="<br/>".join(str(x) for x in hist))
+        sendEmail(body)
+        print("Email sent!")
     finally:
         if websocket in interpreters:
             del interpreters[websocket]
         connected.remove(websocket)
         print("User {} disconnected.".format(websocket))
+
+
+def sendEmail(msg):
+    msg = MIMEText(msg, 'html')
+
+    # me == the sender's email address
+    # you == the recipient's email address
+    msg['Subject'] = "Error happened on ASM Simulator"
+    msg['From'] = "simulateurosa@gmail.com"
+    msg['To'] = "simulateurosa@gmail.com"
+
+    # Send the message via our own SMTP server.
+    s = smtplib.SMTP('smtp.gmail.com', 587)
+    s.starttls()
+    s.login("simulateurosa@gmail.com", email_password)
+    s.send_message(msg)
+    s.quit()
 
 
 def generateUpdate(inter):
@@ -241,22 +286,35 @@ def process(ws, msg_in):
     """
     force_update_all = False
     retval = []
+    if ws in interpreters and not hasattr(interpreters[ws], 'history__'):
+        interpreters[ws].history__ = []
+
     try:
         for msg in msg_in:
             data = json.loads(msg)
+
+            if ws in interpreters:
+                interpreters[ws].history__.append(data)
+
             if data[0] != 'assemble' and ws not in interpreters:
                 raise Exception("Veuillez assembler le code avant d'effectuer cette opération.")
             elif data[0] == 'assemble':
                 # TODO: Afficher les erreurs à l'écran "codeerror"
                 code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)
+                #bytecode, bcinfos, errors = ASMparser(code.splitlines())
                 bytecode, bcinfos = ASMparser(code.splitlines())
-                interpreters[ws] = BCInterpreter(bytecode, bcinfos)
-                force_update_all = True
-                interpreters[ws].last_step__ = time.time()
-                interpreters[ws].next_report__ = 0
-                interpreters[ws].animate_speed__ = 0.1
-                interpreters[ws].num_exec__ = 0
-                interpreters[ws].user_asked_stop__ = False
+                errors = []
+                if errors:
+                    retval.extend(errors)
+                else:
+                    interpreters[ws] = BCInterpreter(bytecode, bcinfos)
+                    force_update_all = True
+                    interpreters[ws].code__ = copy(code)
+                    interpreters[ws].last_step__ = time.time()
+                    interpreters[ws].next_report__ = 0
+                    interpreters[ws].animate_speed__ = 0.1
+                    interpreters[ws].num_exec__ = 0
+                    interpreters[ws].user_asked_stop__ = False
             elif data[0] == 'stepback':
                 interpreters[ws].stepBack()
                 force_update_all = True
@@ -319,6 +377,34 @@ def process(ws, msg_in):
         traceback.print_exc()
         retval.append(["error", str(e)])
 
+        ex = traceback.format_exc()
+        print("Handling loop crashed:\n{}".format(ex))
+        try:
+            code = interpreters[ws].code__
+        except (KeyError, AttributeError):
+            code = ""
+        try:
+            hist = interpreters[ws].history__
+        except (KeyError, AttributeError):
+            hist = []
+        try:
+            cmd = msg
+        except NameError:
+            cmd = ""
+        body = """<html><head></head>
+(Handling loop crash)
+<h4>Traceback:</h4>
+<pre>{ex}</pre>
+<h4>Code:</h4>
+<pre>{code}</pre>
+<h4>Operation history:</h4>
+<pre>{hist}</pre>
+<h4>Current command:</h4>
+<pre>{cmd}</pre>
+</html>""".format(code=code, ex=ex, hist="<br/>".join(str(x) for x in hist), cmd=cmd)
+        sendEmail(body)
+        print("Email sent!")
+
     del msg_in[:]
 
     if ws in interpreters:
@@ -341,9 +427,9 @@ B testmov
 testmov
 MOV R0,  #0
 MOV R1,  #0xA
-MOV R2,  #1, LSL R1
+MOV R2,  R1, LSL #1
 MOV R3,  #0xF0000000
-MOV R4,  #0x1000, ASR #3
+MOV R4,  #0x1000
 MOV R5,  PC
 
 testop
