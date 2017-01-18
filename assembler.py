@@ -148,6 +148,9 @@ def parse(code):
             # We add the size of the object to the current address (so this always points to the address of the next element)
             currentAddr += len(parsedLine["BYTECODE"][0])
 
+    maxAddrBySection[currentSection] = currentAddr
+    bytecode['__MEMINFOEND'][currentSection] = currentAddr
+
     # We resolve the pointer dependencies (that is, the instructions using =label)
     labelsPtrAddr = {}
     sectionToUse = "CODE" if "CODE" in bytecode['__MEMINFOSTART'] else "SNIPPET_DUMMY_SECTION"
