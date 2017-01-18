@@ -25,15 +25,21 @@ ws.onmessage = function (event) {
 
     var element = document.getElementById(obj[0]);
     if (element != null) {
-        // Convert to target format
-        format_ = $("#formatValue").val();
-        if (format_ == "dec") {
+        var target_value = obj[1];
 
-        } else if (format_ == "bin") {
-            
+        if ($.inArray("formatted_value", element.classList) >= 0) {
+            format_ = $("#valueformat").val();
+            if (format_ == "dec") {
+                target_value = parseInt(obj[1], 16);
+            } else if (format_ == "bin") {
+                target_value = parseInt(obj[1], 16).toString(2);
+            }
+            if (isNaN(target_value)) {
+                var target_value = obj[1];
+            }
         }
 
-        $(element).val(obj[1]);
+        $(element).val(target_value);
         $(element).prop("disabled", false);
     } else if (obj[0] == 'disable') {
         $("[name='" + obj[1] + "']").prop("disabled", true);

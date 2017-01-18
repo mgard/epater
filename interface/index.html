@@ -30,7 +30,7 @@
                 <input id="hex" type="radio" name="representation" value="hex" onclick="changeBase(16);"/> hex <br> -->
                 <select id="valueformat">
                     <option value="hex">Hexad&eacute;cimal</option>
-                    <option value="dec">D&eacute;cimal</option>
+                    <option value="dec">D&eacute;cimal (non-sign&eacute;)</option>
                     <option value="bin">Binaire</option>
                 </select>
                 <div id="tab-container" class="tab-container">
@@ -834,13 +834,13 @@
                 } else if (format_ == "bin") {
                     $(this).val(target_val.toString(2));
                 } else if (format_ == "hex") {
-                    $(this).val(target_val.toString(16));
+                    $(this).val(formatHexUnsigned32Bits(target_val).slice(2));
+
                 }
             });
             previous_format = $("#valueformat").val();
         });
 
-        // From editablegrid's demo
         function image(relativePath) {
             return "./editablegrid/images/" + relativePath;
         }
