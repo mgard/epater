@@ -25,7 +25,7 @@ function formatHexUnsigned32Bits(i) {
 
 
 function image(relativePath) {
-    return "./editablegrid/images/" + relativePath;
+    return "static/js/editablegrid/images/" + relativePath;
 }
 
 // ///

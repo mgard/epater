@@ -3,20 +3,20 @@
     <head>
         <meta charset="UTF-8">
         <title>ARM Simulator</title>
-        <link rel="stylesheet" type="text/css" media="screen" href="css/style.css">
-        <script src="js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+        <link rel="stylesheet" type="text/css" media="screen" href="static/css/style.css">
+        <script src="static/js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript">
             window.define = window.define || ace.define;
         </script>
-        <script src="js/ace/theme-cobalt.js" type="text/javascript" charset="utf-8"></script>
-        <script src="js/ace-custom/mode-assembly_arm.js" type="text/javascript" charset="utf-8"></script>
+        <script src="static/js/ace/theme-cobalt.js" type="text/javascript" charset="utf-8"></script>
+        <script src="static/js/ace-custom/mode-assembly_arm.js" type="text/javascript" charset="utf-8"></script>
 
-        <script src="editablegrid/editablegrid.js"></script>
-        <script src="editablegrid/editablegrid_renderers.js" ></script>
-        <script src="editablegrid/editablegrid_editors.js" ></script>
-        <script src="editablegrid/editablegrid_validators.js" ></script>
-        <script src="editablegrid/editablegrid_utils.js" ></script>
-        <link rel="stylesheet" href="editablegrid/editablegrid.css" type="text/css" media="screen">
+        <script src="static/js/editablegrid/editablegrid.js"></script>
+        <script src="static/js/editablegrid/editablegrid_renderers.js" ></script>
+        <script src="static/js/editablegrid/editablegrid_editors.js" ></script>
+        <script src="static/js/editablegrid/editablegrid_validators.js" ></script>
+        <script src="static/js/editablegrid/editablegrid_utils.js" ></script>
+        <link rel="stylesheet" href="static/js/editablegrid/editablegrid.css" type="text/css" media="screen">
 
     </head>
     <body id="body_">
@@ -565,11 +565,11 @@
                 </div>
                 <div class="border_container">
                     <button onclick="assemble()" id="assemble">Assembler</button><br/><br/>
-                    <button id="stepback" onclick="simulate('stepback')" disable="disabled"><img src="./image/stepback_co.png"/></button>
-                    <button id="run" onclick="simulate('run')" disable="disabled"><img src="./image/resume_co.gif"/></button>
-                    <button id="stepin" onclick="simulate('stepinto')" disable="disabled"><img src="./image/stepinto_co.gif"/></button>
-                    <button id="stepforward" onclick="simulate('stepforward')" disable="disabled"><img src="./image/stepover_co.gif"/></button>
-                    <button id="stepout" onclick="simulate('stepout')" disable="disabled"><img src="./image/stepreturn_co.gif"/></button>
+                    <button id="stepback" onclick="simulate('stepback')" disable="disabled"><img src="static/image/stepback_co.png"/></button>
+                    <button id="run" onclick="simulate('run')" disable="disabled"><img src="static/image/resume_co.gif"/></button>
+                    <button id="stepin" onclick="simulate('stepinto')" disable="disabled"><img src="static/image/stepinto_co.gif"/></button>
+                    <button id="stepforward" onclick="simulate('stepforward')" disable="disabled"><img src="static/image/stepover_co.gif"/></button>
+                    <button id="stepout" onclick="simulate('stepout')" disable="disabled"><img src="static/image/stepreturn_co.gif"/></button>
                     <br/>
                     Vitesse d'ex&eacute;cution : &nbsp;<input class="regVal" id="animate_speed" type="text" value="100"/>ms<br/>
                     Cycle courant : <input id="cycles_count" type="text" value="0"/>
@@ -590,12 +590,12 @@
         editor.setShowPrintMargin(false);
     </script>
 
-    <script src="js/jquery-1.11.1.min.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/tooltipster/js/jquery.tooltipster.min.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/jquery.easytabs.min.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/jquery.easing.min.js" type="text/javascript" charset="utf-8"></script>
-    <link rel="stylesheet" type="text/css" href="js/tooltipster/css/tooltipster.css" />
-    <script src="js/comm.js" type="text/javascript" charset="utf-8"></script>
+    <script src="static/js/jquery-1.11.1.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="static/js/tooltipster/js/jquery.tooltipster.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="static/js/jquery.easytabs.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="static/js/jquery.easing.min.js" type="text/javascript" charset="utf-8"></script>
+    <link rel="stylesheet" type="text/css" href="static/js/tooltipster/css/tooltipster.css" />
+    <script src="static/js/comm.js" type="text/javascript" charset="utf-8"></script>
 
     <script type="text/javascript">
 
@@ -706,8 +706,9 @@
             });
             previous_format = $("#valueformat").val();
         });
+    });
     </script>
-    <script src="js/memory_viewer.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/helpers.js" type="text/javascript" charset="utf-8"></script>
+    <script src="static/js/memory_viewer.js" type="text/javascript" charset="utf-8"></script>
+    <script src="static/js/helpers.js" type="text/javascript" charset="utf-8"></script>
 </body>
 </html>

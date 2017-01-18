@@ -276,7 +276,7 @@ def updateDisplay(interp, force_all=False):
     if interp.currentBreakpoint:
         if interp.currentBreakpoint.source == 'memory' and bool(interp.currentBreakpoint.mode & 8):
             retval.append(["error", """Un accès à l'extérieur de la mémoire initialisée a été effectué.
-{}""".format(currentBreakpoint.info["desc"])])
+{}""".format(interp.currentBreakpoint.info["desc"])])
     return retval
 
 
@@ -301,9 +301,7 @@ def process(ws, msg_in):
             elif data[0] == 'assemble':
                 # TODO: Afficher les erreurs à l'écran "codeerror"
                 code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)
-                #bytecode, bcinfos, errors = ASMparser(code.splitlines())
-                bytecode, bcinfos = ASMparser(code.splitlines())
-                errors = []
+                bytecode, bcinfos, errors = ASMparser(code.splitlines())
                 if errors:
                     retval.extend(errors)
                 else:
