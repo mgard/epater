@@ -137,7 +137,7 @@ def t_ASSERTION(t):
     return t
 
 def t_assertion_ASSERTIONDATA(t):
-    r'(\s*(R1[0-5]|R[0-9]|SP|LR|PC|Z|V|N|O|M0x[0-9a-fA-F]+)=[+-]?(0x[0-9a-fA-F]+|[0-9]+),?)'
+    r'(\s*(R1[0-5]|R[0-9]|SP|LR|PC|Z|V|N|O|M0x[0-9a-fA-F]+)=[+-]?(0x[0-9a-fA-F]+|[0-9]+),?)+'
     return t
 
 # A constant or variable declaration
@@ -549,3 +549,8 @@ def t_error(t):
     #t.lexer.skip(1)
 
 lexer = lex.lex()
+
+
+if __name__ == "__main__":
+    a = lexer.input("MOV R1, R2\n")
+    print(lexer.token(), lexer.token(), lexer.token(), lexer.token(),lexer.token(), lexer.token(), lexer.token())

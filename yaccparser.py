@@ -518,7 +518,7 @@ def p_memaccesslabeladdr(p):
     b = 15 << 16
     # Pre-indexing
     b |= 1 << 24
-    p[0] = (b, ("addrptr", p[1]))     # This instruction cannot be assembled yet: we need to know the label's address
+    p[0] = (b, ("addrptr", p[2]))     # This instruction cannot be assembled yet: we need to know the label's address
 
 
 def p_branchinstruction(p):
@@ -807,16 +807,20 @@ def p_declarationsize(p):
 
 
 def p_error(p):
-    print(p)
     print("Syntax error in input!")
+    print("Wrong data:")
+    print(p)
+    print("End wrong data")
 
 parser = yacc.yacc()
 
 
 if __name__ == '__main__':
+    a = parser.parse("SECTION INTVEC\n")
+    print(a)
     a = parser.parse("  LSR R0, R1, R1\n")
     print(a)
-    #print(a, hex(a['BYTECODE']))
+    # print(a, hex(a['BYTECODE']))
     a = parser.parse("\n")
     print(">>>", a, "<<<")
     a = parser.parse("MOV R1, R3, ASR #4\n")
