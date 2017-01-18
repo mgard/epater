@@ -28,6 +28,8 @@ function image(relativePath) {
     return "./editablegrid/images/" + relativePath;
 }
 
+// ///
+// I/O
 function saveTextAsFile() {
     var textToWrite = editor.getValue();
     var textFileAsBlob = new Blob([textToWrite],  {type: 'text/plain'});
@@ -48,6 +50,15 @@ function saveTextAsFile() {
         document.body.appendChild(downloadLink);
     }
     downloadLink.click();
+}
+
+function loadFileAsText(){
+    var fileToLoad = document.getElementById("fileToLoad").files[0];
+    var fileReader = new FileReader();
+    fileReader.onload = function(fileLoadedEvent){
+        editor.setValue(fileLoadedEvent.target.result);
+    };
+    fileReader.readAsText(fileToLoad, "UTF-8");
 }
 
 var confirmOnPageExit = function (e)
