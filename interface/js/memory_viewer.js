@@ -167,8 +167,11 @@ $(document).ready(function() {
   editableGrid = new EditableGrid("DemoGridJsData",  {
     modelChanged: function(row, col, oldValue, newValue, rowref) { 
       if (oldValue !== "--") {
-        console.log("Here!");
-        var addr = parseInt($("td:first", rowref).text(), 16) + (columnIndex - 1)
+        if (newValue.length > 2) {
+          newValue = newValue.slice(0, 2);
+          editableGrid.setValueAt(row, col, newValue, true);
+        }
+        var addr = parseInt($("td:first", rowref).text(), 16) + (col - 1)
         sendCmd(['memchange', addr, newValue]);
       } else {
         editableGrid.setValueAt(row, col, "--", true);
