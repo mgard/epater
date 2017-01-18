@@ -305,7 +305,7 @@ class Memory:
                 desc = "Tentative de lecture d'une instruction a une adresse non initialisée : {}".format(hex(addr))
             else:
                 desc = "Acces mémoire en lecture fautif a l'adresse {}".format(hex(addr))
-            self.sys.throw(BkptInfo("memory", 8, {'addr': addr, 'desc': desc}))
+            self.sys.throw(BkptInfo("memory", 8, desc))
             return None
 
         for offset in range(size):
@@ -320,7 +320,7 @@ class Memory:
     def set(self, addr, val, size=4, mayTriggerBkpt=True):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
-            self.sys.throw(BkptInfo("memory", 8, addr))
+            self.sys.throw(BkptInfo("memory", 8, "Accès invalide pour une écriture de taille {} à l'adresse {}".format(size, hex(addr))))
             return
 
         for offset in range(size):
