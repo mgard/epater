@@ -12,7 +12,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     with open(args.inputfile) as f:
-        bytecode, bcinfos = ASMparser(f)
+        bytecode, bcinfos, errors = ASMparser(f)
+
+    print(errors)
+    exit()
 
     interpreter = BCInterpreter(bytecode, bcinfos)
     with open(args.inputfile) as f:

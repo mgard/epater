@@ -122,8 +122,8 @@ def p_datainst2op(p):
     p[0] = b
 
 def p_datainst2op_error(p):
-    """datainst2op : OPDATA2OP error REG"""
-    print("PAF")
+    """datainst2op : OPDATA2OP logmnemonic SPACEORTAB REG error op2"""
+    raise YaccError("Les registres et/ou constantes utilisés dans une opération doivent être séparés par des virgules")
 
 def p_datainst3op(p):
     """datainst3op : OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG COMMA op2
@@ -218,10 +218,12 @@ def p_op2(p):
             typeInverse = 'arithmetic'
         ret = instruction.immediateToBytecode(plist[2], typeInverse)
         if ret is None:
-            assert False        # TODO : generate error, unable to encode constant
+            # Unable to encode constant
+            raise YaccError("Impossible d'encoder la constante suivante ou son inverse dans une instruction {} : {}".format(currentMnemonic, plist[2]))
         immval, immrot, inverse = ret
         if inverse and currentMnemonic not in instruction.dataOpcodeInvert.keys():
-            assert False        # We could fit the constant by inverting it, but we do not have invert operation for this mnemonic
+            # We could fit the constant by inverting it, but we do not have invert operation for this mnemonic
+            raise YaccError("Impossible d'encoder la constante suivante dans une instruction {} : {}".format(currentMnemonic, plist[2]))
         elif inverse:
             # We switch the mnemonic
             currentMnemonic = instruction.dataOpcodeInvert[currentMnemonic]
@@ -253,6 +255,10 @@ def p_shift(p):
         p[0] |= p[3] << 8
     elif not (p[1] in ('LSR', 'ASR') and p[4] == 32):
         # Shift by a constant if we are not in special modes
+        if p[4] < 0:
+            raise YaccError("Impossible d'encoder un décalage négatif ({}) dans une instruction (utilisez un autre opérateur de décalage pour arriver au même effet)".format(p[4]))
+        if p[4] > 31:
+            raise YaccError("Impossible d'encoder le décalage {} dans une instruction (ce dernier doit être inférieur à 32)".format(p[4]))
         p[0] |= p[4] << 7
 
 
@@ -455,7 +461,8 @@ def p_memaccesspre(p):
                 p[0] |= 1 << 23
             offset = abs(plist[5])
             if offset > 2**12-1:
-                assert False        # Cannot encode the offset
+                # Cannot encode the offset
+                raise YaccError("Le décalage de {} demandé dans l'instruction est trop élevé pour pouvoir être encodé (il doit être inférieur à 4096)".format(offset))
             p[0] |= offset & 0xFFF
         else:                   # Register offset
             p[0] |= 1 << 25
@@ -493,7 +500,8 @@ def p_memacesspost(p):
             p[0] |= 1 << 23
         offset = abs(plist[6])
         if offset > 2**12-1:
-            assert False        # Cannot encode the offset
+            # Cannot encode the offset
+            raise YaccError("Le décalage de {} demandé dans l'instruction est trop élevé pour pouvoir être encodé (il doit être inférieur à 4096)".format(offset))
         p[0] |= offset & 0xFFF
     else:                   # Register offset
         p[0] |= 1 << 25
@@ -807,6 +815,7 @@ def p_declarationsize(p):
 
 
 def p_error(p):
+    return
     print("Syntax error in input!")
     print("Wrong data:")
     print(p)

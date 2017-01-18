@@ -88,8 +88,7 @@ def parse(code):
         try:
             parsedLine = yaccparser.parser.parse(input=line)
         except ParserError as e:
-            listErrors.append(str(e))
-            print("ERROR")
+            listErrors.append(("codeerror", i, str(e)))
             continue
 
         # We also assign an address to each line
@@ -168,7 +167,7 @@ def parse(code):
 
     if len(listErrors) > 0:
         # At least one line did not assemble, we cannot continue
-        return None, None, [("error", "Erreur inconnue!")]
+        return None, None, listErrors
 
     # At this point, all dependencies should have been resolved (e.g. all the labels should have been seen)
     # We fix the bytecode of the affected instructions
