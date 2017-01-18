@@ -2,89 +2,89 @@
 var editableGrid = null;
 
 function addHoverMemoryView() {
-    $("#memoryview td").each(function (idx, e) {
-        var suffix = this.classList[0].slice(-2);
-        if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
-        suffix = parseInt(suffix);
-        if (!isNaN(suffix)) {
-            suffix = suffix.toString(16);
-            var addr = $('td:first', $(e).closest('tr')).text().slice(0,9) + suffix;
-            $(e).tooltipster({
-                content: 'Adresse: ' + addr,
-                position: 'top'
-            });
-        }
-    });
+  $("#memoryview td").each(function (idx, e) {
+    var suffix = this.classList[0].slice(-2);
+    if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
+    suffix = parseInt(suffix);
+    if (!isNaN(suffix)) {
+      suffix = suffix.toString(16);
+      var addr = $('td:first', $(e).closest('tr')).text().slice(0,9) + suffix;
+      $(e).tooltipster({
+        content: 'Adresse: ' + addr,
+        position: 'top'
+      });
+    }
+  });
 }
 
 
 function updateMemoryBreakpointsView() {
-    for (var i = 0; i < mem_breakpoints_r.length; i++) {
-        tofind = formatHexUnsigned32Bits(mem_breakpoints_r[i]).slice(0, 9) + "0";
-        var tableRow = $("td", $("#memoryview")).filter(function() {
-            return $(this).text() == tofind;
-        }).closest("tr");
-        if (tableRow.length < 1) {
-            continue;
-        }
-        col = parseInt(mem_breakpoints_r[i], 16) % 16;
-        $('.editablegrid-c'+col, tableRow).addClass('mem_r');
+  for (var i = 0; i < mem_breakpoints_r.length; i++) {
+    tofind = formatHexUnsigned32Bits(mem_breakpoints_r[i]).slice(0, 9) + "0";
+    var tableRow = $("td", $("#memoryview")).filter(function() {
+      return $(this).text() == tofind;
+    }).closest("tr");
+    if (tableRow.length < 1) {
+      continue;
     }
+    col = parseInt(mem_breakpoints_r[i], 16) % 16;
+    $('.editablegrid-c'+col, tableRow).addClass('mem_r');
+  }
 
-    for (var i = 0; i < mem_breakpoints_w.length; i++) {
-        tofind = formatHexUnsigned32Bits(mem_breakpoints_w[i]).slice(0, 9) + "0";
-        var tableRow = $("td", $("#memoryview")).filter(function() {
-            return $(this).text() == tofind;
-        }).closest("tr");
-        if (tableRow.length < 1) {
-            continue;
-        }
-        col = parseInt(mem_breakpoints_w[i], 16) % 16;
-        $('.editablegrid-c'+col, tableRow).addClass('mem_w');
+  for (var i = 0; i < mem_breakpoints_w.length; i++) {
+    tofind = formatHexUnsigned32Bits(mem_breakpoints_w[i]).slice(0, 9) + "0";
+    var tableRow = $("td", $("#memoryview")).filter(function() {
+      return $(this).text() == tofind;
+    }).closest("tr");
+    if (tableRow.length < 1) {
+      continue;
     }
+    col = parseInt(mem_breakpoints_w[i], 16) % 16;
+    $('.editablegrid-c'+col, tableRow).addClass('mem_w');
+  }
 
-    for (var i = 0; i < mem_breakpoints_rw.length; i++) {
-        tofind = formatHexUnsigned32Bits(mem_breakpoints_rw[i]).slice(0, 9) + "0";
-        var tableRow = $("td", $("#memoryview")).filter(function() {
-            return $(this).text() == tofind;
-        }).closest("tr");
-        if (tableRow.length < 1) {
-            continue;
-        }
-        col = parseInt(mem_breakpoints_rw[i], 16) % 16;
-        $('.editablegrid-c'+col, tableRow).addClass('mem_rw');
+  for (var i = 0; i < mem_breakpoints_rw.length; i++) {
+    tofind = formatHexUnsigned32Bits(mem_breakpoints_rw[i]).slice(0, 9) + "0";
+    var tableRow = $("td", $("#memoryview")).filter(function() {
+      return $(this).text() == tofind;
+    }).closest("tr");
+    if (tableRow.length < 1) {
+      continue;
     }
+    col = parseInt(mem_breakpoints_rw[i], 16) % 16;
+    $('.editablegrid-c'+col, tableRow).addClass('mem_rw');
+  }
 
-    for (var i = 0; i < mem_breakpoints_e.length; i++) {
-        tofind = formatHexUnsigned32Bits(mem_breakpoints_e[i]).slice(0, 9) + "0";
-        var tableRow = $("td", $("#memoryview")).filter(function() {
-            return $(this).text() == tofind;
-        }).closest("tr");
-        if (tableRow.length < 1) {
-            continue;
-        }
-        col = parseInt(mem_breakpoints_e[i], 16) % 16;
-        $('.editablegrid-c'+col, tableRow).addClass('mem_e');
+  for (var i = 0; i < mem_breakpoints_e.length; i++) {
+    tofind = formatHexUnsigned32Bits(mem_breakpoints_e[i]).slice(0, 9) + "0";
+    var tableRow = $("td", $("#memoryview")).filter(function() {
+      return $(this).text() == tofind;
+    }).closest("tr");
+    if (tableRow.length < 1) {
+      continue;
     }
+    col = parseInt(mem_breakpoints_e[i], 16) % 16;
+    $('.editablegrid-c'+col, tableRow).addClass('mem_e');
+  }
 
-    /* Highlight current instruction */
-    for (var i = 0; i < mem_breakpoints_instr.length; i++) {
-        tofind = formatHexUnsigned32Bits(mem_breakpoints_instr[i]).slice(0, 9) + "0";
-        var tableRow = $("td", $("#memoryview")).filter(function() {
-            return $(this).text() == tofind;
-        }).closest("tr");
-        if (tableRow.length > 0) {
-            col = mem_breakpoints_instr[i] % 16;
-            $('.editablegrid-c'+col, tableRow).addClass('mem_instr');
-        }
+  /* Highlight current instruction */
+  for (var i = 0; i < mem_breakpoints_instr.length; i++) {
+    tofind = formatHexUnsigned32Bits(mem_breakpoints_instr[i]).slice(0, 9) + "0";
+    var tableRow = $("td", $("#memoryview")).filter(function() {
+      return $(this).text() == tofind;
+    }).closest("tr");
+    if (tableRow.length > 0) {
+      col = mem_breakpoints_instr[i] % 16;
+      $('.editablegrid-c'+col, tableRow).addClass('mem_instr');
     }
+  }
 }
 
 $(document).ready(function() {
   EditableGrid.prototype.updatePaginator = function()
   {
-      var paginator = $("#paginator").empty();
-      var nbPages = this.getPageCount();
+    var paginator = $("#paginator").empty();
+    var nbPages = this.getPageCount();
 
       // "first" link
       var link = $("<a>").html("<img src='" + image("gofirst.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
@@ -101,10 +101,10 @@ $(document).ready(function() {
       var mem_begin = $(".editablegrid-ch:eq(1)").text();
       paginator.append('<input id="jump_memory" type="text" value="' + mem_begin + '"/><input id="jump_memory_go" type="submit" value="Go">');
       $("#jump_memory_go").click(function () {
-          var target = $("#jump_memory").val();
-          var page = Math.floor(parseInt(target) / (16*20));
-          editableGrid.setPageIndex(page);
-          addHoverMemoryView();
+        var target = $("#jump_memory").val();
+        var page = Math.floor(parseInt(target) / (16*20));
+        editableGrid.setPageIndex(page);
+        addHoverMemoryView();
       });
 
       // "next" link
@@ -134,7 +134,7 @@ $(document).ready(function() {
           sendCmd(['breakpointsmem', addr, 'e']);
         }
       });
-  };
+    };
 
 
   // Memory viewer
@@ -160,51 +160,54 @@ $(document).ready(function() {
   // Not necessary?
   var data = [];
   for (var i = 0; i < 20; i++) {
-      data.push({id: i,  values: {"c0": "00",  "c1": "00",  "c2": "00",  "c3": "00",  "c4": "00",  "c5": "00",  "c6": "00",  "c7": "00",  "c8": "00",  "c9": "00",  "c10": "00",  "c11": "00",  "c12": "00",  "c13": "00",  "c14": "00",  "c15": "00"}});
-      data[i]["values"]["ch"] = formatHexUnsigned32Bits(i*16)
+    data.push({id: i,  values: {"c0": "00",  "c1": "00",  "c2": "00",  "c3": "00",  "c4": "00",  "c5": "00",  "c6": "00",  "c7": "00",  "c8": "00",  "c9": "00",  "c10": "00",  "c11": "00",  "c12": "00",  "c13": "00",  "c14": "00",  "c15": "00"}});
+    data[i]["values"]["ch"] = formatHexUnsigned32Bits(i*16)
   }
-   
+
   editableGrid = new EditableGrid("DemoGridJsData",  {
-      modelChanged: function(rowIndex,  columnIndex,  oldValue,  newValue,  row) { 
-           var addr = parseInt($("td:first", row).text(), 16) + (columnIndex - 1)
-           sendCmd(['memchange',  addr,  newValue]);
-      }, 
-      enableSort: false, 
-      pageSize: 20, 
-      tableRendered: function() {
-          this.updatePaginator();
-          updateMemoryBreakpointsView();
+    modelChanged: function(row, col, oldValue, newValue, rowref) { 
+      if (oldValue !== "--") {
+        console.log("Here!");
+        var addr = parseInt($("td:first", rowref).text(), 16) + (columnIndex - 1)
+        sendCmd(['memchange', addr, newValue]);
+      } else {
+        editableGrid.setValueAt(row, col, "--", true);
       }
+    }, 
+    enableSort: false, 
+    pageSize: 20, 
+    tableRendered: function() {
+      this.updatePaginator();
+      updateMemoryBreakpointsView();
+    }
   });
   editableGrid.load({"metadata": metadata,  "data": data});
   editableGrid.renderGrid("memoryview",  "testgrid");
   addHoverMemoryView();
 
   $('#help_r').tooltipster({
-      contentAsHTML: true,
-      content: 'Lecture (read)',
-      position: 'top'
+    contentAsHTML: true,
+    content: 'Lecture (read)',
+    position: 'top'
   });
   $('#help_w').tooltipster({
-      contentAsHTML: true,
-      content: '&Eacute;criture (write)',
-      position: 'top'
+    contentAsHTML: true,
+    content: '&Eacute;criture (write)',
+    position: 'top'
   });
   $('#help_rw').tooltipster({
-      contentAsHTML: true,
-      content: 'Lecture ou &eacute;criture (read/write)',
-      position: 'top'
+    contentAsHTML: true,
+    content: 'Lecture ou &eacute;criture (read/write)',
+    position: 'top'
   });
   $('#help_e').tooltipster({
-      contentAsHTML: true,
-      content: 'Ex&eacute;cution (execute)',
-      position: 'top'
+    contentAsHTML: true,
+    content: 'Ex&eacute;cution (execute)',
+    position: 'top'
   });
   $('#help_instr').tooltipster({
-      contentAsHTML: true,
-      content: 'Instruction courante',
-      position: 'top'
+    contentAsHTML: true,
+    content: 'Instruction courante',
+    position: 'top'
   });
-
-
 });
