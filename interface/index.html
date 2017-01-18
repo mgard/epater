@@ -536,7 +536,7 @@
                         <button id="loadFile" onclick="loadFileAsText()">Load</button>
                     </div>
                     <div style="float: right;">
-                        <button onclick="saveTextAsFile()"><img src="image/dl.png" alt="Download" style="height:30px;"/></button>
+                        <button onclick="saveTextAsFile()">T&eacute;l&eacute;charger</button>
                     </div>
                 </div>
                 <br>
@@ -635,7 +635,7 @@
                 $(".ace_content").css("background-color",  "#FFF3F3");
             });
 
-            $("input").change(function () {
+            $("input[type=text]").change(function () {
                 if ($(this).attr("id") != "interrupt_active") {
                     target_val = $(this).val();
 
