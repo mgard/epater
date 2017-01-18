@@ -11,7 +11,7 @@ var current_debugline = -1;
 var debug_marker = null;
 
 ws.onerror = function (event) {
-    console.log('ici!');
+    displayErrorMsg("Erreur de connexion avec le simulateur.");
 }
 
 function displayErrorMsg(msg) {
