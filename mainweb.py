@@ -301,15 +301,20 @@ def process(ws, msg_in):
             elif data[0] == 'assemble':
                 # TODO: Afficher les erreurs à l'écran "codeerror"
                 code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)
+                #bytecode, bcinfos, errors = ASMparser(code.splitlines())
                 bytecode, bcinfos = ASMparser(code.splitlines())
-                interpreters[ws] = BCInterpreter(bytecode, bcinfos)
-                force_update_all = True
-                interpreters[ws].code__ = copy(code)
-                interpreters[ws].last_step__ = time.time()
-                interpreters[ws].next_report__ = 0
-                interpreters[ws].animate_speed__ = 0.1
-                interpreters[ws].num_exec__ = 0
-                interpreters[ws].user_asked_stop__ = False
+                errors = []
+                if errors:
+                    retval.extend(errors)
+                else:
+                    interpreters[ws] = BCInterpreter(bytecode, bcinfos)
+                    force_update_all = True
+                    interpreters[ws].code__ = copy(code)
+                    interpreters[ws].last_step__ = time.time()
+                    interpreters[ws].next_report__ = 0
+                    interpreters[ws].animate_speed__ = 0.1
+                    interpreters[ws].num_exec__ = 0
+                    interpreters[ws].user_asked_stop__ = False
             elif data[0] == 'stepback':
                 interpreters[ws].stepBack()
                 force_update_all = True
@@ -375,13 +380,17 @@ def process(ws, msg_in):
         ex = traceback.format_exc()
         print("Handling loop crashed:\n{}".format(ex))
         try:
-            code = interpreters[websocket].code__
+            code = interpreters[ws].code__
         except (KeyError, AttributeError):
             code = ""
         try:
-            hist = interpreters[websocket].history__
+            hist = interpreters[ws].history__
         except (KeyError, AttributeError):
             hist = []
+        try:
+            cmd = msg
+        except NameError:
+            cmd = ""
         body = """<html><head></head>
 (Handling loop crash)
 <h4>Traceback:</h4>
@@ -390,7 +399,9 @@ def process(ws, msg_in):
 <pre>{code}</pre>
 <h4>Operation history:</h4>
 <pre>{hist}</pre>
-</html>""".format(code=code, ex=ex, hist="<br/>".join(str(x) for x in hist))
+<h4>Current command:</h4>
+<pre>{cmd}</pre>
+</html>""".format(code=code, ex=ex, hist="<br/>".join(str(x) for x in hist), cmd=cmd)
         sendEmail(body)
         print("Email sent!")
 
