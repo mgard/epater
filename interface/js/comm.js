@@ -31,6 +31,9 @@ ws.onmessage = function (event) {
             format_ = $("#valueformat").val();
             if (format_ == "dec") {
                 target_value = parseInt(obj[1], 16);
+            } else if (format_ == "decsign") {
+                target_value = parseInt(obj[1], 16);
+                if (target_value > Math.pow(2, 31) - 1) { target_value = target_value - Math.pow(2, 32); }
             } else if (format_ == "bin") {
                 target_value = parseInt(obj[1], 16).toString(2);
             }
@@ -157,14 +160,6 @@ function sendCmd(cmd) {
 }
 
 function sendData(data) {
-    // Convert to hex if from another format
-    format_ = $("#valueformat").val()
-    if (format_ == "dec") {
-
-    } else if (format_ == "bin") {
-
-    }
-
     if (ws.readyState !== 1) {
         displayErrorMsg("Perte de la connexion au simulateur.");
         $("input").prop("disabled", true);

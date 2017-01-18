@@ -30,6 +30,7 @@
                 <input id="hex" type="radio" name="representation" value="hex" onclick="changeBase(16);"/> hex <br> -->
                 <select id="valueformat">
                     <option value="hex">Hexad&eacute;cimal</option>
+                    <option value="decsign">D&eacute;cimal (sign&eacute;)</option>
                     <option value="dec">D&eacute;cimal (non-sign&eacute;)</option>
                     <option value="bin">Binaire</option>
                 </select>
@@ -636,7 +637,23 @@
 
             $("input").change(function () {
                 if ($(this).attr("id") != "interrupt_active") {
-                    sendCmd(["update", $(this).attr("id"), $(this).val()]);
+                    target_val = $(this).val();
+
+                    if ($.inArray("formatted_value", this.classList) >= 0) {
+                        // Convert to hex if from another format
+                        format_ = $("#valueformat").val()
+                        if (format_ == "dec") {
+                            target_val = parseInt(target_val).toString(16);
+                        } else if (format_ == "decsign") {
+                            target_val = parseInt(target_val);
+                            if (target_val < 0) { target_val = target_val + Math.pow(2, 32); }
+                            target_val = target_val.toString(16);
+                        } else if (format_ == "bin") {
+                            target_val = parseInt(target_val, 2).toString(16);
+                        }
+                    }
+
+                    sendCmd(["update", $(this).attr("id"), target_val]);
                 } else {
                     if (document.getElementById('interrupt_active').checked) {
                         sendCmd(["interrupt", true, $("#interrupt_type").val(), parseInt($("#interrupt_cycles").val()), parseInt($("#interrupt_cycles_first").val())]);
@@ -649,7 +666,6 @@
             $(".flag_btn").click(function() {
                 sendCmd(["update", $(this).attr("name")]);
             })
-
         });
 
         // Help buttons
@@ -666,7 +682,7 @@
                 format_ = $("#valueformat").val();
                 target_val = NaN;
 
-                if (previous_format == "dec") {
+                if (previous_format == "dec" || previous_format == "decsign") {
                     target_val = parseInt($(this).val());
                 } else if (previous_format == "bin") {
                     target_val = parseInt($(this).val(), 2);
@@ -674,17 +690,21 @@
                     target_val = parseInt($(this).val(), 16);
                 }
 
+                if (target_val < 0) { target_val = target_val + Math.pow(2, 32); }
+
                 if (isNaN(target_val)) {
                     return;
                 }
 
                 if (format_ == "dec") {
                     $(this).val(target_val.toString());
+                } else if (format_ == "decsign") {
+                    if (target_val > Math.pow(2, 31) - 1) { target_val = target_val - Math.pow(2, 32); }
+                    $(this).val(target_val.toString());
                 } else if (format_ == "bin") {
                     $(this).val(target_val.toString(2));
                 } else if (format_ == "hex") {
                     $(this).val(formatHexUnsigned32Bits(target_val).slice(2));
-
                 }
             });
             previous_format = $("#valueformat").val();
