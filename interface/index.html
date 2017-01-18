@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr-CA">
     <head>
         <meta charset="UTF-8">
         <title>ARM Simulator</title>
@@ -601,21 +601,19 @@
 
     <script type="text/javascript">
 
+        // Onglets des registres
         $('#tab-container').easytabs({
             "animate": false
         });
 
+        // Barre de messages
         $("#message_bar").click(function(){
           $(this).slideToggle("normal", "easeInOutBack", function(){
             $("#show_message_bar").slideToggle("normal", "easeInOutBack");
           });
         });
 
-        function formatHexUnsigned32Bits(i) {
-            return "0x" + ("00000000" + i.toString(16)).slice(-8);
-        }
-
-        var editableGrid = null;
+        
         $(document).ready(function() {
 
 			editor.on("guttermousedown",  function(e) {
@@ -654,164 +652,17 @@
                 sendCmd(["update", $(this).attr("name")]);
             })
 
-            // Memory viewer
-            var metadata = [];
-            metadata.push({ name: "ch",  label: "addr",  datatype: "string",  editable: false});
-            metadata.push({ name: "c0",  label: "00",  datatype: "string",  editable: true});
-            metadata.push({ name: "c1",  label: "01",  datatype: "string",  editable: true});
-            metadata.push({ name: "c2",  label: "02",  datatype: "string",  editable: true});
-            metadata.push({ name: "c3",  label: "03",  datatype: "string",  editable: true});
-            metadata.push({ name: "c4",  label: "04",  datatype: "string",  editable: true});
-            metadata.push({ name: "c5",  label: "05",  datatype: "string",  editable: true});
-            metadata.push({ name: "c6",  label: "06",  datatype: "string",  editable: true});
-            metadata.push({ name: "c7",  label: "07",  datatype: "string",  editable: true});
-            metadata.push({ name: "c8",  label: "08",  datatype: "string",  editable: true});
-            metadata.push({ name: "c9",  label: "09",  datatype: "string",  editable: true});
-            metadata.push({ name: "c10",  label: "0A",  datatype: "string",  editable: true});
-            metadata.push({ name: "c11",  label: "0B",  datatype: "string",  editable: true});
-            metadata.push({ name: "c12",  label: "0C",  datatype: "string",  editable: true});
-            metadata.push({ name: "c13",  label: "0D",  datatype: "string",  editable: true});
-            metadata.push({ name: "c14",  label: "0E",  datatype: "string",  editable: true});
-            metadata.push({ name: "c15",  label: "0F",  datatype: "string",  editable: true});
-
-            // Not necessary?
-            var data = [];
-            for (var i = 0; i < 20; i++) {
-                data.push({id: i,  values: {"c0": "00",  "c1": "00",  "c2": "00",  "c3": "00",  "c4": "00",  "c5": "00",  "c6": "00",  "c7": "00",  "c8": "00",  "c9": "00",  "c10": "00",  "c11": "00",  "c12": "00",  "c13": "00",  "c14": "00",  "c15": "00"}});
-                data[i]["values"]["ch"] = formatHexUnsigned32Bits(i*16)
-            }
-             
-            editableGrid = new EditableGrid("DemoGridJsData",  {
-                modelChanged: function(rowIndex,  columnIndex,  oldValue,  newValue,  row) { 
-                     var addr = parseInt($("td:first", row).text(), 16) + (columnIndex - 1)
-                     sendCmd(['memchange',  addr,  newValue]);
-                }, 
-                enableSort: false, 
-                pageSize: 20, 
-                tableRendered: function() {
-                    this.updatePaginator();
-                    updateMemoryBreakpointsView();
-                }
-            });
-            editableGrid.load({"metadata": metadata,  "data": data});
-            editableGrid.renderGrid("memoryview",  "testgrid");
-            addHoverMemoryView();
-
-            $('#help_r').tooltipster({
-                contentAsHTML: true,
-                content: 'Lecture (read)',
-                position: 'top'
-            });
-            $('#help_w').tooltipster({
-                contentAsHTML: true,
-                content: '&Eacute;criture (write)',
-                position: 'top'
-            });
-            $('#help_rw').tooltipster({
-                contentAsHTML: true,
-                content: 'Lecture ou &eacute;criture (read/write)',
-                position: 'top'
-            });
-            $('#help_e').tooltipster({
-                contentAsHTML: true,
-                content: 'Ex&eacute;cution (execute)',
-                position: 'top'
-            });
-            $('#help_instr').tooltipster({
-                contentAsHTML: true,
-                content: 'Instruction courante',
-                position: 'top'
-            });
-
         });
 
-        function updateMemoryBreakpointsView() {
-            for (var i = 0; i < mem_breakpoints_r.length; i++) {
-                tofind = formatHexUnsigned32Bits(mem_breakpoints_r[i]).slice(0, 9) + "0";
-                var tableRow = $("td", $("#memoryview")).filter(function() {
-                    return $(this).text() == tofind;
-                }).closest("tr");
-                if (tableRow.length < 1) {
-                    continue;
-                }
-                col = parseInt(mem_breakpoints_r[i], 16) % 16;
-                $('.editablegrid-c'+col, tableRow).addClass('mem_r');
-            }
+        // Help buttons
+        $("#stepback").tooltipster({ content: 'Step Back', position: 'top' });
+        $("#run").tooltipster({ content: 'Run', position: 'top' });
+        $("#stepin").tooltipster({ content: "Step Into", position: 'top' });
+        $("#stepforward").tooltipster({ content: 'Step Forward', position: 'top' });
+        $("#stepout").tooltipster({ content: 'Step Out', position: 'top' });
 
-            for (var i = 0; i < mem_breakpoints_w.length; i++) {
-                tofind = formatHexUnsigned32Bits(mem_breakpoints_w[i]).slice(0, 9) + "0";
-                var tableRow = $("td", $("#memoryview")).filter(function() {
-                    return $(this).text() == tofind;
-                }).closest("tr");
-                if (tableRow.length < 1) {
-                    continue;
-                }
-                col = parseInt(mem_breakpoints_w[i], 16) % 16;
-                $('.editablegrid-c'+col, tableRow).addClass('mem_w');
-            }
-
-            for (var i = 0; i < mem_breakpoints_rw.length; i++) {
-                tofind = formatHexUnsigned32Bits(mem_breakpoints_rw[i]).slice(0, 9) + "0";
-                var tableRow = $("td", $("#memoryview")).filter(function() {
-                    return $(this).text() == tofind;
-                }).closest("tr");
-                if (tableRow.length < 1) {
-                    continue;
-                }
-                col = parseInt(mem_breakpoints_rw[i], 16) % 16;
-                $('.editablegrid-c'+col, tableRow).addClass('mem_rw');
-            }
-
-            for (var i = 0; i < mem_breakpoints_e.length; i++) {
-                tofind = formatHexUnsigned32Bits(mem_breakpoints_e[i]).slice(0, 9) + "0";
-                var tableRow = $("td", $("#memoryview")).filter(function() {
-                    return $(this).text() == tofind;
-                }).closest("tr");
-                if (tableRow.length < 1) {
-                    continue;
-                }
-                col = parseInt(mem_breakpoints_e[i], 16) % 16;
-                $('.editablegrid-c'+col, tableRow).addClass('mem_e');
-            }
-
-            /* Highlight current instruction */
-            for (var i = 0; i < mem_breakpoints_instr.length; i++) {
-                tofind = formatHexUnsigned32Bits(mem_breakpoints_instr[i]).slice(0, 9) + "0";
-                var tableRow = $("td", $("#memoryview")).filter(function() {
-                    return $(this).text() == tofind;
-                }).closest("tr");
-                if (tableRow.length > 0) {
-                    col = mem_breakpoints_instr[i] % 16;
-                    $('.editablegrid-c'+col, tableRow).addClass('mem_instr');
-                }
-            }
-        }
-
-        function addHoverMemoryView() {
-            $("#memoryview td").each(function (idx, e) {
-                var suffix = this.classList[0].slice(-2);
-                if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
-                suffix = parseInt(suffix);
-                if (!isNaN(suffix)) {
-                    suffix = suffix.toString(16);
-                    var addr = $('td:first', $(e).closest('tr')).text().slice(0,9) + suffix;
-                    $(e).tooltipster({
-                        content: 'Adresse: ' + addr,
-                        position: 'top'
-                    });
-                }
-            });
-        }
-
-        // Help Boutons
-        $("#stepback").tooltipster({ content: 'Pas arrière (Step Back)', position: 'top' });
-        $("#run").tooltipster({ content: 'Exécuter (Run)', position: 'top' });
-        $("#stepin").tooltipster({ content: "Pas à l'intérieur (Step Into)", position: 'top' });
-        $("#stepforward").tooltipster({ content: 'Pas avant (Step Forward)', position: 'top' });
-        $("#stepout").tooltipster({ content: 'Pas en dehors (Step Out)', position: 'top' });
-
+        // Changement de format
         var previous_format = "hex";
-
         $("#valueformat").change(function () {
             $(".formatted_value").each(function () {
                 format_ = $("#valueformat").val();
@@ -840,165 +691,9 @@
             });
             previous_format = $("#valueformat").val();
         });
-
-        function image(relativePath) {
-            return "./editablegrid/images/" + relativePath;
-        }
-
-        EditableGrid.prototype.updatePaginator = function()
-        {
-            var paginator = $("#paginator").empty();
-            var nbPages = this.getPageCount();
-
-            // "first" link
-            var link = $("<a>").html("<img src='" + image("gofirst.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
-            if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-            else link.css("cursor",  "pointer").click(function(event) { editableGrid.firstPage(); addHoverMemoryView(); });
-            paginator.append(link);
-
-            // "prev" link
-            link = $("<a>").html("<img src='" + image("prev.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
-            if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-            else link.css("cursor",  "pointer").click(function(event) { editableGrid.prevPage(); addHoverMemoryView(); });
-            paginator.append(link);
-
-            var mem_begin = $(".editablegrid-ch:eq(1)").text();
-            paginator.append('<input id="jump_memory" type="text" value="' + mem_begin + '"/><input id="jump_memory_go" type="submit" value="Go">');
-            $("#jump_memory_go").click(function () {
-                var target = $("#jump_memory").val();
-                var page = Math.floor(parseInt(target) / (16*20));
-                editableGrid.setPageIndex(page);
-                addHoverMemoryView();
-            });
-
-            // "next" link
-            link = $("<a>").html("<img src='" + image("next.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
-            if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-            else link.css("cursor",  "pointer").click(function(event) { editableGrid.nextPage(); addHoverMemoryView(); });
-            paginator.append(link);
-
-            // "last" link
-            link = $("<a>").html("<img src='" + image("golast.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
-            if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-            else link.css("cursor",  "pointer").click(function(event) { editableGrid.lastPage(); addHoverMemoryView(); });
-            paginator.append(link);
-
-            $(".editablegrid-c0, .editablegrid-c1, .editablegrid-c2, .editablegrid-c3, .editablegrid-c4, .editablegrid-c5, .editablegrid-c6, .editablegrid-c7, .editablegrid-c8, .editablegrid-c9, .editablegrid-c10, .editablegrid-c11, .editablegrid-c12, .editablegrid-c13, .editablegrid-c14, .editablegrid-c15").click(function(e) {
-              var suffix = this.classList[0].slice(-2);
-              if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
-              suffix = parseInt(suffix).toString(16);
-              var addr = $('td:first', $(e.target).closest('tr')).text().slice(0,9) + suffix;
-              if(e.shiftKey) {
-                sendCmd(['breakpointsmem', addr, 'r']);
-              }
-              if(e.ctrlKey) {
-                sendCmd(['breakpointsmem', addr, 'w']);
-              }
-              if(e.altKey) {
-                sendCmd(['breakpointsmem', addr, 'e']);
-              }
-            });
-        };
-
-        function saveTextAsFile() {
-            var textToWrite = editor.getValue();
-            var textFileAsBlob = new Blob([textToWrite],  {type: 'text/plain'});
-            var fileNameToSaveAs = "prog.s";
-            var downloadLink = document.createElement("a");
-            downloadLink.download = fileNameToSaveAs;
-            downloadLink.innerHTML = "Download File";
-            if (window.webkitURL !== null) {
-                // Chrome allows the link to be clicked
-                // without actually adding it to the DOM.
-                downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
-            } else {
-                // Firefox requires the link to be added to the DOM
-                // before it can be clicked.
-                downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
-                downloadLink.onclick = destroyClickedElement;
-                downloadLink.style.display = "none";
-                document.body.appendChild(downloadLink);
-            }
-            downloadLink.click();
-        }
-
-        var confirmOnPageExit = function (e)
-        {
-            // If we haven't been passed the event get the window.event
-            e = e || window.event;
-
-            var message = 'Êtes-vous certain de vouloir quitter cette page?';
-
-            // For IE6-8 and Firefox prior to version 4
-            if (e) { e.returnValue = message; }
-
-            // For Chrome, Safari, IE8+ and Opera 12+
-            return message;
-        };
-
-        // //////////
-        // Get parameters
-        function getSearchParameters() {
-              var prmstr = window.location.search.substr(1);
-              return prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
-        }
-        function transformToAssocArray( prmstr ) {
-            var params = {};
-            var prmarr = prmstr.split("&");
-            for ( var i = 0; i < prmarr.length; i++) {
-                var tmparr = prmarr[i].split("=");
-                params[tmparr[0]] = tmparr[1];
-            }
-            return params;
-        }
-        var params = getSearchParameters();
-        // //////////
-
-        function updateAutosave() {
-            $("#autosave_menu").remove();
-            choices = ""
-            for (var i = 0; i < 10; ++i) {
-                var val = localStorage.getItem("time_autosave" + i.toString())
-                if ( val !== null ) { choices = choices + '<option value="' + i + '">' + val + '</option>' }
-            }
-            $("#loadFile").after('<select id="autosave_menu"><option value="-1">Autosave</option>' + choices + "</select>");
-            $('#autosave_menu').on('change', function() {
-                if (this.value != "-1") {
-                    editor.setValue(localStorage.getItem("data_autosave" + this.value.toString()));
-                }
-                $("#autosave_menu").val("-1");
-            });
-        }
-
-        if (params["nowarning"] === undefined) {
-            window.onbeforeunload = confirmOnPageExit;
-        } else {
-            console.log("Disabling exit warning!");
-        }
-
-        autosave_index = 0;
-        if (typeof(Storage) !== "undefined") {
-            // Continue autosaving where we left
-            for (var i = 0; i < 10; ++i) {
-                var val = localStorage.getItem("time_autosave" + i.toString())
-                if ( val === null ) { break; }
-                autosave_index = autosave_index + 1;
-            }
-
-            setInterval(function() {
-                localStorage.setItem("data_autosave" + autosave_index.toString(), editor.getValue());
-                localStorage.setItem("time_autosave" + autosave_index.toString(), new Date().toLocaleString());
-                autosave_index = (autosave_index + 1) % 10;
-
-                updateAutosave();
-                console.log("Autosaved! ID: " + autosave_index.toString());
-            }, 60000); // Tous les 2 minutes
-
-            // Afficher menu
-            updateAutosave();
-        } else {
-            console.log("Autosaving disabled!");
-        }
     </script>
+    <script src="js/memory_viewer.js" type="text/javascript" charset="utf-8"></script>
+    <script src="js/helpers.js" type="text/javascript" charset="utf-8"></script>
+    <script src="js/autosave.js" type="text/javascript" charset="utf-8"></script>
 </body>
 </html>
