@@ -139,15 +139,16 @@ async def handler(websocket, path):
     except Exception as e:
         ex = traceback.format_exc()
         print("Simulator crashed:\n{}".format(ex))
-        try:
-            code = interpreters[websocket].code__
-        except (KeyError, AttributeError):
-            code = ""
-        try:
-            hist = interpreters[websocket].history__
-        except (KeyError, AttributeError):
-            hist = []
-        body = """<html><head></head>
+        if not DEBUG:
+            try:
+                code = interpreters[websocket].code__
+            except (KeyError, AttributeError):
+                code = ""
+            try:
+                hist = interpreters[websocket].history__
+            except (KeyError, AttributeError):
+                hist = []
+            body = """<html><head></head>
 (Simulator crash)
 <h4>Traceback:</h4>
 <pre>{ex}</pre>
@@ -156,8 +157,8 @@ async def handler(websocket, path):
 <h4>Operation history:</h4>
 <pre>{hist}</pre>
 </html>""".format(code=code, ex=ex, hist="<br/>".join(str(x) for x in hist))
-        sendEmail(body)
-        print("Email sent!")
+            sendEmail(body)
+            print("Email sent!")
     finally:
         if websocket in interpreters:
             del interpreters[websocket]
@@ -375,21 +376,22 @@ def process(ws, msg_in):
         traceback.print_exc()
         retval.append(["error", str(e)])
 
-        ex = traceback.format_exc()
-        print("Handling loop crashed:\n{}".format(ex))
-        try:
-            code = interpreters[ws].code__
-        except (KeyError, AttributeError):
-            code = ""
-        try:
-            hist = interpreters[ws].history__
-        except (KeyError, AttributeError):
-            hist = []
-        try:
-            cmd = msg
-        except NameError:
-            cmd = ""
-        body = """<html><head></head>
+        if not DEBUG:
+            ex = traceback.format_exc()
+            print("Handling loop crashed:\n{}".format(ex))
+            try:
+                code = interpreters[ws].code__
+            except (KeyError, AttributeError):
+                code = ""
+            try:
+                hist = interpreters[ws].history__
+            except (KeyError, AttributeError):
+                hist = []
+            try:
+                cmd = msg
+            except NameError:
+                cmd = ""
+            body = """<html><head></head>
 (Handling loop crash)
 <h4>Traceback:</h4>
 <pre>{ex}</pre>
@@ -400,8 +402,8 @@ def process(ws, msg_in):
 <h4>Current command:</h4>
 <pre>{cmd}</pre>
 </html>""".format(code=code, ex=ex, hist="<br/>".join(str(x) for x in hist), cmd=cmd)
-        sendEmail(body)
-        print("Email sent!")
+            sendEmail(body)
+            print("Email sent!")
 
     del msg_in[:]
 
