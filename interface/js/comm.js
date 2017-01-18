@@ -10,6 +10,16 @@ var mem_breakpoints_instr = [];
 var current_debugline = -1;
 var debug_marker = null;
 
+ws.onerror = function (event) {
+    displayErrorMsg("Erreur de connexion avec le simulateur.");
+}
+
+function displayErrorMsg(msg) {
+    $("#message_bar").text(msg);
+
+    $("#message_bar").slideDown("normal", "easeInOutBack");
+}
+
 ws.onmessage = function (event) {
 	obj = JSON.parse(event.data);
 
