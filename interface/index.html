@@ -590,6 +590,7 @@
         var assembly_armMode = ace.require("ace/mode/assembly_arm").Mode;
         editor.getSession().setMode(new assembly_armMode());
         editor.$blockScrolling = Infinity;
+        editor.setShowPrintMargin(false);
     </script>
 
     <script src="js/jquery-1.11.1.min.js" type="text/javascript" charset="utf-8"></script>
@@ -694,6 +695,5 @@
     </script>
     <script src="js/memory_viewer.js" type="text/javascript" charset="utf-8"></script>
     <script src="js/helpers.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/autosave.js" type="text/javascript" charset="utf-8"></script>
 </body>
 </html>
