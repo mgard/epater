@@ -277,7 +277,7 @@ def updateDisplay(interp, force_all=False):
     if interp.currentBreakpoint:
         if interp.currentBreakpoint.source == 'memory' and bool(interp.currentBreakpoint.mode & 8):
             retval.append(["error", """Un accès à l'extérieur de la mémoire initialisée a été effectué.
-{}""".format(interp.currentBreakpoint.info["desc"])])
+{}""".format(interp.currentBreakpoint.infos["desc"])])
     return retval
 
 
