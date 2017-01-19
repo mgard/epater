@@ -278,12 +278,15 @@ def updateDisplay(interp, force_all=False):
         retval.extend([["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]],
                        ["mempartial", []]])
 
-    retval.append(["cycles_count", interp.getCycleCount()])
+    retval.append(["cycles_count", interp.getCycleCount() + 1])
 
     # Check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
     if interp.currentBreakpoint:
         if interp.currentBreakpoint.source == 'memory' and bool(interp.currentBreakpoint.mode & 8):
             retval.append(["error", """Un accès à l'extérieur de la mémoire initialisée a été effectué. {}""".format(interp.currentBreakpoint.infos)])
+
+        if interp.currentBreakpoint.source == 'assert':
+            retval.append(["codeerror", interp.currentBreakpoint.infos[0] + 1, interp.currentBreakpoint.infos[1]])
     return retval
 
 
