@@ -532,7 +532,8 @@
                 <br>
                 <div>
                     <div style="float: left;">
-                        <input type="file" onchange="loadFileAsText()" id="fileToLoad"/>
+                        <input type="file" onchange="loadFileAsText()" id="fileToLoad" style="display: none;"/>
+                        <label for="fileToLoad" class="flat_button">Charger un fichier</label>
                     </div>
                     <div style="float: right;">
                         <button onclick="saveTextAsFile()">T&eacute;l&eacute;charger</button>
