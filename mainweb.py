@@ -308,11 +308,11 @@ def process(ws, msg_in):
             elif data[0] == 'assemble':
                 # TODO: Afficher les erreurs à l'écran "codeerror"
                 code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)
-                bytecode, bcinfos, errors = ASMparser(code.splitlines())
+                bytecode, bcinfos, assertions, errors = ASMparser(code.splitlines())
                 if errors:
                     retval.extend(errors)
                 else:
-                    interpreters[ws] = BCInterpreter(bytecode, bcinfos)
+                    interpreters[ws] = BCInterpreter(bytecode, bcinfos, assertions)
                     force_update_all = True
                     interpreters[ws].code__ = copy(code)
                     interpreters[ws].last_step__ = time.time()
