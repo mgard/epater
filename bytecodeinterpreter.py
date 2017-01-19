@@ -3,16 +3,17 @@ from procsimulator import Simulator, Memory, Register
 
 class BCInterpreter:
 
-    def __init__(self, bytecode, mappingInfo):
+    def __init__(self, bytecode, mappingInfo, assertInfo={}):
         self.bc = bytecode
         self.addr2line = mappingInfo
+        self.assertInfo = assertInfo
         # Useful to set line breakpoints
         self.line2addr = {}
         for addr,lines in mappingInfo.items():
             for line in lines:
                 self.line2addr[line] = addr
         self.lineBreakpoints = []
-        self.sim = Simulator(bytecode)
+        self.sim = Simulator(bytecode, self.assertInfo)
         self.reset()
 
     def reset(self):

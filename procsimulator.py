@@ -414,10 +414,12 @@ class SimState(Enum):
 
 class Simulator:
 
-    def __init__(self, memorycontent):
+    def __init__(self, memorycontent, assertionTriggers):
         self.state = SimState.uninitialized
         self.sysHandle = SystemHandler()
         self.mem = Memory(memorycontent, self.sysHandle)
+        self.assertionCkpts = set(assertionTriggers.keys())
+        self.assertionData = assertionTriggers
         self.pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
 
         self.interruptActive = False
@@ -511,6 +513,29 @@ class Simulator:
         if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
             return not bool((op1 & 0x80000000) ^ (res & 0x80000000))
         return False
+
+    def execAssert(self, assertionInfo):
+        assertionInfo = assertionInfo.split(",")
+        for info in assertionInfo:
+            info = info.strip()
+            target, value = info.split("=")
+            if target[0] == "R":
+                # Register
+                reg = int(target[1:])
+                val = int(value)
+                assert self.regs[reg] == val
+            elif target[:1] == "0x":
+                # Memory
+                addr = int(target, base=16)
+                val = int(value)
+                assert self.mem.get(addr, mayTriggerBkpt=False) == val
+            elif len(target) == 1 and target in ('Z', 'V', 'N', 'C', 'I', 'F'):
+                # Flag
+                val = bool(value)
+                assert self.flags[target] == val
+            else:
+                # Assert type unknown
+                assert False
 
     def execInstr(self):
         """
@@ -756,12 +781,17 @@ class Simulator:
         # We clear an eventual breakpoint
         self.sysHandle.clearBreakpoint()
 
+        keeppc = self.regs[15].get()
         # The instruction should have been fetched by the last instruction
         pcmodified = self.execInstr()
         if pcmodified:
             self.regs[15].set(self.regs[15].get() + self.pcoffset)
         else:
             self.regs[15].set(self.regs[15].get() + 4)        # PC = PC + 4
+
+        # We check if we've hit an assertion checkpoint
+        if keeppc in self.assertionCkpts:
+            self.execAssert(self.assertionData[keeppc])
 
         # We look for interrupts
         # The current instruction is always finished before the interrupt

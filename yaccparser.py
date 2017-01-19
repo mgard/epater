@@ -123,7 +123,7 @@ def p_datainst2op(p):
 
 def p_datainst2op_error(p):
     """datainst2op : OPDATA2OP logmnemonic SPACEORTAB REG error op2"""
-    raise YaccError("Les registres et/ou constantes utilisés dans une opération doivent être séparés par des virgules")
+    raise YaccError("Les registres et/ou constantes utilisés dans une opération doivent être séparés par une virgule")
 
 def p_datainst3op(p):
     """datainst3op : OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG COMMA op2
