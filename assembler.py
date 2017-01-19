@@ -78,6 +78,7 @@ def parse(code):
                 '__MEMINFOEND': {"SNIPPET_DUMMY_SECTION": 0}}
     unresolvedDepencencies = {}
     assertions = {}
+    lastLineType = None
     for i,line in enumerate(code):
         line = line.strip()
         if len(line) == 0:
@@ -96,7 +97,10 @@ def parse(code):
         addrToLine[max(currentAddr, 0)].append(i)
 
         if "SECTION" in parsedLine:
-            assert not snippetMode, "SECTION keyword found in snippet mode!"
+            if snippetMode:
+                listErrors.append(("codeerror", i, "Vous ne pouvez pas écrire d'instruction avant le premier mot clé SECTION; si vous souhaitez tester un extrait de code, ne déclarez aucune section."))
+                continue
+            lastLineType = "SECTION"
             if "SNIPPET_DUMMY_SECTION" in bytecode['__MEMINFOSTART']:
                 bytecode['__MEMINFOSTART'] = maxAddrBySection.copy()
                 bytecode['__MEMINFOEND'] = maxAddrBySection.copy()
@@ -120,7 +124,10 @@ def parse(code):
             bytecode[currentSection] = bytearray()
 
         if "ASSERTION" in parsedLine:
-            assertions[currentAddr] = parsedLine["ASSERTION"]
+            if lastLineType is None or lastLineType in ("LABEL", "SECTION"):
+                assertions[currentAddr] = ("BEFORE", parsedLine["ASSERTION"])
+            elif lastLineType == "BYTECODE":
+                assertions[currentAddr] = ("AFTER", parsedLine["ASSERTION"])
 
         if ("LABEL" in parsedLine or "BYTECODE" in parsedLine) and currentAddr == -1:
             # No section defined, but we have a label or an instruction; we switch to snippet mode
@@ -131,6 +138,7 @@ def parse(code):
 
         if "LABEL" in parsedLine:
             labelsAddr[parsedLine["LABEL"]] = currentAddr
+            lastLineType = "LABEL"
 
         if "BYTECODE" in parsedLine:
             # The BYTECODE field contains a tuple
@@ -146,6 +154,7 @@ def parse(code):
                     requiredLabelsPtr.append((dep[1], i))
             # We add the size of the object to the current address (so this always points to the address of the next element)
             currentAddr += len(parsedLine["BYTECODE"][0])
+            lastLineType = "BYTECODE"
 
     maxAddrBySection[currentSection] = currentAddr
     bytecode['__MEMINFOEND'][currentSection] = currentAddr
@@ -167,7 +176,7 @@ def parse(code):
 
     if len(listErrors) > 0:
         # At least one line did not assemble, we cannot continue
-        return None, None, listErrors
+        return None, None, None, listErrors
 
     # At this point, all dependencies should have been resolved (e.g. all the labels should have been seen)
     # We fix the bytecode of the affected instructions
@@ -198,5 +207,5 @@ def parse(code):
         bytecode[sec][reladdr:reladdr+4] = b
 
     # No errors
-    return bytecode, addrToLine, []
+    return bytecode, addrToLine, assertions, []
 
