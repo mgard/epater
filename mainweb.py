@@ -26,7 +26,7 @@ with open("emailpass.txt") as fhdl:
     email_password = fhdl.read().strip()
 
 
-UPDATE_THROTTLE_SEC = 0.2
+UPDATE_THROTTLE_SEC = 0.3
 
 interpreters = {}
 connected = set()
@@ -38,7 +38,13 @@ DEBUG = 'DEBUG' in sys.argv
 async def producer(data_list):
     while True:
         if data_list:
-            return json.dumps(data_list.pop(0))
+            out = []
+            while True:
+                try:
+                    out.append(data_list.pop(0))
+                except IndexError:
+                    break
+            return json.dumps(out)
         await asyncio.sleep(0.05)
 
 
@@ -120,6 +126,7 @@ async def handler(websocket, path):
                 interpreters[websocket].next_report__ = time.time() + UPDATE_THROTTLE_SEC
                 ui_update_dict = OrderedDict()
                 mem_update = OrderedDict()
+
                 for el in ui_update_queue:
                     if el[0] == "mempartial":
                         for k,v in el[1]:
