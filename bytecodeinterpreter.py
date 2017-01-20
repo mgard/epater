@@ -96,10 +96,11 @@ class BCInterpreter:
     @property
     def currentBreakpoint(self):
         # Returns a namedTuple with the fields
-        # 'source' = 'register' | 'memory' | ' flag'
+        # 'source' = 'register' | 'memory' | 'flag' | 'assert'
         # 'mode' = integer (same interpretation as Unix permissions)
         #                   if source='memory' then mode can also be 8 : it means that we're trying to access an uninitialized memory address
         # 'infos' = supplemental information (register index if source='register', flag name if source='flag', address if source='memory')
+        #               if source='assert', then infos is a tuple (line (integer), description (string))
         # If no breakpoint has been trigged in the last instruction, then return None
         return self.sim.sysHandle.breakpointInfo if self.sim.sysHandle.breakpointTrigged else None
 

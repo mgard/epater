@@ -515,27 +515,34 @@ class Simulator:
         return False
 
     def execAssert(self, assertionInfo):
-        assertionInfo = assertionInfo.split(",")
+        assertionLine = assertionInfo[0] - 1
+        assertionInfo = assertionInfo[1].split(",")
         for info in assertionInfo:
             info = info.strip()
             target, value = info.split("=")
             if target[0] == "R":
                 # Register
                 reg = int(target[1:])
-                val = int(value)
-                assert self.regs[reg] == val
+                val = int(value, base=0)
+                valreg = self.regs[reg].get()
+                if valreg != val:
+                    self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Erreur : {} devrait valoir {}, mais il vaut {}".format(target, val, valreg))))
             elif target[:1] == "0x":
                 # Memory
                 addr = int(target, base=16)
-                val = int(value)
+                val = int(value, base=0)
+                valmem = self.mem.get(addr, mayTriggerBkpt=False)
+                if valmem != val:
+                    self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Erreur : l'adresse mémoire {} devrait contenir {}, mais elle contient {}".format(target, val, valmem))))
                 assert self.mem.get(addr, mayTriggerBkpt=False) == val
             elif len(target) == 1 and target in ('Z', 'V', 'N', 'C', 'I', 'F'):
                 # Flag
                 val = bool(value)
-                assert self.flags[target] == val
+                if self.flags[target] != val:
+                    self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Erreur : le drapeau {} devrait signaler {}, mais il signale {}".format(target, val, value))))
             else:
                 # Assert type unknown
-                assert False
+                self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Assertion inconnue!")))
 
     def execInstr(self):
         """
@@ -781,10 +788,11 @@ class Simulator:
         # We clear an eventual breakpoint
         self.sysHandle.clearBreakpoint()
 
-        keeppc = self.regs[15].get()
+        keeppc = self.regs[15].get() - self.pcoffset
         if keeppc in self.assertionCkpts and self.assertionData[keeppc][0] == "BEFORE":
+            print("EXEC ASSERT BEFORE", self.assertionData[keeppc])
             # We check if we've hit an post-assertion checkpoint
-            self.execAssert(self.assertionData[keeppc][1])
+            self.execAssert(self.assertionData[keeppc][1:])
 
         # The instruction should have been fetched by the last instruction
         pcmodified = self.execInstr()
@@ -794,8 +802,9 @@ class Simulator:
             self.regs[15].set(self.regs[15].get() + 4)        # PC = PC + 4
 
         if not pcmodified and keeppc in self.assertionCkpts and self.assertionData[keeppc][0] == "AFTER":
+            print("EXEC ASSERT AFTER", self.assertionData[keeppc])
             # We check if we've hit an post-assertion checkpoint
-            self.execAssert(self.assertionData[keeppc][1])
+            self.execAssert(self.assertionData[keeppc][1:])
 
         # We look for interrupts
         # The current instruction is always finished before the interrupt

@@ -50,6 +50,7 @@ states = (
     ('decwithsize', 'exclusive'),
     ('decwithvalues', 'exclusive'),
     ('section', 'exclusive'),
+    ('assertion', 'exclusive'),
 )
 
 tokens = (
@@ -132,7 +133,7 @@ def t_section_SECTIONNAME(t):
     return t
 
 def t_ASSERTION(t):
-    r'ASSERTION\s+'
+    r'ASSERT\s+'
     t.lexer.begin('assertion')
     return t
 

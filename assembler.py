@@ -124,10 +124,11 @@ def parse(code):
             bytecode[currentSection] = bytearray()
 
         if "ASSERTION" in parsedLine:
+            print("ASSERTION", currentAddr)
             if lastLineType is None or lastLineType in ("LABEL", "SECTION"):
-                assertions[currentAddr] = ("BEFORE", parsedLine["ASSERTION"])
+                assertions[currentAddr] = ("BEFORE", i, parsedLine["ASSERTION"])
             elif lastLineType == "BYTECODE":
-                assertions[currentAddr] = ("AFTER", parsedLine["ASSERTION"])
+                assertions[currentAddr-4] = ("AFTER", i, parsedLine["ASSERTION"])
 
         if ("LABEL" in parsedLine or "BYTECODE" in parsedLine) and currentAddr == -1:
             # No section defined, but we have a label or an instruction; we switch to snippet mode
