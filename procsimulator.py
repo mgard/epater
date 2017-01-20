@@ -789,10 +789,6 @@ class Simulator:
         self.sysHandle.clearBreakpoint()
 
         keeppc = self.regs[15].get() - self.pcoffset
-        if keeppc in self.assertionCkpts and self.assertionData[keeppc][0] == "BEFORE":
-            print("EXEC ASSERT BEFORE", self.assertionData[keeppc])
-            # We check if we've hit an post-assertion checkpoint
-            self.execAssert(self.assertionData[keeppc][1:])
 
         # The instruction should have been fetched by the last instruction
         pcmodified = self.execInstr()
@@ -802,9 +798,13 @@ class Simulator:
             self.regs[15].set(self.regs[15].get() + 4)        # PC = PC + 4
 
         if not pcmodified and keeppc in self.assertionCkpts and self.assertionData[keeppc][0] == "AFTER":
-            print("EXEC ASSERT AFTER", self.assertionData[keeppc])
             # We check if we've hit an post-assertion checkpoint
             self.execAssert(self.assertionData[keeppc][1:])
+
+        newpc = self.regs[15].get() - self.pcoffset
+        if newpc in self.assertionCkpts and self.assertionData[newpc][0] == "BEFORE":
+            # We check if we've hit an pre-assertion checkpoint (for the next instruction)
+            self.execAssert(self.assertionData[newpc][1:])
 
         # We look for interrupts
         # The current instruction is always finished before the interrupt

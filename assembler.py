@@ -124,7 +124,6 @@ def parse(code):
             bytecode[currentSection] = bytearray()
 
         if "ASSERTION" in parsedLine:
-            print("ASSERTION", currentAddr)
             if lastLineType is None or lastLineType in ("LABEL", "SECTION"):
                 assertions[currentAddr] = ("BEFORE", i, parsedLine["ASSERTION"])
             elif lastLineType == "BYTECODE":
