@@ -435,6 +435,7 @@ class Simulator:
         self.flags = self.regs.getCPSR()
 
         self.fetchedInstr = None
+        self.decodedInstr = None
 
     def reset(self):
         self.state = SimState.ready
@@ -442,6 +443,9 @@ class Simulator:
         self.regs[15].set(self.pcoffset)
         # We fetch the first instruction
         self.fetchedInstr = bytes(self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True))
+        self.decodedInstr = BytecodeToInstrInfos(self.fetchedInstr)
+        self.decodeInstr()
+
 
     def _printState(self):
         """
@@ -544,6 +548,256 @@ class Simulator:
                 # Assert type unknown
                 self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Assertion inconnue!")))
 
+    def decodeInstr(self):
+        """
+        Decode the current instruction in self.decodedInstr
+        :return:
+        """
+        t, regs, cond, misc = self.decodedInstr
+
+        pcchanged = False
+        highlightread = []
+        highlightwrite = []
+        nextline = -1
+        disassembly = ""
+
+        instrWillExecute = True
+        if (cond == "EQ" and not self.flags['Z'] or
+                cond == "NE" and self.flags['Z'] or
+                cond == "CS" and not self.flags['C'] or
+                cond == "CC" and self.flags['C'] or
+                cond == "MI" and not self.flags['N'] or
+                cond == "PL" and self.flags['N'] or
+                cond == "VS" and not self.flags['V'] or
+                cond == "VC" and self.flags['V'] or
+                cond == "HI" and (not self.flags['C'] or self.flags['Z']) or
+                cond == "LS" and (self.flags['C'] and not self.flags['Z']) or
+                cond == "GE" and not self.flags['V'] == self.flags['N'] or
+                cond == "LT" and self.flags['V'] == self.flags['N'] or
+                cond == "GT" and (self.flags['Z'] or self.flags['V'] != self.flags['N']) or
+                cond == "LE" and (not self.flags['Z'] and self.flags['V'] == self.flags['N'])):
+            instrWillExecute = False
+
+        if t == InstrType.softinterrupt:
+            # We enter a software interrupt
+            # TODO
+            self.regs.setCurrentBank("SVC")                     # Set the register bank
+            self.regs.getSPSR().set(self.regs.getCPSR().get())  # Save the CPSR in the current SPSR
+            self.regs.getCPSR().setMode("SVC")                  # Set the interrupt mode in CPSR
+            # Does entering SVC interrupt deactivate IRQ and/or FIQ?
+            self.regs[14].set(self.regs[15].get())              # Save PC in LR_svc
+            self.regs[15].set(0x08)                             # Set PC to enter the interrupt
+            pcchanged = True
+
+        elif t == InstrType.nopop:
+            disassembly = "NOP"
+
+        elif t == InstrType.branch:
+            disassembly = "B"
+            if misc['L']:       # Link
+                nextline = self.regs[15].get() - self.pcoffset + 4
+                disassembly += "L"
+                highlightwrite = ["r14"]
+                highlightread = ["r15"]
+            if misc['mode'] == 'imm':
+                nextline = self.regs[15].get() + misc['offset']
+                highlightread.append("r15")
+                highlightwrite.append("r15")
+            else:   # BX
+                disassembly += "X"
+                nextline = self.regs[misc['offset']].get()
+                highlightread.append("r{}".format(misc['offset']))
+                highlightwrite.append("r15")
+            pcchanged = True
+            if not instrWillExecute:
+                nextline = self.regs[15].get() + 4
+
+        elif t == InstrType.memop:
+            highlightread = ["r{}".format(misc['base'])]
+            addr = baseval = self.regs[misc['base']].get()
+
+            if misc['imm']:
+                addr += misc['sign'] * misc['offset']
+            else:
+                _, sval = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
+                addr += misc['sign'] * sval
+                highlightread.append("r{}".format(misc['offset'][0]))
+
+            realAddr = addr if misc['pre'] else baseval
+            sizeaccess = 1 if misc['byte'] else 4
+            if misc['mode'] == 'LDR':
+                disassembly = "LDR"
+                for addrmem in range(realAddr, realAddr+sizeaccess):
+                    highlightread.append("MEM_{:X}".format(realAddr))
+                highlightwrite.append(misc['rd'])
+            else:       # STR
+                disassembly = "STR"
+                for addrmem in range(realAddr, realAddr+sizeaccess):
+                    highlightwrite.append("MEM_{:X}".format(realAddr))
+                highlightread.append(misc['rd'])
+
+            if misc['writeback']:
+                highlightwrite.append(misc['base'])
+
+        elif t == InstrType.multiplememop:
+            # TODO
+            # "The lowest-numbereing register is stored to the lowest memory address, through the
+            # highest-numbered register to the highest memory address"
+            baseAddr = self.regs[misc['base']].get()
+            if misc['pre']:
+                baseAddr += misc['sign'] * 4
+
+            currentbank = self.regs.currentBank
+            if currentbank != "User" and misc['sbit'] and (misc['mode'] == "STR" or 15 not in regs):
+                # "For both LDM and STM instructions, the User bank registers are transferred rather thathe register
+                #  bank corresponding to the current mode. This is useful for saving the usestate on process switches.
+                #  Base write-back should not be used when this mechanism is employed."
+                self.regs.setCurrentBank("User", logToHistory=False)
+
+            if misc['mode'] == 'LDR':
+                for reg in regs[::misc['sign']]:
+                    m = self.mem.get(baseAddr, size=4)
+                    val = struct.unpack("<I", m)[0]
+                    self.regs[reg].set(val)
+                    baseAddr += misc['sign'] * 4
+                if misc['sbit'] and 15 in regs:
+                    # "If the instruction is a LDM then SPSR_<mode> is transferred to CPSR at the same time as R15 is loaded."
+                    self.regs.getCPSR().set(self.regs.getSPSR().get())
+            else:   # STR
+                for reg in regs[::misc['sign']]:
+                    val = self.regs[reg].get()
+                    self.mem.set(baseAddr, val, size=4)
+                    baseAddr += misc['sign'] * 4
+            if misc['pre']:
+                baseAddr -= misc['sign'] * 4        # If we are in pre-increment mode, we remove the last increment
+
+            if misc['writeback']:
+                # Technically, it will break if we use a different bank (e.g. the S bit is set), but the ARM spec
+                # explicitely says that "Base write-back should not be used when this mechanism (the S bit) is employed".
+                # Maybe we could output an explicit error if this is the case?
+                self.regs[misc['base']].set(baseAddr)
+
+            if currentbank != self.regs.currentBank:
+                self.regs.setCurrentBank(currentbank, logToHistory=False)
+
+
+        elif t == InstrType.psrtransfer:
+            # TODO
+            if misc['write']:
+                if misc['flagsOnly']:
+                    if misc['imm']:
+                        valToSet = misc['op2'][0]
+                        if misc['op2'][1][2] != 0:
+                            _, valToSet = self._shiftVal(valToSet, misc['op2'][1])
+                    else:
+                        valToSet = self.regs[misc['op2'][0]].get() & 0xF0000000   # We only keep the condition flag bits
+                else:
+                    valToSet = self.regs[misc['op2'][0]].get()
+                if misc['usespsr']:
+                    self.regs.getSPSR().set(valToSet)
+                else:
+                    self.regs.getCPSR().set(valToSet)
+            else:       # Read
+                self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
+
+        elif t == InstrType.dataop:
+            # Get first operand value
+            workingFlags = {}
+            op1 = self.regs[misc['rn']].get()
+            highlightread.append(misc['rn'])
+
+            # Get second operand value
+            if misc['imm']:
+                op2 = misc['op2'][0]
+                if misc['op2'][1][2] != 0:
+                    carry, op2 = self._shiftVal(op2, misc['op2'][1])
+                    workingFlags['C'] = bool(carry)
+            else:
+                op2 = self.regs[misc['op2'][0]].get()
+                highlightread.append(misc['op2'][0])
+                if misc['op2'][0] == 15 and getSetting("PCspecialbehavior"):
+                    op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
+                carry, op2 = self._shiftVal(op2, misc['op2'][1])
+                workingFlags['C'] = bool(carry)
+
+            # Get destination register and write the result
+            destrd = misc['rd']
+
+            if misc['opcode'] in ("AND", "TST"):
+                # These instructions do not affect the V flag (ARM Instr. set, 4.5.1)
+                # However, C flag "is set to the carry out from the barrel shifter [if the shift is not LSL #0]" (4.5.1)
+                # this was already done when we called _shiftVal
+                res = op1 & op2
+            elif misc['opcode'] in ("EOR", "TEQ"):
+                # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
+                res = op1 ^ op2
+            elif misc['opcode'] in ("SUB", "CMP"):
+                res = op1 - op2
+                workingFlags['C'] = self._checkCarry(op1, op2, res)
+                workingFlags['V'] = self._checkOverflow(op1, (~op2)+1, res)
+            elif misc['opcode'] == "RSB":
+                res = op2 - op1
+                workingFlags['C'] = self._checkCarry(op2, op1, res)
+                workingFlags['V'] = self._checkOverflow(op2, (~op1)+1, res)
+            elif misc['opcode'] in ("ADD", "CMN"):
+                res = op1 + op2
+                workingFlags['C'] = self._checkCarry(op1, op2, res)
+                workingFlags['V'] = self._checkOverflow(op1, op2, res)
+            elif misc['opcode'] == "ADC":
+                res = op1 + op2 + int(self.flags['C'])
+                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C']), res)
+                workingFlags['V'] = self._checkOverflow(op1, op2 + int(self.flags['C']), res)
+            elif misc['opcode'] == "SBC":
+                res = op1 - op2 + int(self.flags['C']) - 1
+                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C']) - 1, res)
+                workingFlags['V'] = self._checkOverflow(op1, ((~op2) + 1) + int(self.flags['C']) - 1, res)
+            elif misc['opcode'] == "RSC":
+                res = op2 - op1 + int(self.flags['C']) - 1
+                workingFlags['C'] = self._checkCarry(op2, op1 + int(self.flags['C']) - 1, res)
+                workingFlags['V'] = self._checkOverflow(op2, ((~op1) + 1) + int(self.flags['C']) - 1, res)
+            elif misc['opcode'] == "ORR":
+                res = op1 | op2
+            elif misc['opcode'] == "MOV":
+                res = op2
+            elif misc['opcode'] == "BIC":
+                res = op1 & ~op2     # Bit clear?
+            elif misc['opcode'] == "MVN":
+                res = ~op2
+            else:
+                assert False, "Bad data opcode : " + misc['opcode']
+
+            res &= 0xFFFFFFFF           # Get the result back to 32 bits, if applicable (else it's just a no-op)
+
+            workingFlags['Z'] = res == 0
+            workingFlags['N'] = res & 0x80000000            # "N flag will be set to the value of bit 31 of the result" (4.5.1)
+
+            if destrd == 15:
+                pcchanged = True
+
+            if misc['setflags']:
+                if destrd == 15:
+                    # Combining writing to PC and the S flag is a special case (see ARM Instr. set, 4.5.5)
+                    # "When Rd is R15 and the S flag is set the result of the operation is placed in R15 and
+                    # the SPSR corresponding to the current mode is moved to the CPSR. This allows state
+                    # changes which atomically restore both PC and CPSR. This form of instruction should
+                    # not be used in User mode."
+                    #
+                    # Globally, it tells out to get out of an interrupt
+                    if self.regs.getCPSR().getMode() == "User":
+                        assert False, "Error, using S flag and PC as destination register in user mode!"
+                    self.regs.getCPSR().set(self.regs.getSPSR().get())          # Put back the saved SPSR in CPSR
+                    self.regs.setCurrentBank("User")
+                else:
+                    for flag in workingFlags:
+                        self.flags[flag] = workingFlags[flag]
+            if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
+                highlightwrite.append(destrd)
+
+        # TODO do not return this info if the instruction is not executed (except for nextline)
+        if t == InstrType.branch or instrWillExecute:
+            self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["nextline", nextline], ["disassembly", disassembly]
+
+
     def execInstr(self):
         """
         Execute one instruction
@@ -554,7 +808,7 @@ class Simulator:
         """
 
         # Decode it
-        t, regs, cond, misc = BytecodeToInstrInfos(self.fetchedInstr)
+        t, regs, cond, misc = self.decodedInstr
         workingFlags = {}
         pcchanged = False
 
@@ -827,6 +1081,11 @@ class Simulator:
         nextInstrBytes = self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True)
         if nextInstrBytes is not None:          # We did not make an illegal memory access
             self.fetchedInstr = bytes(nextInstrBytes)
+
+        # Decode instruction
+        if nextInstrBytes is not None:
+            self.decodedInstr = BytecodeToInstrInfos(self.fetchedInstr)
+            self.decodeInstr()
 
         # Question : if we hit a breakpoint for the _next_ instruction, should we enter the interrupt anyway?
         # Did we hit a breakpoint?

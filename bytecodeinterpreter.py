@@ -128,6 +128,10 @@ class BCInterpreter:
             return
         self.sim.mem.set(addr, val[0], 1)
 
+    def getCurrentInfos(self):
+        # Return [["highlightread", ["r3", "SVC_r12", "z", "sz"]], ["highlightwrite", ["r1", "MEM_adresseHexa"]], ["nextline", 42], ["disassembly", ""]]
+        return self.sim.disassemblyInfo
+
     def getRegisters(self):
         return self.sim.regs.getAllRegisters()
 
