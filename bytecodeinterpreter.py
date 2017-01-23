@@ -130,7 +130,11 @@ class BCInterpreter:
 
     def getCurrentInfos(self):
         # Return [["highlightread", ["r3", "SVC_r12", "z", "sz"]], ["highlightwrite", ["r1", "MEM_adresseHexa"]], ["nextline", 42], ["disassembly", ""]]
-        return self.sim.disassemblyInfo
+        s = self.sim.disassemblyInfo
+        if len(s) == 3:
+            # No nextline field
+            s[2][1] = self.addr2line[s[2][1]][-1]
+        return s
 
     def getRegisters(self):
         return self.sim.regs.getAllRegisters()

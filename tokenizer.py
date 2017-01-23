@@ -138,7 +138,7 @@ def t_ASSERTION(t):
     return t
 
 def t_assertion_ASSERTIONDATA(t):
-    r'(\s*(R1[0-5]|R[0-9]|SP|LR|PC|Z|V|N|O|M0x[0-9a-fA-F]+)=[+-]?(0x[0-9a-fA-F]+|[0-9]+),?)+'
+    r'(\s*(R1[0-5]|R[0-9]|SP|LR|PC|Z|V|N|O|0x[0-9a-fA-F]+)=[+-]?(0x[0-9a-fA-F]+|[0-9]+),?)+'
     return t
 
 # A constant or variable declaration

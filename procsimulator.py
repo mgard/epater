@@ -578,6 +578,24 @@ class Simulator:
                 cond == "LE" and (not self.flags['Z'] and self.flags['V'] == self.flags['N'])):
             instrWillExecute = False
 
+        mappingFlagsCond = {"EQ": ['Z'],
+                                "NE": ['Z'],
+                                "CS": ['C'],
+                                "CC": ['C'],
+                                "MI": ['N'],
+                                "PL": ['N'],
+                                "VS": ['V'],
+                                "VC": ['V'],
+                                "HI": ['C', 'Z'],
+                                "LS": ['C', 'Z'],
+                                "GE": ['V', 'N'],
+                                "LT": ['V', 'N'],
+                                "GT": ['V', 'N', 'Z'],
+                                "LE": ['V', 'N', 'Z'],
+                                "AL": [],
+                                }
+        highlightread.extend(mappingFlagsCond[cond])
+
         if t == InstrType.softinterrupt:
             # We enter a software interrupt
             # TODO
@@ -597,8 +615,8 @@ class Simulator:
             if misc['L']:       # Link
                 nextline = self.regs[15].get() - self.pcoffset + 4
                 disassembly += "L"
-                highlightwrite = ["r14"]
-                highlightread = ["r15"]
+                highlightwrite.append("r14")
+                highlightread.append("r15")
             if misc['mode'] == 'imm':
                 nextline = self.regs[15].get() + misc['offset']
                 highlightread.append("r15")
@@ -703,8 +721,10 @@ class Simulator:
         elif t == InstrType.dataop:
             # Get first operand value
             workingFlags = {}
+            disassembly += misc['opcode']
             op1 = self.regs[misc['rn']].get()
-            highlightread.append("r{}".format(misc['rn']))
+            if misc['opcode'] not in ("MOV", "MVN"):
+                highlightread.append("r{}".format(misc['rn']))
 
             # Get second operand value
             if misc['imm']:
@@ -793,9 +813,11 @@ class Simulator:
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
                 highlightwrite.append("r{}".format(destrd))
 
-        # TODO do not return this info if the instruction is not executed (except for nextline)
         if t == InstrType.branch or instrWillExecute:
-            self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["nextline", nextline], ["disassembly", disassembly]
+            if nextline != -1:
+                self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["nextline", nextline], ["disassembly", disassembly]
+            else:
+                self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["disassembly", disassembly]
             print(t, self.disassemblyInfo)
 
 
