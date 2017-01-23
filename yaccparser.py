@@ -35,6 +35,11 @@ def p_linelabel(p):
                  | LABEL COMMENT"""
     p[0] = {'LABEL': p[1]}
 
+def p_linelabel_error(p):
+    """linelabel : LABEL error COMMA"""
+    raise YaccError("Instruction invalide : \"{}\". Veuillez vous référer au manuel du simulateur pour la liste des instructions acceptées. ".format(p[2]))
+
+
 def p_sectiondeclaration(p):
     """sectiondeclaration : SECTION SECTIONNAME
                           | SECTION SECTIONNAME COMMENT"""
@@ -164,6 +169,10 @@ def p_datainst3op(p):
         b |= instruction.conditionMapping['AL'] << 28
     # We return the bytecode
     p[0] = b
+
+def p_datainst3op_error(p):
+    """datainst3op : OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG error"""
+    raise YaccError("L'instruction {} requiert 3 arguments".format(p[1]))
 
 def p_datainsttest(p):
     """datainsttest : OPDATATEST logmnemonic SPACEORTAB REG COMMA op2
@@ -815,11 +824,11 @@ def p_declarationsize(p):
 
 
 def p_error(p):
-    return
     print("Syntax error in input!")
     print("Wrong data:")
     print(p)
     print("End wrong data")
+    return
 
 parser = yacc.yacc()
 

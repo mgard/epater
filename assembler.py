@@ -91,6 +91,11 @@ def parse(code):
         except ParserError as e:
             listErrors.append(("codeerror", i, str(e)))
             continue
+        else:
+            if parsedLine is None:
+                # Unknown error, but the instruction did not parse
+                listErrors.append(("codeerror", i, "Instruction invalide"))
+                continue
 
         # We also assign an address to each line
         assignedAddr.append(max(currentAddr, 0))

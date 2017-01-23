@@ -444,7 +444,8 @@ def t_datainstr_cmpinstr_meminstr_INNERSHIFT(t):
 
 
 # A branch cannot contain a comma
-t_datainstr_shiftinstr_cmpinstr_meminstr_multiplememinstr_psrinstr_mulinstr_decwithvalues_COMMA = r'[\t ]*,[\t ]*'
+#t_datainstr_shiftinstr_cmpinstr_meminstr_multiplememinstr_psrinstr_mulinstr_decwithvalues_COMMA = r'[\t ]*,[\t ]*'
+t_ANY_COMMA = r'[\t ]*,[\t ]*'
 
 # Only memory instructions may have brackets
 t_meminstr_OPENBRACKET = r'\['
