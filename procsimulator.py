@@ -523,14 +523,14 @@ class Simulator:
             if target[0] == "R":
                 # Register
                 reg = int(target[1:])
-                val = int(value, base=0)
+                val = int(value, base=0) & 0xFFFFFFFF
                 valreg = self.regs[reg].get()
                 if valreg != val:
                     self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Erreur : {} devrait valoir {}, mais il vaut {}".format(target, val, valreg))))
             elif target[:1] == "0x":
                 # Memory
                 addr = int(target, base=16)
-                val = int(value, base=0)
+                val = int(value, base=0) & 0xFFFFFFFF
                 valmem = self.mem.get(addr, mayTriggerBkpt=False)
                 if valmem != val:
                     self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Erreur : l'adresse mémoire {} devrait contenir {}, mais elle contient {}".format(target, val, valmem))))
