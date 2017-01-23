@@ -3,6 +3,30 @@ var editableGrid = null;
 
 
 function updateMemoryBreakpointsView() {
+  for (var i = 0; i < mem_highlights_r.length; i++) {
+    tofind = formatHexUnsigned32Bits(mem_highlights_r[i]).slice(0, 9) + "0";
+    var tableRow = $("td", $("#memoryview")).filter(function() {
+      return $(this).text() == tofind;
+    }).closest("tr");
+    if (tableRow.length < 1) {
+      continue;
+    }
+    col = parseInt(mem_highlights_r[i], 16) % 16;
+    $('.editablegrid-c'+col, tableRow).addClass('highlightread');
+  }
+
+  for (var i = 0; i < mem_highlights_w.length; i++) {
+    tofind = formatHexUnsigned32Bits(mem_highlights_w[i]).slice(0, 9) + "0";
+    var tableRow = $("td", $("#memoryview")).filter(function() {
+      return $(this).text() == tofind;
+    }).closest("tr");
+    if (tableRow.length < 1) {
+      continue;
+    }
+    col = parseInt(mem_highlights_w[i], 16) % 16;
+    $('.editablegrid-c'+col, tableRow).addClass('highlightwrite');
+  }
+
   for (var i = 0; i < mem_breakpoints_r.length; i++) {
     tofind = formatHexUnsigned32Bits(mem_breakpoints_r[i]).slice(0, 9) + "0";
     var tableRow = $("td", $("#memoryview")).filter(function() {

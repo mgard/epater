@@ -2,13 +2,17 @@ var ws = new WebSocket("ws://127.0.0.1:31415/");
 
 // Breakpoints and markers
 var asm_breakpoints = [];
+var mem_highlights_r = [];
+var mem_highlights_w = [];
 var mem_breakpoints_r = [];
 var mem_breakpoints_w = [];
 var mem_breakpoints_rw = [];
 var mem_breakpoints_e = [];
 var mem_breakpoints_instr = [];
 var current_debugline = -1;
+var next_debugline = -1;
 var debug_marker = null;
+var next_debug_marker = null;
 
 ws.onerror = function (event) {
     displayErrorMsg("Erreur de connexion avec le simulateur.");
@@ -22,7 +26,6 @@ function displayErrorMsg(msg) {
 
 ws.onmessage = function (event) {
 	obj_list = JSON.parse(event.data);
-
     //console.log("reception: ", +new Date()/1000, obj_list);
 
     for (var idx in obj_list) {
@@ -59,12 +62,22 @@ ws.onmessage = function (event) {
             for (var i = 0; i < obj[1].length; i++) {
                 editor.session.setBreakpoint(obj[1][i]);
             }
+        } else if (obj[0] == 'nextline') {
+            /*if (next_debug_marker !== null) { editor.session.removeMarker(next_debug_marker); }
+            next_debug_marker = editor.session.addMarker(new aceRange(obj[1], 0, obj[1] + 1, 0), "next_debug_line", "text");
+            next_debugline = obj[1];*/
         } else if (obj[0] == 'debugline') {
             // Re-enable buttons if disabled
             $("#run").prop('disabled', false);
             $("#stepin").prop('disabled', false);
             $("#stepout").prop('disabled', false);
             $("#stepforward").prop('disabled', false);
+
+            $(".highlightread").removeClass("highlightread");
+            $(".highlightwrite").removeClass("highlightwrite");
+
+            mem_highlights_r.length = 0;
+            mem_highlights_w.length = 0;
 
             if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
             if (obj[1] >= 0) {
@@ -78,6 +91,27 @@ ws.onmessage = function (event) {
             } else {
                 debug_marker = null;
             }
+        } else if (obj[0].slice(0, 9) == 'highlight') {
+            console.log("Ici!");
+            type = obj[0].slice(9);
+            for (var i = 0; i < obj[1].length; i++) {
+                var element = obj[1][i];
+                try {
+                    if (element.slice(0, 4) == "MEM_") {
+                        var addr = element.slice(4);
+                        if (type == "read") {
+                            mem_highlights_r.push(addr);
+                            console.log("Read:", addr);
+                        } else {
+                            mem_highlights_w.push(addr);
+                            console.log("Write:", addr);
+                        }
+                    } else {
+                        $(document.getElementById(element)).addClass("highlight" + type);
+                    }
+                } catch(e) {}
+            }
+        } else if (obj[0] == 'highlightwrite') {
         } else if (obj[0] == 'debuginstrmem') {
             mem_breakpoints_instr = obj[1];
             if ($("#follow_pc").is(":checked")) {
@@ -130,7 +164,7 @@ function removeCodeErrors() {
 
 function assemble() {
     sendData(JSON.stringify(['assemble', editor.getValue()]));
-    
+
     // Remove code errors tooltips
     codeerrors = {};
     $(".ace_content").css("background-color", "#FFF");

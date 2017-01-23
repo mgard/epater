@@ -239,8 +239,13 @@ def updateDisplay(interp, force_all=False):
 
     try:
         retval.append(["debugline", interp.getCurrentLine()])
+        retval.extend(interp.getCurrentInfos())
     except AssertionError:
         retval.append(["debugline", -1])
+        #retval.append(["highlightread", []])
+        #retval.append(["highlightwrite", []])
+        retval.append(["nextline", -1])
+        retval.append(["disassembly", "No info"])
 
     try:
         instr_addr = interp.getCurrentInstructionAddress()

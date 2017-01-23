@@ -37,6 +37,20 @@ h4 {
     font-family: monospace;
 }
 
+/* Current operation highlighrs */
+.highlightread {
+    border: 2px solid red !important;
+}
+
+.highlightwrite {
+    border: 2px solid green !important;
+}
+
+.highlightread.highlightwrite {
+    border: 2px solid yellow !important;
+}
+/* */
+
 .smaller_font {
     font-size: 0.8em;
 }
@@ -90,15 +104,13 @@ img {
     width: auto;*/
 }
 
-/* This is how you would create a theme called "my-custom-theme": */
-
 .ts-error {
 	border-radius: 5px;
 	border: 2px solid #F00;
 	background: #C44;
 	color: #fff;
 }
-/* Use this next selector to style things like font-size and line-height: */
+
 .ts-error .tooltipster-content {
 	font-family: Arial, sans-serif;
 	font-size: 14px;
@@ -132,13 +144,20 @@ img {
 }
 
 .ace_label {
-    color: #00A;
+    color: #A0A;
     font-weight: ;
 }
 
 .debug_line.ace_start {
     position: absolute;
     background: rgba(100,200,100,0.5);
+    z-index: 20;
+    width: 100% !important;
+}
+
+.next_debug_line.ace_start {
+    position: absolute;
+    background: rgba(200,100,100,0.5);
     z-index: 20;
     width: 100% !important;
 }

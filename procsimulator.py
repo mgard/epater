@@ -628,16 +628,16 @@ class Simulator:
             if misc['mode'] == 'LDR':
                 disassembly = "LDR"
                 for addrmem in range(realAddr, realAddr+sizeaccess):
-                    highlightread.append("MEM_{:X}".format(realAddr))
-                highlightwrite.append(misc['rd'])
+                    highlightread.append("MEM_{:X}".format(addrmem))
+                highlightwrite.append("r{}".format(misc['rd']))
             else:       # STR
                 disassembly = "STR"
                 for addrmem in range(realAddr, realAddr+sizeaccess):
-                    highlightwrite.append("MEM_{:X}".format(realAddr))
-                highlightread.append(misc['rd'])
+                    highlightwrite.append("MEM_{:X}".format(addrmem))
+                highlightread.append("r{}".format(misc['rd']))
 
             if misc['writeback']:
-                highlightwrite.append(misc['base'])
+                highlightwrite.append("r{}".format(misc['base']))
 
         elif t == InstrType.multiplememop:
             # TODO
@@ -704,7 +704,7 @@ class Simulator:
             # Get first operand value
             workingFlags = {}
             op1 = self.regs[misc['rn']].get()
-            highlightread.append(misc['rn'])
+            highlightread.append("r{}".format(misc['rn']))
 
             # Get second operand value
             if misc['imm']:
@@ -714,7 +714,7 @@ class Simulator:
                     workingFlags['C'] = bool(carry)
             else:
                 op2 = self.regs[misc['op2'][0]].get()
-                highlightread.append(misc['op2'][0])
+                highlightread.append("r{}".format(misc['op2'][0]))
                 if misc['op2'][0] == 15 and getSetting("PCspecialbehavior"):
                     op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
                 carry, op2 = self._shiftVal(op2, misc['op2'][1])
@@ -791,11 +791,12 @@ class Simulator:
                     for flag in workingFlags:
                         self.flags[flag] = workingFlags[flag]
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
-                highlightwrite.append(destrd)
+                highlightwrite.append("r{}".format(destrd))
 
         # TODO do not return this info if the instruction is not executed (except for nextline)
         if t == InstrType.branch or instrWillExecute:
             self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["nextline", nextline], ["disassembly", disassembly]
+            print(t, self.disassemblyInfo)
 
 
     def execInstr(self):
