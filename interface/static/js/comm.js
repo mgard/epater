@@ -139,6 +139,7 @@ function assemble() {
 
     asm_breakpoints.length = 0;
     editor.session.clearBreakpoints();
+    editor.session.clearAnnotations();
 
     $("#cycles_count").val("0");
     $("#message_bar").slideUp("normal", "easeInOutBack", function() {});
