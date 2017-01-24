@@ -13,10 +13,9 @@ import smtplib
 from email.mime.text import MIMEText
 
 import websockets
-from bs4 import BeautifulSoup
 from gevent import monkey; monkey.patch_all()
 import bottle
-from bottle import route, get, template, static_file, request
+from bottle import route, static_file, get, request, template
 
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
@@ -485,6 +484,7 @@ SECTION DATA
 
 variablemem DS32 10"""
 
+
 index_template = open('./interface/index.html', 'r').read()
 @get('/')
 def index():
@@ -515,12 +515,14 @@ def http_server():
 
 if __name__ == '__main__':
 
-    p = Process(target=http_server)
-    p.start()
+    if DEBUG:
+        p = Process(target=http_server)
+        p.start()
 
     # Websocket Server
     start_server = websockets.serve(handler, '127.0.0.1', 31415)
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
 
-    p.join()
+    if DEBUG:
+        p.join()

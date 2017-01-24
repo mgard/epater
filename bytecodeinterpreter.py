@@ -133,7 +133,11 @@ class BCInterpreter:
         s = self.sim.disassemblyInfo
         if len(s) == 3:
             # No nextline field
-            s[2][1] = self.addr2line[s[2][1]][-1]
+            idx = [i for i, x in enumerate(s) if x[0] == "nextline"]
+            try:
+                s[idx[0]][1] = self.addr2line[s[idx[0]][1]][-1]
+            except IndexError:
+                s = [x for i, x in enumerate(s) if i != idx]
         return s
 
     def getRegisters(self):
