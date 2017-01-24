@@ -32,7 +32,9 @@ ws.onmessage = function (event) {
         var obj = obj_list[idx];
 
         var element = document.getElementById(obj[0]);
-        if (element != null) {
+        if (obj[0] == "disassembly") {
+            $("#disassembly").html(obj[1]);
+        } else if (element != null) {
             var target_value = obj[1];
 
             if ($.inArray("formatted_value", element.classList) >= 0) {
@@ -93,7 +95,6 @@ ws.onmessage = function (event) {
                 debug_marker = null;
             }
         } else if (obj[0].slice(0, 9) == 'highlight') {
-            console.log("Ici!");
             type = obj[0].slice(9);
             for (var i = 0; i < obj[1].length; i++) {
                 var element = obj[1][i];
