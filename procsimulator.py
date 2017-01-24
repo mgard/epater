@@ -641,14 +641,11 @@ class Simulator:
 
         if t == InstrType.softinterrupt:
             # We enter a software interrupt
-            # TODO
-            self.regs.setCurrentBank("SVC")                     # Set the register bank
-            self.regs.getSPSR().set(self.regs.getCPSR().get())  # Save the CPSR in the current SPSR
-            self.regs.getCPSR().setMode("SVC")                  # Set the interrupt mode in CPSR
-            # Does entering SVC interrupt deactivate IRQ and/or FIQ?
-            self.regs[14].set(self.regs[15].get())              # Save PC in LR_svc
-            self.regs[15].set(0x08)                             # Set PC to enter the interrupt
-            pcchanged = True
+            description += "<li>Changement de banque de registres vers SVC</li>\n"
+            description += "<li>Copie du CPSR dans le SPSR_svc</li>\n"
+            description += "<li>Copie de PC dans LR_svc</li>\n"
+            description += "<li>Assignation de 0x08 dans PC</li>\n"
+            disassembly = "SVC {}".format(hex(misc))
 
         elif t == InstrType.nopop:
             disassembly = "NOP"
@@ -667,9 +664,6 @@ class Simulator:
                 highlightread.append("r15")
                 highlightwrite.append("r15")
                 valAdd = misc['offset']
-                if valAdd > 2**31:
-                    valAdd -= 2**32
-                valAdd *= 4
                 if valAdd < 0:
                     description += "<li>Soustrait la valeur {} à PC</li>\n".format(-valAdd)
                 else:
@@ -1016,6 +1010,7 @@ class Simulator:
                 self.stepCondition += 1         # We are entering a function, we log it (useful for stepForward and stepOut)
             if misc['mode'] == 'imm':
                 self.regs[15].set(self.regs[15].get() + misc['offset'])
+                print("!!!!!!!!!", misc['offset'])
             else:   # BX
                 self.regs[15].set(self.regs[misc['offset']].get())
                 self.stepCondition -= 1         # We are returning from a function, we log it (useful for stepForward and stepOut)
