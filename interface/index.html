@@ -632,31 +632,35 @@
             });
 
             $("input[type=text]").change(function () {
-                if ($(this).attr("id") != "interrupt_active") {
-                    target_val = $(this).val();
+                var objid = $(this).attr("id");
+                if (objid == animate_speed) { return; }
 
-                    if ($.inArray("formatted_value", this.classList) >= 0) {
-                        // Convert to hex if from another format
-                        format_ = $("#valueformat").val()
-                        if (format_ == "dec") {
-                            target_val = parseInt(target_val).toString(16);
-                        } else if (format_ == "decsign") {
-                            target_val = parseInt(target_val);
-                            if (target_val < 0) { target_val = target_val + Math.pow(2, 32); }
-                            target_val = target_val.toString(16);
-                        } else if (format_ == "bin") {
-                            target_val = parseInt(target_val, 2).toString(16);
-                        }
-                    }
-
-                    sendCmd(["update", $(this).attr("id"), target_val]);
-                } else {
+                if (objid == "interrupt_active") {
                     if (document.getElementById('interrupt_active').checked) {
                         sendCmd(["interrupt", true, $("#interrupt_type").val(), parseInt($("#interrupt_cycles").val()), parseInt($("#interrupt_cycles_first").val())]);
                     } else {
                         sendCmd(["interrupt", false, $("#interrupt_type").val(), parseInt($("#interrupt_cycles").val()), parseInt($("#interrupt_cycles_first").val())]);
                     }
+                    return;
                 }
+
+                target_val = $(this).val();
+
+                if ($.inArray("formatted_value", this.classList) >= 0) {
+                    // Convert to hex if from another format
+                    format_ = $("#valueformat").val()
+                    if (format_ == "dec") {
+                        target_val = parseInt(target_val).toString(16);
+                    } else if (format_ == "decsign") {
+                        target_val = parseInt(target_val);
+                        if (target_val < 0) { target_val = target_val + Math.pow(2, 32); }
+                        target_val = target_val.toString(16);
+                    } else if (format_ == "bin") {
+                        target_val = parseInt(target_val, 2).toString(16);
+                    }
+                }
+
+                sendCmd(["update", $(this).attr("id"), target_val]);
             });
 
             $(".flag_btn").click(function() {
