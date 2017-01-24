@@ -63,9 +63,9 @@ ws.onmessage = function (event) {
                 editor.session.setBreakpoint(obj[1][i]);
             }
         } else if (obj[0] == 'nextline') {
-            /*if (next_debug_marker !== null) { editor.session.removeMarker(next_debug_marker); }
+            if (next_debug_marker !== null) { editor.session.removeMarker(next_debug_marker); }
             next_debug_marker = editor.session.addMarker(new aceRange(obj[1], 0, obj[1] + 1, 0), "next_debug_line", "text");
-            next_debugline = obj[1];*/
+            next_debugline = obj[1];
         } else if (obj[0] == 'debugline') {
             // Re-enable buttons if disabled
             $("#run").prop('disabled', false);
@@ -80,6 +80,7 @@ ws.onmessage = function (event) {
             mem_highlights_w.length = 0;
 
             if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
+            if (next_debug_marker !== null) { editor.session.removeMarker(next_debug_marker); }
             if (obj[1] >= 0) {
                 aceRange = ace.require('ace/range').Range;
                 debug_marker = editor.session.addMarker(new aceRange(obj[1], 0, obj[1] + 1, 0), "debug_line", "text");
