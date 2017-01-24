@@ -753,10 +753,8 @@ def BytecodeToInstrInfos(bc):
             offset = instrInt & 0xFFF
         else:
             rm = instrInt & 0xF
-            if instrInt & (1 << 4):
-                shift = (shiftMappingR[(instrInt >> 5) & 0x3], "reg", (instrInt >> 8) & 0xF)
-            else:
-                shift = (shiftMappingR[(instrInt >> 5) & 0x3] , "imm", (instrInt >> 7) & 0x1F)
+            # Not register shift
+            shift = (shiftMappingR[(instrInt >> 5) & 0x3] , "imm", (instrInt >> 7) & 0x1F)
             offset = (rm, shift)
 
         affectedRegs = (destreg,) if not writeback else (destreg, basereg)

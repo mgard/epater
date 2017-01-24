@@ -560,6 +560,49 @@ class Simulator:
         highlightwrite = []
         nextline = -1
         disassembly = ""
+        description = "<ol>\n"
+        if cond != 'AL':
+            description += "<li>Vérifie si la condition {} est remplie</li>\n".format(cond)
+
+        def _shiftToDescription(shiftInfo):
+            if shiftInfo[2] == 0 and shiftInfo[0] == "LSL" and shiftInfo[1] != 'reg':
+                # No shift
+                return ""
+
+            desc = "("
+            if shiftInfo[0] == "LSL":
+                desc += "décalé vers la gauche (mode LSL)"
+            elif shiftInfo[0] == "LSR":
+                desc += "décalé vers la droite (mode LSR)"
+            elif shiftInfo[0] == "ASR":
+                desc += "décalé vers la droite (mode ASR)"
+            elif shiftInfo[0] == "ROR":
+                if shiftInfo[2] == 0:
+                    desc += "permuté vers la droite avec retenue (mode RRX)"
+                else:
+                    desc += "permuté vers la droite (mode ROR)"
+
+            if shiftInfo[1] == 'reg':
+                desc += " du nombre de positions contenu dans R{}".format(shiftInfo[2])
+            else:
+                desc += " de {} positions".format(shiftInfo[2])
+
+            desc += ")"
+            return desc
+
+        def _shiftToInstruction(shiftInfo):
+            if shiftInfo[2] == 0 and shiftInfo[0] == "LSL" and shiftInfo[1] != 'reg':
+                # No shift
+                return ""
+
+            str = ", " + shiftInfo[0]
+            if shiftInfo[0] == "ROR" and shiftInfo[2] == 0:
+                str = ", RRX"
+            if shiftInfo[1] == 'reg':
+                str += " R{}".format(shiftInfo[2])
+            else:
+                str += " #{}".format(shiftInfo[2])
+            return str
 
         instrWillExecute = True
         if (cond == "EQ" and not self.flags['Z'] or
@@ -609,6 +652,7 @@ class Simulator:
 
         elif t == InstrType.nopop:
             disassembly = "NOP"
+            description += "<li>Ne rien faire</li><li>Nonon, vraiment, juste rien</li>"
 
         elif t == InstrType.branch:
             disassembly = "B"
@@ -617,16 +661,29 @@ class Simulator:
                 disassembly += "L"
                 highlightwrite.append("r14")
                 highlightread.append("r15")
+                description += "<li>Copie la valeur de PC dans LR</li>\n"
             if misc['mode'] == 'imm':
                 nextline = self.regs[15].get() + misc['offset']
                 highlightread.append("r15")
                 highlightwrite.append("r15")
+                valAdd = misc['offset']
+                if valAdd > 2**31:
+                    valAdd -= 2**32
+                valAdd *= 4
+                if valAdd < 0:
+                    description += "<li>Soustrait la valeur {} à PC</li>\n".format(-valAdd)
+                else:
+                    description += "<li>Additionne la valeur {} à PC</li>\n".format(valAdd)
             else:   # BX
                 disassembly += "X"
                 nextline = self.regs[misc['offset']].get()
                 highlightread.append("r{}".format(misc['offset']))
                 highlightwrite.append("r15")
+                description += "<li>Copie la valeur de R{} dans PC</li>\n".format(misc['offset'])
             pcchanged = True
+
+            disassembly += cond if cond != 'AL' else ""
+            disassembly += " {}".format(hex(valAdd)) if misc['mode'] == 'imm' else " R{}".format(misc['offset'])
             if not instrWillExecute:
                 nextline = self.regs[15].get() + 4
 
@@ -634,9 +691,19 @@ class Simulator:
             highlightread = ["r{}".format(misc['base'])]
             addr = baseval = self.regs[misc['base']].get()
 
+            description += "<li>Utilise la valeur du registre R{} comme adresse de base</li>\n".format(misc['base'])
+
+            descoffset = ""
             if misc['imm']:
                 addr += misc['sign'] * misc['offset']
+                if misc['offset'] > 0:
+                    descoffset = "<li>Additionne la constante {} à l'adresse de base</li>\n".format(misc['sign'] * misc['offset'])
             else:
+                shiftDesc = _shiftToDescription(misc['offset'][1])
+                if misc['sign'] > 0:
+                    descoffset = "<li>Additionne le registre R{} {} à l'adresse de base</li>\n".format(misc['offset'][0], shiftDesc)
+                else:
+                    descoffset = "<li>Soustrait le registre R{} {} à l'adresse de base</li>\n".format(misc['offset'][0], shiftDesc)
                 _, sval = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
                 addr += misc['sign'] * sval
                 highlightread.append("r{}".format(misc['offset'][0]))
@@ -644,18 +711,52 @@ class Simulator:
             realAddr = addr if misc['pre'] else baseval
             sizeaccess = 1 if misc['byte'] else 4
             if misc['mode'] == 'LDR':
-                disassembly = "LDR"
+                disassembly = "LDR{}{} R{}, [R{}".format("" if sizeaccess == 4 else "B", "" if cond == 'AL' else cond, misc['rd'], misc['base'])
+                if misc['pre']:
+                    description += descoffset
+                    description += "<li>Lit {} octets à partir de l'adresse obtenue (pré-incrément) et stocke le résultat dans R{} (LDR)</li>\n".format(sizeaccess, misc['rd'])
+                else:
+                    description += "<li>Lit {} octets à partir de l'adresse de base et stocke le résultat dans R{} (LDR)</li>\n".format(sizeaccess, misc['rd'])
+                    description += descoffset
                 for addrmem in range(realAddr, realAddr+sizeaccess):
                     highlightread.append("MEM_{:X}".format(addrmem))
                 highlightwrite.append("r{}".format(misc['rd']))
             else:       # STR
-                disassembly = "STR"
+                disassembly = "STR{}{} R{}, [R{}".format("" if sizeaccess == 4 else "B", "" if cond == 'AL' else cond, misc['rd'], misc['base'])
+                if misc['pre']:
+                    description += descoffset
+                    description += "<li>Copie la valeur du registre R{} dans la mémoire, à l'adresse obtenue à l'étape précédente (pré-incrément), sur {} octets (STR)</li>\n".format(misc['rd'], sizeaccess)
+                else:
+                    description += "<li>Copie la valeur du registre R{} dans la mémoire, à l'adresse de base, sur {} octets (STR)</li>\n".format(misc['rd'], sizeaccess)
+                    description += descoffset
+
                 for addrmem in range(realAddr, realAddr+sizeaccess):
                     highlightwrite.append("MEM_{:X}".format(addrmem))
                 highlightread.append("r{}".format(misc['rd']))
 
+            if misc['pre']:
+                if misc['imm']:
+                    if misc['offset'] == 0:
+                        disassembly += "]"
+                    else:
+                        disassembly += ", {}]".format(hex(misc['sign'] * misc['offset']))
+                else:
+                    disassembly += ", {}".format(misc['offset'][0])
+                    disassembly += _shiftToInstruction(misc['offset'][1]) + "]"
+            else:
+                # Post
+                disassembly += "]"
+                if misc['imm'] and misc['offset'] != 0:
+                    disassembly += " {}".format(hex(misc['sign'] * misc['offset']))
+                else:
+                    disassembly += " R{}".format(misc['offset'][0])
+                    disassembly += _shiftToInstruction(misc['offset'][1])
+
             if misc['writeback']:
                 highlightwrite.append("r{}".format(misc['base']))
+                description += "<li>Écrit l'adresse effective dans le registre de base R{} (mode writeback)</li>\n".format(misc['base'])
+                if misc['pre']:
+                    disassembly += "!"
 
         elif t == InstrType.multiplememop:
             # TODO
@@ -721,17 +822,26 @@ class Simulator:
         elif t == InstrType.dataop:
             # Get first operand value
             workingFlags = {}
-            disassembly += misc['opcode']
+            disassembly = misc['opcode']
+            if cond != 'AL':
+                disassembly += cond
+            if misc['setflags'] and misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
+                disassembly += "S"
+
             op1 = self.regs[misc['rn']].get()
             if misc['opcode'] not in ("MOV", "MVN"):
                 highlightread.append("r{}".format(misc['rn']))
 
+            op2desc = ""
+            op2dis = ""
             # Get second operand value
             if misc['imm']:
                 op2 = misc['op2'][0]
                 if misc['op2'][1][2] != 0:
                     carry, op2 = self._shiftVal(op2, misc['op2'][1])
                     workingFlags['C'] = bool(carry)
+                op2desc = "la constante {}".format(op2)
+                op2dis = "#{}".format(hex(op2))
             else:
                 op2 = self.regs[misc['op2'][0]].get()
                 highlightread.append("r{}".format(misc['op2'][0]))
@@ -739,60 +849,84 @@ class Simulator:
                     op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
                 carry, op2 = self._shiftVal(op2, misc['op2'][1])
                 workingFlags['C'] = bool(carry)
+                shiftDesc = _shiftToDescription(misc['op2'][1])
+                shiftinstr = _shiftToInstruction(misc['op2'][1])
+                op2desc = "le registre R{} {}".format(misc['op2'][0], shiftDesc)
+                op2dis = "R{}{}".format(misc['op2'][0], shiftinstr)
 
             # Get destination register and write the result
             destrd = misc['rd']
+            disassembly += " R{}, ".format(destrd)
 
             if misc['opcode'] in ("AND", "TST"):
                 # These instructions do not affect the V flag (ARM Instr. set, 4.5.1)
                 # However, C flag "is set to the carry out from the barrel shifter [if the shift is not LSL #0]" (4.5.1)
                 # this was already done when we called _shiftVal
                 res = op1 & op2
+                description += "<li>Effectue une opération ET entre:\n"
             elif misc['opcode'] in ("EOR", "TEQ"):
                 # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
                 res = op1 ^ op2
+                description += "<li>Effectue une opération OU EXCLUSIF (XOR) entre:\n"
             elif misc['opcode'] in ("SUB", "CMP"):
                 res = op1 - op2
                 workingFlags['C'] = self._checkCarry(op1, op2, res)
                 workingFlags['V'] = self._checkOverflow(op1, (~op2)+1, res)
+                description += "<li>Effectue une soustraction (A-B) entre:\n"
             elif misc['opcode'] == "RSB":
                 res = op2 - op1
                 workingFlags['C'] = self._checkCarry(op2, op1, res)
                 workingFlags['V'] = self._checkOverflow(op2, (~op1)+1, res)
+                description += "<li>Effectue une soustraction inverse (B-A) entre:\n"
             elif misc['opcode'] in ("ADD", "CMN"):
                 res = op1 + op2
                 workingFlags['C'] = self._checkCarry(op1, op2, res)
                 workingFlags['V'] = self._checkOverflow(op1, op2, res)
+                description += "<li>Effectue une addition (A+B) entre:\n"
             elif misc['opcode'] == "ADC":
                 res = op1 + op2 + int(self.flags['C'])
                 workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C']), res)
                 workingFlags['V'] = self._checkOverflow(op1, op2 + int(self.flags['C']), res)
+                description += "<li>Effectue une addition avec retenue (A+B+carry) entre:\n"
             elif misc['opcode'] == "SBC":
                 res = op1 - op2 + int(self.flags['C']) - 1
                 workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C']) - 1, res)
                 workingFlags['V'] = self._checkOverflow(op1, ((~op2) + 1) + int(self.flags['C']) - 1, res)
+                description += "<li>Effectue une soustraction avec emprunt (A-B+carry) entre:\n"
             elif misc['opcode'] == "RSC":
                 res = op2 - op1 + int(self.flags['C']) - 1
                 workingFlags['C'] = self._checkCarry(op2, op1 + int(self.flags['C']) - 1, res)
                 workingFlags['V'] = self._checkOverflow(op2, ((~op1) + 1) + int(self.flags['C']) - 1, res)
+                description += "<li>Effectue une soustraction inverse avec emprunt (B-A+carry) entre:\n"
             elif misc['opcode'] == "ORR":
                 res = op1 | op2
+                description += "<li>Effectue une opération OU entre:\n"
             elif misc['opcode'] == "MOV":
                 res = op2
+                description += "<li>Lit la valeur de :\n"
             elif misc['opcode'] == "BIC":
                 res = op1 & ~op2     # Bit clear?
+                description += "<li>Effectue une opération ET NON entre:\n"
             elif misc['opcode'] == "MVN":
                 res = ~op2
+                description += "<li>Effectue une opération NOT sur :\n"
             else:
                 assert False, "Bad data opcode : " + misc['opcode']
 
-            res &= 0xFFFFFFFF           # Get the result back to 32 bits, if applicable (else it's just a no-op)
 
+            if misc['opcode'] in ("MOV", "MVN"):
+                description += "<ol type=\"A\"><li>{}</li></ol>\n".format(op2desc)
+            else:
+                description += "<ol type=\"A\"><li>Le registre R{}</li>\n".format(misc['rn'])
+                description += "<li>{}</li></ol>\n".format(op2desc)
+                disassembly += "R{}, ".format(misc['rn'])
+            disassembly += op2dis
+
+            description += "</li>\n"
+
+            res &= 0xFFFFFFFF           # Get the result back to 32 bits, if applicable (else it's just a no-op)
             workingFlags['Z'] = res == 0
             workingFlags['N'] = res & 0x80000000            # "N flag will be set to the value of bit 31 of the result" (4.5.1)
-
-            if destrd == 15:
-                pcchanged = True
 
             if misc['setflags']:
                 if destrd == 15:
@@ -807,17 +941,23 @@ class Simulator:
                         assert False, "Error, using S flag and PC as destination register in user mode!"
                     self.regs.getCPSR().set(self.regs.getSPSR().get())          # Put back the saved SPSR in CPSR
                     self.regs.setCurrentBank("User")
+                    description += "<li>Copie le SPSR courant dans CPSR</li>\n"
                 else:
                     for flag in workingFlags:
-                        self.flags[flag] = workingFlags[flag]
+                        highlightwrite.append(flag.lower())
+                    description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
+                description += "<li>Écrit le résultat dans R{}".format(destrd)
                 highlightwrite.append("r{}".format(destrd))
 
+        description += "</ol>"
+
+        dis = '<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">{}</div>\n'.format(disassembly, description)
         if t == InstrType.branch or instrWillExecute:
             if nextline != -1:
-                self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["nextline", nextline], ["disassembly", disassembly]
+                self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["nextline", nextline], ["disassembly", dis]
             else:
-                self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["disassembly", disassembly]
+                self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["disassembly", dis]
             print(t, self.disassemblyInfo)
 
 
