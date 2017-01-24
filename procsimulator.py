@@ -754,6 +754,11 @@ class Simulator:
 
         elif t == InstrType.multiplememop:
             # TODO
+            if misc['mode'] == 'LDR':
+                disassembly = "POP" if misc['base'] == 13 and misc['writeback'] else "LDM"
+            else:
+                disassembly = "PUSH" if misc['base'] == 13 and misc['writeback'] else "STM"
+
             # "The lowest-numbereing register is stored to the lowest memory address, through the
             # highest-numbered register to the highest memory address"
             baseAddr = self.regs[misc['base']].get()
@@ -796,6 +801,9 @@ class Simulator:
 
         elif t == InstrType.psrtransfer:
             # TODO
+            disassembly = misc['opcode']
+            if cond != 'AL':
+                disassembly += cond
             if misc['write']:
                 if misc['flagsOnly']:
                     if misc['imm']:
@@ -811,6 +819,8 @@ class Simulator:
                 else:
                     self.regs.getCPSR().set(valToSet)
             else:       # Read
+                description += "<li>Lit la valeur de {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
+                description += "<li>Écrit le résultat dans R{}</li>\n".format(misc['rd'])
                 self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
 
         elif t == InstrType.dataop:
@@ -847,6 +857,8 @@ class Simulator:
                 shiftinstr = _shiftToInstruction(misc['op2'][1])
                 op2desc = "le registre R{} {}".format(misc['op2'][0], shiftDesc)
                 op2dis = "R{}{}".format(misc['op2'][0], shiftinstr)
+                if misc['op2'][1][1] == 'reg':
+                    highlightread.append(misc['op2'][1][2])
 
             # Get destination register and write the result
             destrd = misc['rd']
@@ -908,7 +920,7 @@ class Simulator:
                 assert False, "Bad data opcode : " + misc['opcode']
 
 
-            if misc['opcode'] in ("MOV", "MVN"):
+            if misc['opcode'] in ("MOV", "MVN", "TST", "TEQ", "CMP", "CMN"):
                 description += "<ol type=\"A\"><li>{}</li></ol>\n".format(op2desc)
             else:
                 description += "<ol type=\"A\"><li>Le registre R{}</li>\n".format(misc['rn'])
@@ -952,7 +964,6 @@ class Simulator:
                 self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["nextline", nextline], ["disassembly", dis]
             else:
                 self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["disassembly", dis]
-            print(t, self.disassemblyInfo)
 
 
     def execInstr(self):
