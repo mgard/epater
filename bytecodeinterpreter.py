@@ -137,7 +137,7 @@ class BCInterpreter:
         try:
             s[idx[0]][1] = self.addr2line[s[idx[0]][1]][-1]
         except IndexError:
-            s = [x for i, x in enumerate(s) if i != idx]
+            s = [x for i, x in enumerate(s) if x[0] != "nextline"]
 
         return s
 
