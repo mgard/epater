@@ -1010,7 +1010,6 @@ class Simulator:
                 self.stepCondition += 1         # We are entering a function, we log it (useful for stepForward and stepOut)
             if misc['mode'] == 'imm':
                 self.regs[15].set(self.regs[15].get() + misc['offset'])
-                print("!!!!!!!!!", misc['offset'])
             else:   # BX
                 self.regs[15].set(self.regs[misc['offset']].get())
                 self.stepCondition -= 1         # We are returning from a function, we log it (useful for stepForward and stepOut)
