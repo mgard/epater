@@ -938,7 +938,7 @@ class Simulator:
                 if destrd == 15:
                     description += "<li>Copie le SPSR courant dans CPSR</li>\n"
                 else:
-                    for flag in workingFlags:
+                    for flag in modifiedFlags:
                         highlightwrite.append(flag.lower())
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
