@@ -254,7 +254,12 @@ def p_shift(p):
              | INNERSHIFT SPACEORTAB SHARP CONST"""
     plist = list(p)
     # Shift type
-    p[0] = instruction.shiftMapping[p[1]] << 5
+    if len(plist) == 4 and p[4] == 0 and p[1] in ('LSR', 'ASR', 'ROR'):
+        # "Logical shift right zero is redundant as it is the same as logical shift left zero, so the assembler
+        # will convert LSR #0 (and ASR #0 and ROR #0) into LSL #0, and allow LSR #32 to be specified."
+        p[0] = instruction.shiftMapping['LSL'] << 5
+    else:
+        p[0] = instruction.shiftMapping[p[1]] << 5
     if len(plist) == 2:
         # Special case, must be RRX
         assert p[1] == "RRX"
@@ -269,6 +274,7 @@ def p_shift(p):
         if p[4] > 31:
             raise YaccError("Impossible d'encoder le décalage {} dans une instruction (ce dernier doit être inférieur à 32)".format(p[4]))
         p[0] |= p[4] << 7
+
 
 
 

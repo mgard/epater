@@ -103,7 +103,7 @@ shiftMapping = {'LSL': 0,
                 'ROR': 3,
                 'RRX': 3}
 
-shiftMappingR = {v: k for k,v in shiftMapping.items()}
+shiftMappingR = {0: 'LSL', 1: 'LSR', 2: 'ASR', 3: 'ROR'}
 
 updateModeLDMMapping = {'ED': 3, 'IB': 3,
                         'FD': 1, 'IA': 1,

@@ -490,15 +490,29 @@ class Simulator:
         shiftamount = self.regs[shiftInfo[2]].get() & 0xF if shiftInfo[1] == 'reg' else shiftInfo[2]
         carryOut = 0
         if shiftInfo[0] == "LSL":
-            carryOut = (val >> (32-shiftamount)) & 1
+            carryOut = (val << (32-shiftamount)) & 2**31
             val = (val << shiftamount) & 0xFFFFFFFF
         elif shiftInfo[0] == "LSR":
-            carryOut = (val >> (shiftamount-1)) & 1
-            val = (val >> shiftamount) & 0xFFFFFFFF
+            if shiftamount == 0:
+                # Special case : "The form of the shift field which might be expected to correspond to LSR #0 is used to
+                # encode LSR #32, which has a zero result with bit 31 of Rm as the carry output."
+                val = 0
+                carryOut = (val >> 31) & 1
+            else:
+                carryOut = (val >> (shiftamount-1)) & 1
+                val = (val >> shiftamount) & 0xFFFFFFFF
         elif shiftInfo[0] == "ASR":
-            carryOut = (val >> (shiftamount-1)) & 1
-            firstBit = (val >> 31) & 1
-            val = ((val >> shiftamount) & 0xFFFFFFFF) | (2**(shiftamount+1) << (32-shiftamount))
+            if shiftamount == 0:
+                # Special case : "The form of the shift field which might be expected to give ASR #0 is used to encode
+                # ASR #32. Bit 31 of Rm is again used as the carry output, and each bit of operand 2 is
+                # also equal to bit 31 of Rm. The result is therefore all ones or all zeros, according to the
+                # value of bit 31 of Rm."
+                carryOut = (val >> 31) & 1
+                val = 0 if carryOut == 0 else 0xFFFFFFFF
+            else:
+                carryOut = (val >> (shiftamount-1)) & 1
+                firstBit = (val >> 31) & 1
+                val = ((val >> shiftamount) & 0xFFFFFFFF) | ((val >> 31) * (2**32-1 - 2**(32-shiftamount)-1))
         elif shiftInfo[0] == "ROR":
             if shiftamount == 0:
                 # The form of the shift field which might be expected to give ROR #0 is used to encode
@@ -735,7 +749,7 @@ class Simulator:
                     else:
                         disassembly += ", {}]".format(hex(misc['sign'] * misc['offset']))
                 else:
-                    disassembly += ", {}".format(misc['offset'][0])
+                    disassembly += ", R{}".format(misc['offset'][0])
                     disassembly += _shiftToInstruction(misc['offset'][1]) + "]"
             else:
                 # Post
@@ -922,8 +936,10 @@ class Simulator:
             else:
                 assert False, "Bad data opcode : " + misc['opcode']
 
-            if misc['opcode'] in ("MOV", "MVN", "TST", "TEQ", "CMP", "CMN"):
+            if misc['opcode'] in ("MOV", "MVN"):
                 description += "<ol type=\"A\"><li>{}</li></ol>\n".format(op2desc)
+            elif misc['opcode'] in ("TST", "TEQ", "CMP", "CMN"):
+                description += "<ol type=\"A\"><li>Le registre R{}</li><li>{}</li></ol>\n".format(misc['rd'], op2desc)
             else:
                 description += "<ol type=\"A\"><li>Le registre R{}</li>\n".format(misc['rn'])
                 description += "<li>{}</li></ol>\n".format(op2desc)
