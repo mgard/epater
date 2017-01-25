@@ -585,7 +585,7 @@ class Simulator:
             if shiftInfo[1] == 'reg':
                 desc += " du nombre de positions contenu dans R{}".format(shiftInfo[2])
             else:
-                desc += " de {} positions".format(shiftInfo[2])
+                desc += " de {} {}".format(shiftInfo[2], "positions" if shiftInfo[2] > 1 else "position")
 
             desc += ")"
             return desc
@@ -683,7 +683,7 @@ class Simulator:
 
         elif t == InstrType.memop:
             highlightread = ["r{}".format(misc['base'])]
-            addr = baseval = self.regs[misc['base']].get()
+            addr = baseval = self.regs[misc['base']].get(mayTriggerBkpt=False)
 
             description += "<li>Utilise la valeur du registre R{} comme adresse de base</li>\n".format(misc['base'])
 
@@ -753,50 +753,64 @@ class Simulator:
                     disassembly += "!"
 
         elif t == InstrType.multiplememop:
-            # TODO
             if misc['mode'] == 'LDR':
                 disassembly = "POP" if misc['base'] == 13 and misc['writeback'] else "LDM"
             else:
                 disassembly = "PUSH" if misc['base'] == 13 and misc['writeback'] else "STM"
 
-            # "The lowest-numbereing register is stored to the lowest memory address, through the
-            # highest-numbered register to the highest memory address"
-            baseAddr = self.regs[misc['base']].get()
-            if misc['pre']:
-                baseAddr += misc['sign'] * 4
+            if disassembly not in ("PUSH", "POP"):
+                if misc['pre']:
+                    disassembly += "IB" if misc['sign'] > 0 else "DB"
+                else:
+                    disassembly += "IA" if misc['sign'] > 0 else "DA"
 
-            currentbank = self.regs.currentBank
-            if currentbank != "User" and misc['sbit'] and (misc['mode'] == "STR" or 15 not in regs):
-                # "For both LDM and STM instructions, the User bank registers are transferred rather thathe register
-                #  bank corresponding to the current mode. This is useful for saving the usestate on process switches.
-                #  Base write-back should not be used when this mechanism is employed."
-                self.regs.setCurrentBank("User", logToHistory=False)
+            if cond != 'AL':
+                disassembly += cond
 
-            if misc['mode'] == 'LDR':
-                for reg in regs[::misc['sign']]:
-                    m = self.mem.get(baseAddr, size=4)
-                    val = struct.unpack("<I", m)[0]
-                    self.regs[reg].set(val)
-                    baseAddr += misc['sign'] * 4
-                if misc['sbit'] and 15 in regs:
-                    # "If the instruction is a LDM then SPSR_<mode> is transferred to CPSR at the same time as R15 is loaded."
-                    self.regs.getCPSR().set(self.regs.getSPSR().get())
-            else:   # STR
-                for reg in regs[::misc['sign']]:
-                    val = self.regs[reg].get()
-                    self.mem.set(baseAddr, val, size=4)
-                    baseAddr += misc['sign'] * 4
-            if misc['pre']:
-                baseAddr -= misc['sign'] * 4        # If we are in pre-increment mode, we remove the last increment
+            # TODO : show the affected memory areas
 
-            if misc['writeback']:
-                # Technically, it will break if we use a different bank (e.g. the S bit is set), but the ARM spec
-                # explicitely says that "Base write-back should not be used when this mechanism (the S bit) is employed".
-                # Maybe we could output an explicit error if this is the case?
-                self.regs[misc['base']].set(baseAddr)
+            if disassembly[:3] == 'POP':
+                description += "<li>Lit la valeur de SP</li>\n"
+                description += "<li>Pour chaque registre de la liste suivante, stocke la valeur contenue à l'adresse pointée par SP dans le registre, puis incrémente SP de 4.</li>\n"
+            elif disassembly[:4] == 'PUSH':
+                description += "<li>Lit la valeur de SP</li>\n"
+                description += "<li>Pour chaque registre de la liste suivante, décrémente SP de 4, puis stocke la valeur du registre à l'adresse pointée par SP.</li>\n"
+            elif misc['mode'] == 'LDR':
+                description += "<li>Lit la valeur de R{}</li>\n".format(misc['base'])
+            else:
+                description += "<li>Lit la valeur de R{}</li>\n".format(misc['base'])
 
-            if currentbank != self.regs.currentBank:
-                self.regs.setCurrentBank(currentbank, logToHistory=False)
+            if disassembly[:3] not in ("PUS", "POP"):
+                disassembly += " R{}{},".format(misc['base'], "!" if misc['writeback'] else "")
+
+            listregstxt = " {"
+            beginReg, currentReg = None, None
+            for reg in regs:
+                if beginReg is None:
+                    beginReg = reg
+                elif reg != currentReg+1:
+                    listregstxt += "R{}".format(beginReg)
+                    if currentReg == beginReg:
+                        listregstxt += ", "
+                    elif currentReg - beginReg == 1:
+                        listregstxt += ", R{}, ".format(currentReg)
+                    else:
+                        listregstxt += "-R{}, ".format(currentReg)
+                    beginReg = reg
+                currentReg = reg
+
+            listregstxt += "R{}".format(beginReg)
+            if currentReg - beginReg == 1:
+                listregstxt += ", R{}".format(currentReg)
+            elif currentReg != beginReg:
+                listregstxt += "-R{}".format(currentReg)
+            listregstxt += "}"
+
+            disassembly += listregstxt
+            description += "<li>{}</li>\n".format(listregstxt)
+            if misc['sbit']:
+                disassembly += "^"
+                description += "<li>Copie du SPSR courant dans le CPSR</li>\n"
 
 
         elif t == InstrType.psrtransfer:
@@ -815,17 +829,16 @@ class Simulator:
                 else:
                     valToSet = self.regs[misc['op2'][0]].get()
                 if misc['usespsr']:
-                    self.regs.getSPSR().set(valToSet)
-                else:
-                    self.regs.getCPSR().set(valToSet)
+                    pass
             else:       # Read
                 description += "<li>Lit la valeur de {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                 description += "<li>Écrit le résultat dans R{}</li>\n".format(misc['rd'])
-                self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
+                #self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
 
         elif t == InstrType.dataop:
             # Get first operand value
             workingFlags = {}
+            modifiedFlags = set()
             disassembly = misc['opcode']
             if cond != 'AL':
                 disassembly += cond
@@ -843,7 +856,8 @@ class Simulator:
                 op2 = misc['op2'][0]
                 if misc['op2'][1][2] != 0:
                     carry, op2 = self._shiftVal(op2, misc['op2'][1])
-                    workingFlags['C'] = bool(carry)
+                    if misc['op2'][1][0] != "LSL" or misc['op2'][1][2] > 0 or misc['op2'][1][1] == "reg":
+                        modifiedFlags.add('C')
                 op2desc = "la constante {}".format(op2)
                 op2dis = "#{}".format(hex(op2))
             else:
@@ -852,7 +866,8 @@ class Simulator:
                 if misc['op2'][0] == 15 and getSetting("PCspecialbehavior"):
                     op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
                 carry, op2 = self._shiftVal(op2, misc['op2'][1])
-                workingFlags['C'] = bool(carry)
+                if misc['op2'][1][0] != "LSL" or misc['op2'][1][2] > 0 or misc['op2'][1][1] == "reg":
+                    modifiedFlags.add('C')
                 shiftDesc = _shiftToDescription(misc['op2'][1])
                 shiftinstr = _shiftToInstruction(misc['op2'][1])
                 op2desc = "le registre R{} {}".format(misc['op2'][0], shiftDesc)
@@ -868,57 +883,44 @@ class Simulator:
                 # These instructions do not affect the V flag (ARM Instr. set, 4.5.1)
                 # However, C flag "is set to the carry out from the barrel shifter [if the shift is not LSL #0]" (4.5.1)
                 # this was already done when we called _shiftVal
-                res = op1 & op2
                 description += "<li>Effectue une opération ET entre:\n"
             elif misc['opcode'] in ("EOR", "TEQ"):
                 # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
-                res = op1 ^ op2
                 description += "<li>Effectue une opération OU EXCLUSIF (XOR) entre:\n"
             elif misc['opcode'] in ("SUB", "CMP"):
-                res = op1 - op2
-                workingFlags['C'] = self._checkCarry(op1, op2, res)
-                workingFlags['V'] = self._checkOverflow(op1, (~op2)+1, res)
+                modifiedFlags.add('C')
+                modifiedFlags.add('V')
                 description += "<li>Effectue une soustraction (A-B) entre:\n"
             elif misc['opcode'] == "RSB":
-                res = op2 - op1
-                workingFlags['C'] = self._checkCarry(op2, op1, res)
-                workingFlags['V'] = self._checkOverflow(op2, (~op1)+1, res)
+                modifiedFlags.add('C')
+                modifiedFlags.add('V')
                 description += "<li>Effectue une soustraction inverse (B-A) entre:\n"
             elif misc['opcode'] in ("ADD", "CMN"):
-                res = op1 + op2
-                workingFlags['C'] = self._checkCarry(op1, op2, res)
-                workingFlags['V'] = self._checkOverflow(op1, op2, res)
+                modifiedFlags.add('C')
+                modifiedFlags.add('V')
                 description += "<li>Effectue une addition (A+B) entre:\n"
             elif misc['opcode'] == "ADC":
-                res = op1 + op2 + int(self.flags['C'])
-                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C']), res)
-                workingFlags['V'] = self._checkOverflow(op1, op2 + int(self.flags['C']), res)
+                modifiedFlags.add('C')
+                modifiedFlags.add('V')
                 description += "<li>Effectue une addition avec retenue (A+B+carry) entre:\n"
             elif misc['opcode'] == "SBC":
-                res = op1 - op2 + int(self.flags['C']) - 1
-                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C']) - 1, res)
-                workingFlags['V'] = self._checkOverflow(op1, ((~op2) + 1) + int(self.flags['C']) - 1, res)
+                modifiedFlags.add('C')
+                modifiedFlags.add('V')
                 description += "<li>Effectue une soustraction avec emprunt (A-B+carry) entre:\n"
             elif misc['opcode'] == "RSC":
-                res = op2 - op1 + int(self.flags['C']) - 1
-                workingFlags['C'] = self._checkCarry(op2, op1 + int(self.flags['C']) - 1, res)
-                workingFlags['V'] = self._checkOverflow(op2, ((~op1) + 1) + int(self.flags['C']) - 1, res)
+                modifiedFlags.add('C')
+                modifiedFlags.add('V')
                 description += "<li>Effectue une soustraction inverse avec emprunt (B-A+carry) entre:\n"
             elif misc['opcode'] == "ORR":
-                res = op1 | op2
                 description += "<li>Effectue une opération OU entre:\n"
             elif misc['opcode'] == "MOV":
-                res = op2
                 description += "<li>Lit la valeur de :\n"
             elif misc['opcode'] == "BIC":
-                res = op1 & ~op2     # Bit clear?
                 description += "<li>Effectue une opération ET NON entre:\n"
             elif misc['opcode'] == "MVN":
-                res = ~op2
                 description += "<li>Effectue une opération NOT sur :\n"
             else:
                 assert False, "Bad data opcode : " + misc['opcode']
-
 
             if misc['opcode'] in ("MOV", "MVN", "TST", "TEQ", "CMP", "CMN"):
                 description += "<ol type=\"A\"><li>{}</li></ol>\n".format(op2desc)
@@ -929,24 +931,11 @@ class Simulator:
             disassembly += op2dis
 
             description += "</li>\n"
-
-            res &= 0xFFFFFFFF           # Get the result back to 32 bits, if applicable (else it's just a no-op)
-            workingFlags['Z'] = res == 0
-            workingFlags['N'] = res & 0x80000000            # "N flag will be set to the value of bit 31 of the result" (4.5.1)
+            modifiedFlags.add('Z')
+            modifiedFlags.add('N')
 
             if misc['setflags']:
                 if destrd == 15:
-                    # Combining writing to PC and the S flag is a special case (see ARM Instr. set, 4.5.5)
-                    # "When Rd is R15 and the S flag is set the result of the operation is placed in R15 and
-                    # the SPSR corresponding to the current mode is moved to the CPSR. This allows state
-                    # changes which atomically restore both PC and CPSR. This form of instruction should
-                    # not be used in User mode."
-                    #
-                    # Globally, it tells out to get out of an interrupt
-                    if self.regs.getCPSR().getMode() == "User":
-                        assert False, "Error, using S flag and PC as destination register in user mode!"
-                    self.regs.getCPSR().set(self.regs.getSPSR().get())          # Put back the saved SPSR in CPSR
-                    self.regs.setCurrentBank("User")
                     description += "<li>Copie le SPSR courant dans CPSR</li>\n"
                 else:
                     for flag in workingFlags:
