@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+    <head>
+        <meta charset="UTF-8">
+        <title>GIF-1001 -- OSA</title>
+        <style type="text/css">
+        </style>
+    </head>
+    <body id="body_">
+    <h4>{{ title }}</h4>
+    %for section_name, items in sections.items():
+        {{ section_name }}
+        <ul>
+        %for item, link in items.items():
+            <li><a href="?sim={{ link }}">{{ item }}</a></li>
+        </ul>
+    </body>
+</html>
