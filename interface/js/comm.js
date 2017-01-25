@@ -1,4 +1,4 @@
-var ws = new WebSocket("ws://127.0.0.1:31415/");
+var ws = new WebSocket("ws://" + window.location.hostname + ":31415/");
 
 // Breakpoints and markers
 var asm_breakpoints = [];
