@@ -114,7 +114,7 @@ class LexError(ParserError):
         return self.msg
 
 # A comment is always a comment
-t_ANY_COMMENT = r'\s+;.*$'
+t_ANY_COMMENT = r';.*$'
 
 # A new line resets the state
 def t_ANY_ENDLINESPACES(t):
