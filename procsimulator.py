@@ -679,7 +679,7 @@ class Simulator:
             disassembly += cond if cond != 'AL' else ""
             disassembly += " {}".format(hex(valAdd)) if misc['mode'] == 'imm' else " R{}".format(misc['offset'])
             if not instrWillExecute:
-                nextline = self.regs[15].get() + 4
+                nextline = self.regs[15].get() + 4 - self.pcoffset
 
         elif t == InstrType.memop:
             highlightread = ["r{}".format(misc['base'])]

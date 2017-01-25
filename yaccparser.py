@@ -819,6 +819,8 @@ def p_declarationconst(p):
 def p_declarationsize(p):
     """declarationsize : VARDEC CONST"""
     dimBytes = p[2] * p[1] // 8
+    if dimBytes > 8192:
+        raise YaccError("Demande d'allocation mémoire trop grande. Le maximum permis est de 8 Ko (8192 octets), mais la déclaration demande {} octets.".format(dimBytes))
     assert dimBytes <= 8192, "Too large memory allocation requested! ({} bytes)".format(dimBytes)
     p[0] = (struct.pack("<" + "B" * dimBytes, *[getSetting("fillValue")] * dimBytes), None)
 
