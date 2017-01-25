@@ -12,6 +12,12 @@ h4 {
     margin: 0.8em 0 0;
 }
 
+#disassembly {
+    height: 7em;
+    width: 430px;
+    overflow-y: scroll;
+}
+
 #regView {
     vertical-align: top;
 }
@@ -162,6 +168,9 @@ img {
     width: 100% !important;
 }
 
+#memoryview {
+    height: 440px;
+}
 #memoryview th {
     width: 16px;
 }
@@ -172,6 +181,9 @@ img {
     font-family: monospace;
 }
 
+.testgrid {
+    width: 445px;
+}
 .testgrid td {
     border: 1px solid white;
 }
