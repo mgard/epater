@@ -26,7 +26,7 @@ def runt(interpreter):
             # We did all the instructions in the file
             filedone = True
         elif bkpt.source == 'assert':
-            errors.append(bkpt.infos)
+            errors.append((bkpt.infos[0]+2, bkpt.infos[1]))
         line += 1
     if len(errors) > 0:
         assert False, str(errors)
