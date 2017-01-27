@@ -89,3 +89,4 @@ var confirmOnPageExit = function (e)
     // For Chrome, Safari, IE8+ and Opera 12+
     return message;
 };
+window.onbeforeunload = confirmOnPageExit;
