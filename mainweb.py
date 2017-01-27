@@ -36,8 +36,10 @@ connected = set()
 DEBUG = 'DEBUG' in sys.argv
 
 
-async def producer(data_list):
+async def producer(ws, data_list):
     while True:
+        if ws not in connected:
+            break
         if data_list:
             out = []
             while True:
@@ -51,6 +53,8 @@ async def producer(data_list):
 
 async def run_instance(websocket):
     while True:
+        if websocket not in connected:
+            break
         if websocket in interpreters:
             interp = interpreters[websocket]
             if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (interp.user_asked_stop__ == False):
@@ -60,6 +64,8 @@ async def run_instance(websocket):
 
 async def update_ui(ws, to_send):
     while True:
+        if ws not in connected:
+            break
         if ws in interpreters:
             interp = interpreters[ws]
             if (interp.next_report__ < time.time() and len(to_send) < 10 and interp.num_exec__ > 0):
@@ -75,7 +81,7 @@ async def handler(websocket, path):
     ui_update_queue = []
     try:
         listener_task = asyncio.ensure_future(websocket.recv())
-        producer_task = asyncio.ensure_future(producer(to_send))
+        producer_task = asyncio.ensure_future(producer(websocket, to_send))
         to_run_task = asyncio.ensure_future(run_instance(websocket))
         update_ui_task = asyncio.ensure_future(update_ui(websocket, to_send))
         while True:
@@ -102,7 +108,7 @@ async def handler(websocket, path):
             if producer_task in done:
                 message = producer_task.result()
                 await websocket.send(message)
-                producer_task = asyncio.ensure_future(producer(to_send))
+                producer_task = asyncio.ensure_future(producer(websocket, to_send))
 
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
@@ -177,13 +183,10 @@ async def handler(websocket, path):
 def sendEmail(msg):
     msg = MIMEText(msg, 'html')
 
-    # me == the sender's email address
-    # you == the recipient's email address
     msg['Subject'] = "Error happened on ASM Simulator"
     msg['From'] = "simulateurosa@gmail.com"
     msg['To'] = "simulateurosa@gmail.com"
 
-    # Send the message via our own SMTP server.
     s = smtplib.SMTP('smtp.gmail.com', 587)
     s.starttls()
     s.login("simulateurosa@gmail.com", email_password)
@@ -313,7 +316,7 @@ def process(ws, msg_in):
                 interpreters[ws].history__.append(data)
 
             if data[0] != 'assemble' and ws not in interpreters:
-                raise Exception("Veuillez assembler le code avant d'effectuer cette opération.")
+                retval.append(["error", "Veuillez assembler le code avant d'effectuer cette opération."])
             elif data[0] == 'assemble':
                 # TODO: Afficher les erreurs à l'écran "codeerror"
                 code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)
@@ -550,7 +553,7 @@ if __name__ == '__main__':
         p.start()
 
     # Websocket Server
-    start_server = websockets.serve(handler, '127.0.0.1', 31415)
+    start_server = websockets.serve(handler, '0.0.0.0', 31415)
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
 

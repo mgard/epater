@@ -171,8 +171,6 @@ function assemble() {
     codeerrors = {};
     $(".ace_content").css("background-color", "#FFF");
 
-    window.onbeforeunload = null;
-
     asm_breakpoints.length = 0;
     editor.session.clearBreakpoints();
     editor.session.clearAnnotations();
