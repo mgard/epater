@@ -254,7 +254,12 @@ def p_shift(p):
              | INNERSHIFT SPACEORTAB SHARP CONST"""
     plist = list(p)
     # Shift type
-    p[0] = instruction.shiftMapping[p[1]] << 5
+    if len(plist) == 4 and p[4] == 0 and p[1] in ('LSR', 'ASR', 'ROR'):
+        # "Logical shift right zero is redundant as it is the same as logical shift left zero, so the assembler
+        # will convert LSR #0 (and ASR #0 and ROR #0) into LSL #0, and allow LSR #32 to be specified."
+        p[0] = instruction.shiftMapping['LSL'] << 5
+    else:
+        p[0] = instruction.shiftMapping[p[1]] << 5
     if len(plist) == 2:
         # Special case, must be RRX
         assert p[1] == "RRX"
@@ -269,6 +274,7 @@ def p_shift(p):
         if p[4] > 31:
             raise YaccError("Impossible d'encoder le décalage {} dans une instruction (ce dernier doit être inférieur à 32)".format(p[4]))
         p[0] |= p[4] << 7
+
 
 
 
@@ -819,6 +825,8 @@ def p_declarationconst(p):
 def p_declarationsize(p):
     """declarationsize : VARDEC CONST"""
     dimBytes = p[2] * p[1] // 8
+    if dimBytes > 8192:
+        raise YaccError("Demande d'allocation mémoire trop grande. Le maximum permis est de 8 Ko (8192 octets), mais la déclaration demande {} octets.".format(dimBytes))
     assert dimBytes <= 8192, "Too large memory allocation requested! ({} bytes)".format(dimBytes)
     p[0] = (struct.pack("<" + "B" * dimBytes, *[getSetting("fillValue")] * dimBytes), None)
 

@@ -1,4 +1,5 @@
 import traceback
+import glob
 import string
 import time
 import random
@@ -6,8 +7,9 @@ import asyncio
 import json
 import os
 import sys
+import re
 from copy import copy
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from multiprocessing import Process
 import smtplib
 from email.mime.text import MIMEText
@@ -486,27 +488,55 @@ variablemem DS32 10"""
 
 
 index_template = open('./interface/index.html', 'r').read()
+simulator_template = open('./interface/simulateur.html', 'r').read()
 @get('/')
 def index():
-    if "exercice" in request.query:
-        with open(os.path.join("exercices", "{}.html".format(request.query["exercice"])), 'r') as fhdl:
-            exercice_html = fhdl.read()
-        soup = BeautifulSoup(exercice_html, "html.parser")
-        enonce = soup.find("div", {"id": "enonce"})
-        code = soup.find("div", {"id": "code"}).text
-        if not code:
-            code = ""
-        if not enonce:
-            enonce = ""
+    page = request.query.get("page", "demo")
+
+    code = default_code
+    enonce = ""
+    solution = ""
+    title = ""
+    sections = {}
+
+    if True or "sim" in request.query:
+        request.query["sim"] = "new"
+        try:
+            this_template = simulator_template
+            with open(os.path.join("exercices", "{}.html".format(request.query["sim"])), 'r') as fhdl:
+                exercice_html = fhdl.read()
+            soup = BeautifulSoup(exercice_html, "html.parser")
+            enonce = soup.find("div", {"id": "enonce"})
+            code = soup.find("div", {"id": "code"}).text
+            solution = soup.find("div", {"id": "solution"})
+            if not code:
+                code = ""
+            if not enonce:
+                enonce = ""
+        except FileNotFoundError:
+            pass
     else:
-        code = default_code
-        enonce = ""
-    return template(index_template, code=code, enonce=enonce)
+        this_template = index_template
+        files = glob.glob("exercices/{}/*.html".format(page), recursive=True)
+        files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
+        sections = defaultdict(dict)
+        for f in files:
+            fs = f.split(os.sep)
+            sections[fs[0]][fs[1].replace(".html", "")] = f.replace(os.sep, "_")
+
+        if page == "exo":
+            title = "Exercices facultatifs"
+        elif page == "tp":
+            title = "Travaux pratiques"
+        else:
+            title = "D&eacute;monstrations"
+
+    return template(this_template, code=code, enonce=enonce, solution=solution, page=page, title=title, sections=sections)
 
 
-@route('/<filename:path>')
+@route('/static/<filename:path>')
 def static_serve(filename):
-    return static_file(filename, root='./interface/')
+    return static_file(filename, root='./interface/static/')
 
 
 def http_server():

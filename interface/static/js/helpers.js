@@ -52,6 +52,21 @@ function saveTextAsFile() {
     downloadLink.click();
 }
 
+$(window).bind('keydown', function(event) {
+    if (event.ctrlKey || event.metaKey) {
+        switch (String.fromCharCode(event.which).toLowerCase()) {
+        case 's':
+            event.preventDefault();
+            saveTextAsFile();
+            break;
+        case 'o':
+            event.preventDefault();
+            $("#fileToLoad").trigger('click'); 
+            break;
+        }
+    }
+});
+
 function loadFileAsText(){
     var fileToLoad = document.getElementById("fileToLoad").files[0];
     var fileReader = new FileReader();

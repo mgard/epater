@@ -147,6 +147,8 @@ class BCInterpreter:
     def setRegisters(self, regsDict):
         for r,v in regsDict.items():
             self.sim.regs[r].set(v, mayTriggerBkpt=False)
+        # Changing the registers may change some infos in the prediction (for instance, memory cells affected by a mem access)
+        self.sim.decodeInstr()
 
     def getFlags(self):
         # Return a dictionnary of the flags; if the current mode has a SPSR, then this method also returns
@@ -168,6 +170,8 @@ class BCInterpreter:
                 self.sim.regs.getSPSR().setFlag(f.upper(), int(v), mayTriggerBkpt=False)
             elif len(f) == 1:
                 self.sim.flags.setFlag(f.upper(), int(v), mayTriggerBkpt=False)
+        # Changing the flags may change the decision to execute or not the next instruction, we update it
+        self.sim.decodeInstr()
 
     def getProcessorMode(self):
         return self.sim.flags.getMode()

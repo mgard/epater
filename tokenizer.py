@@ -114,7 +114,7 @@ class LexError(ParserError):
         return self.msg
 
 # A comment is always a comment
-t_ANY_COMMENT = r'\s+;.*$'
+t_ANY_COMMENT = r';.*$'
 
 # A new line resets the state
 def t_ANY_ENDLINESPACES(t):
@@ -138,7 +138,7 @@ def t_ASSERTION(t):
     return t
 
 def t_assertion_ASSERTIONDATA(t):
-    r'(\s*(R1[0-5]|R[0-9]|SP|LR|PC|Z|V|N|O|0x[0-9a-fA-F]+)=[+-]?(0x[0-9a-fA-F]+|[0-9]+),?)+'
+    r'(\s*(R1[0-5]|R[0-9]|SP|LR|PC|C|Z|V|N|0x[0-9a-fA-F]+)=[+-]?(0x[0-9a-fA-F]+|[0-9]+),?)+'
     return t
 
 # A constant or variable declaration
