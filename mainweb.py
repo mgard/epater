@@ -108,7 +108,7 @@ async def handler(websocket, path):
             if producer_task in done:
                 message = producer_task.result()
                 await websocket.send(message)
-                producer_task = asyncio.ensure_future(producer(to_send))
+                producer_task = asyncio.ensure_future(producer(websocket, to_send))
 
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
