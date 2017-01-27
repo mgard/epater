@@ -36,8 +36,10 @@ connected = set()
 DEBUG = 'DEBUG' in sys.argv
 
 
-async def producer(data_list):
+async def producer(ws, data_list):
     while True:
+        if ws not in connected:
+            break
         if data_list:
             out = []
             while True:
@@ -51,6 +53,8 @@ async def producer(data_list):
 
 async def run_instance(websocket):
     while True:
+        if websocket not in connected:
+            break
         if websocket in interpreters:
             interp = interpreters[websocket]
             if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (interp.user_asked_stop__ == False):
@@ -60,6 +64,8 @@ async def run_instance(websocket):
 
 async def update_ui(ws, to_send):
     while True:
+        if ws not in connected:
+            break
         if ws in interpreters:
             interp = interpreters[ws]
             if (interp.next_report__ < time.time() and len(to_send) < 10 and interp.num_exec__ > 0):
@@ -75,7 +81,7 @@ async def handler(websocket, path):
     ui_update_queue = []
     try:
         listener_task = asyncio.ensure_future(websocket.recv())
-        producer_task = asyncio.ensure_future(producer(to_send))
+        producer_task = asyncio.ensure_future(producer(websocket, to_send))
         to_run_task = asyncio.ensure_future(run_instance(websocket))
         update_ui_task = asyncio.ensure_future(update_ui(websocket, to_send))
         while True:
@@ -177,13 +183,10 @@ async def handler(websocket, path):
 def sendEmail(msg):
     msg = MIMEText(msg, 'html')
 
-    # me == the sender's email address
-    # you == the recipient's email address
     msg['Subject'] = "Error happened on ASM Simulator"
     msg['From'] = "simulateurosa@gmail.com"
     msg['To'] = "simulateurosa@gmail.com"
 
-    # Send the message via our own SMTP server.
     s = smtplib.SMTP('smtp.gmail.com', 587)
     s.starttls()
     s.login("simulateurosa@gmail.com", email_password)
