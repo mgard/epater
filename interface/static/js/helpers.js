@@ -33,7 +33,7 @@ function image(relativePath) {
 function saveTextAsFile() {
     var textToWrite = editor.getValue();
     var textFileAsBlob = new Blob([textToWrite],  {type: 'text/plain'});
-    var fileNameToSaveAs = "prog.s";
+    var fileNameToSaveAs = "source.txt";
     var downloadLink = document.createElement("a");
     downloadLink.download = fileNameToSaveAs;
     downloadLink.innerHTML = "Download File";

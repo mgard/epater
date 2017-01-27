@@ -502,7 +502,7 @@ def index():
     title = ""
     sections = {}
 
-    if True or "sim" in request.query:
+    if page == "demo" or "sim" in request.query:
         request.query["sim"] = "new"
         try:
             this_template = simulator_template

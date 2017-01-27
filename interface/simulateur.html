@@ -528,6 +528,13 @@
                 </div>
             </td>
             <td id="editorPanel">
+                <div>
+                    <button onclick="assemble()" id="assemble">D&eacute;marrer</button>
+                    <button id="run" onclick="simulate('run')" disable="disabled"><img src="static/image/resume_co.gif"/></button>
+                    <button id="stepin" onclick="simulate('stepinto')" disable="disabled"><img src="static/image/stepinto_co.gif"/></button>
+                    <button id="stepforward" onclick="simulate('stepforward')" disable="disabled"><img src="static/image/stepover_co.gif"/></button>
+                    <button id="stepout" onclick="simulate('stepout')" disable="disabled"><img src="static/image/stepreturn_co.gif"/></button>
+                </div>
                 <div id="editor">{{ code }}</div>
                 <br>
                 <div>
@@ -557,15 +564,7 @@
                     Ctrl+click: &Eacute;criture, Shift+click: Lecture, Alt+click: Ex&eacute;cution<br/>
                     <div id="memoryview"></div>
                     <div id="paginator"></div>
-                    <input type="checkbox" id="follow_pc" checked="checked"/>Suivre PC
-                </div>
-                <div class="border_container">
-                    <button onclick="assemble()" id="assemble">Assembler</button><br/><br/>
-                    <button id="run" onclick="simulate('run')" disable="disabled"><img src="static/image/resume_co.gif"/></button>
-                    <button id="stepin" onclick="simulate('stepinto')" disable="disabled"><img src="static/image/stepinto_co.gif"/></button>
-                    <button id="stepforward" onclick="simulate('stepforward')" disable="disabled"><img src="static/image/stepover_co.gif"/></button>
-                    <button id="stepout" onclick="simulate('stepout')" disable="disabled"><img src="static/image/stepreturn_co.gif"/></button>
-                    <br/>
+                    <input type="checkbox" id="follow_pc" checked="checked"/>Suivre PC<br/>
                     Vitesse d'ex&eacute;cution : &nbsp;<input class="regVal" id="animate_speed" type="text" value="100"/>ms<br/>
                     Cycle courant : <input id="cycles_count" type="text" value="0"/>
                 </div>
@@ -623,7 +622,7 @@
 
             editor.on("change",  function() {
                 if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
-                $(".ace_content").css("background-color",  "#FFF3F3");
+                resetView();
             });
 
             $("input[type=text]").change(function () {
@@ -659,7 +658,9 @@
             });
 
             $(".flag_btn").click(function() {
-                sendCmd(["update", $(this).attr("name")]);
+                if (! $("input", this).prop('disabled')) {
+                    sendCmd(["update", $(this).attr("name")]);
+                }
             })
 
         // Help buttons
@@ -703,6 +704,8 @@
             });
             previous_format = $("#valueformat").val();
         });
+
+        disableSim();
     });
     </script>
     <script src="static/js/memory_viewer.js" type="text/javascript" charset="utf-8"></script>
