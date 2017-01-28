@@ -1,4 +1,5 @@
 import traceback
+import locale
 import glob
 import string
 import time
@@ -527,7 +528,14 @@ def index():
 
         elif not request.query["sim"] == "nouveau":
             try:
-                request.query["sim"] = base64.b64decode(unquote(request.query["sim"])).decode('utf-8')
+                request.query["sim"] = base64.b64decode(unquote(request.query["sim"]))
+                # YAHOG -- When in WSGI, we must add 0xdc00 to every extended (e.g. accentuated) character in order for the 
+                # open() call to understand correctly the path
+                if locale.getdefaultlocale() == (None, None):
+                    request.query["sim"] = "".join(chr((0xdc00 if x > 127 else 0) + x) for x in request.query["sim"])
+                else:
+                    request.query["sim"] = request.query["sim"].decode("utf-8")
+
                 with open(os.path.join("exercices", request.query["sim"]), 'r') as fhdl:
                     exercice_html = fhdl.read()
                 soup = BeautifulSoup(exercice_html, "html.parser")
@@ -551,6 +559,11 @@ def index():
             files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
         sections = OrderedDict()
         for f in sorted(files):
+            # YAHOG -- When in WSGI, Python adds 0xdc00 to every extended (e.g. accentuated) character, leading to 
+            # errors in utf-8 re-interpretation.
+            if locale.getdefaultlocale() == (None, None):
+                f = bytes([(ord(x) % 0xdc00) for x in f]).decode('utf-8')
+
             fs = f.split(os.sep)
             if page == "tp":
                 k1 = fs[1].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')
