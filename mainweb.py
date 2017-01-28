@@ -553,7 +553,7 @@ def index():
         for f in sorted(files):
             fs = f.split(os.sep)
             if page == "tp":
-                k1 = fs[1].replace("_", " ").encode('utf-8', 'replace')
+                k1 = fs[1].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')
                 sections[k1] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
             else:
                 k1 = fs[1].replace("_", " ").encode('utf-8', 'replace')
