@@ -37,7 +37,7 @@ def p_linelabel(p):
 
 def p_linelabel_error(p):
     """linelabel : LABEL error COMMA"""
-    raise YaccError("Instruction invalide : \"{}\". Veuillez vous référer au manuel du simulateur pour la liste des instructions acceptées. ".format(p[2]))
+    raise YaccError("Instruction invalide : \"{}\". Veuillez vous référer au manuel du simulateur pour la liste des instructions acceptées. ".format(p[1]))
 
 
 def p_sectiondeclaration(p):
@@ -171,8 +171,13 @@ def p_datainst3op(p):
     p[0] = b
 
 def p_datainst3op_error(p):
-    """datainst3op : OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG error"""
-    raise YaccError("L'instruction {} requiert 3 arguments".format(p[1]))
+    """datainst3op : OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG error
+                   | OPDATA3OP logmnemonic SPACEORTAB REG CONST error"""
+    print("!!!!!", len(p))
+    if len(p) == 8:
+        raise YaccError("L'instruction {} requiert 3 arguments".format(p[1]))
+    else:
+        raise YaccError("Le registre R{}{} n'existe pas".format(p[4], p[5]))
 
 def p_datainsttest(p):
     """datainsttest : OPDATATEST logmnemonic SPACEORTAB REG COMMA op2

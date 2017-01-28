@@ -52,6 +52,9 @@ ws.onmessage = function (event) {
                 }
             }
 
+            if (target_value == "False") { target_value = "Faux"; }
+            if (target_value == "True") { target_value = "Vrai"; }
+
             $(element).val(target_value);
             $(element).prop("disabled", false);
         } else if (obj[0] == 'disable') {
@@ -69,12 +72,6 @@ ws.onmessage = function (event) {
             next_debug_marker = editor.session.addMarker(new aceRange(obj[1], 0, obj[1] + 1, 0), "next_debug_line", "text");
             next_debugline = obj[1];
         } else if (obj[0] == 'debugline') {
-            // Re-enable buttons if disabled
-            $("#run").prop('disabled', false);
-            $("#stepin").prop('disabled', false);
-            $("#stepout").prop('disabled', false);
-            $("#stepforward").prop('disabled', false);
-
             $(".highlightread").removeClass("highlightread");
             $(".highlightwrite").removeClass("highlightwrite");
 
@@ -164,27 +161,44 @@ function removeCodeErrors() {
     editor.session.clearAnnotations();
 }
 
-function assemble() {
-    sendData(JSON.stringify(['assemble', editor.getValue()]));
-
+function resetView() {
     // Remove code errors tooltips
     codeerrors = {};
-    $(".ace_content").css("background-color", "#FFF");
-
-    window.onbeforeunload = null;
 
     asm_breakpoints.length = 0;
     editor.session.clearBreakpoints();
     editor.session.clearAnnotations();
 
-    $("#cycles_count").val("0");
+    $("#cycles_count").val("");
     $("#message_bar").slideUp("normal", "easeInOutBack", function() {});
 
     $("#interrupt_active").attr('checked', false);
+    disableSim();
+    $("#assemble").text("Démarrer");
+    $(".assemble_edit").removeClass("assemble_edit");
+}
+
+function disableSim() {
     $("#run").prop('disabled', true);
     $("#stepin").prop('disabled', true);
     $("#stepout").prop('disabled', true);
     $("#stepforward").prop('disabled', true);
+    $("input[type=text]").prop('disabled', true);
+}
+
+function assemble() {
+    var label = $("#assemble").text();
+    resetView();
+    if (label == "Démarrer") {
+        $("#run").prop('disabled', false);
+        $("#stepin").prop('disabled', false);
+        $("#stepout").prop('disabled', false);
+        $("#stepforward").prop('disabled', false);
+        $("#assemble").text("Éditer").addClass("assemble_edit");
+        sendData(JSON.stringify(['assemble', editor.getValue()]));
+    } else {
+        $("#assemble").text("Démarrer");
+    }
 }
 
 function simulate(type) {

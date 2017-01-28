@@ -8,6 +8,9 @@ import json
 import os
 import sys
 import re
+import binascii
+import base64
+from urllib.parse import quote, unquote
 from copy import copy
 from collections import OrderedDict, defaultdict
 from multiprocessing import Process
@@ -18,6 +21,7 @@ import websockets
 from gevent import monkey; monkey.patch_all()
 import bottle
 from bottle import route, static_file, get, request, template
+from bs4 import BeautifulSoup
 
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
@@ -36,8 +40,10 @@ connected = set()
 DEBUG = 'DEBUG' in sys.argv
 
 
-async def producer(data_list):
+async def producer(ws, data_list):
     while True:
+        if ws not in connected:
+            break
         if data_list:
             out = []
             while True:
@@ -51,6 +57,8 @@ async def producer(data_list):
 
 async def run_instance(websocket):
     while True:
+        if websocket not in connected:
+            break
         if websocket in interpreters:
             interp = interpreters[websocket]
             if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (interp.user_asked_stop__ == False):
@@ -60,6 +68,8 @@ async def run_instance(websocket):
 
 async def update_ui(ws, to_send):
     while True:
+        if ws not in connected:
+            break
         if ws in interpreters:
             interp = interpreters[ws]
             if (interp.next_report__ < time.time() and len(to_send) < 10 and interp.num_exec__ > 0):
@@ -75,7 +85,7 @@ async def handler(websocket, path):
     ui_update_queue = []
     try:
         listener_task = asyncio.ensure_future(websocket.recv())
-        producer_task = asyncio.ensure_future(producer(to_send))
+        producer_task = asyncio.ensure_future(producer(websocket, to_send))
         to_run_task = asyncio.ensure_future(run_instance(websocket))
         update_ui_task = asyncio.ensure_future(update_ui(websocket, to_send))
         while True:
@@ -102,7 +112,7 @@ async def handler(websocket, path):
             if producer_task in done:
                 message = producer_task.result()
                 await websocket.send(message)
-                producer_task = asyncio.ensure_future(producer(to_send))
+                producer_task = asyncio.ensure_future(producer(websocket, to_send))
 
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
@@ -177,13 +187,10 @@ async def handler(websocket, path):
 def sendEmail(msg):
     msg = MIMEText(msg, 'html')
 
-    # me == the sender's email address
-    # you == the recipient's email address
     msg['Subject'] = "Error happened on ASM Simulator"
     msg['From'] = "simulateurosa@gmail.com"
     msg['To'] = "simulateurosa@gmail.com"
 
-    # Send the message via our own SMTP server.
     s = smtplib.SMTP('smtp.gmail.com', 587)
     s.starttls()
     s.login("simulateurosa@gmail.com", email_password)
@@ -313,7 +320,7 @@ def process(ws, msg_in):
                 interpreters[ws].history__.append(data)
 
             if data[0] != 'assemble' and ws not in interpreters:
-                raise Exception("Veuillez assembler le code avant d'effectuer cette opération.")
+                retval.append(["error", "Veuillez assembler le code avant d'effectuer cette opération."])
             elif data[0] == 'assemble':
                 # TODO: Afficher les erreurs à l'écran "codeerror"
                 code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)
@@ -427,7 +434,7 @@ def process(ws, msg_in):
     return retval
 
 
-default_code = """SECTION INTVEC
+debug_code = """SECTION INTVEC
 
 B main
 
@@ -486,6 +493,19 @@ SECTION DATA
 
 variablemem DS32 10"""
 
+default_code = """SECTION INTVEC
+
+B main
+
+
+SECTION CODE
+
+main
+
+
+SECTION DATA
+"""
+
 
 index_template = open('./interface/index.html', 'r').read()
 simulator_template = open('./interface/simulateur.html', 'r').read()
@@ -498,40 +518,53 @@ def index():
     solution = ""
     title = ""
     sections = {}
+    identifier = ""
 
-    if True or "sim" in request.query:
-        request.query["sim"] = "new"
-        try:
-            this_template = simulator_template
-            with open(os.path.join("exercices", "{}.html".format(request.query["sim"])), 'r') as fhdl:
-                exercice_html = fhdl.read()
-            soup = BeautifulSoup(exercice_html, "html.parser")
-            enonce = soup.find("div", {"id": "enonce"})
-            code = soup.find("div", {"id": "code"}).text
-            solution = soup.find("div", {"id": "solution"})
-            if not code:
-                code = ""
-            if not enonce:
-                enonce = ""
-        except FileNotFoundError:
-            pass
+    if "sim" in request.query:
+        this_template = simulator_template
+        if request.query["sim"] == "debug":
+            code = debug_code
+
+        elif not request.query["sim"] == "nouveau":
+            try:
+                request.query["sim"] = base64.b64decode(unquote(request.query["sim"])).decode('utf-8')
+                with open(os.path.join("exercices", request.query["sim"]), 'r') as fhdl:
+                    exercice_html = fhdl.read()
+                soup = BeautifulSoup(exercice_html, "html.parser")
+                enonce = soup.find("div", {"id": "enonce"})
+                code = soup.find("div", {"id": "code"}).text
+                solution = soup.find("div", {"id": "solution"})
+                if not code:
+                    code = ""
+                if not enonce:
+                    enonce = ""
+            except (FileNotFoundError, binascii.Error):
+                pass
     else:
         this_template = index_template
-        files = glob.glob("exercices/{}/*.html".format(page), recursive=True)
-        files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
+        files = []
+        if page in ("demo", "exo", "tp"):
+            files = glob.glob("exercices/{}/*/*.html".format(page), recursive=True)
+            files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
         sections = defaultdict(dict)
         for f in files:
             fs = f.split(os.sep)
-            sections[fs[0]][fs[1].replace(".html", "")] = f.replace(os.sep, "_")
+            sections[fs[1].replace("_", " ")][fs[2].replace(".html", "").replace("_", " ")] = quote(base64.b64encode(f.encode('utf-8')), safe='')
+
+        print(sections)
+
+        if len(sections) == 0:
+            sections = {"Aucune section n'est disponible en ce moment.": {}}
+        print(sections)
 
         if page == "exo":
             title = "Exercices facultatifs"
         elif page == "tp":
             title = "Travaux pratiques"
         else:
-            title = "D&eacute;monstrations"
+            title = "Démonstrations"
 
-    return template(this_template, code=code, enonce=enonce, solution=solution, page=page, title=title, sections=sections)
+    return template(this_template, code=code, enonce=enonce, solution=solution, page=page, title=title, sections=sections, identifier=identifier)
 
 
 @route('/static/<filename:path>')
@@ -550,7 +583,7 @@ if __name__ == '__main__':
         p.start()
 
     # Websocket Server
-    start_server = websockets.serve(handler, '127.0.0.1', 31415)
+    start_server = websockets.serve(handler, '0.0.0.0', 31415)
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
 

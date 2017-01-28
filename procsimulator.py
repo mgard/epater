@@ -512,7 +512,7 @@ class Simulator:
             else:
                 carryOut = (val >> (shiftamount-1)) & 1
                 firstBit = (val >> 31) & 1
-                val = ((val >> shiftamount) & 0xFFFFFFFF) | ((val >> 31) * (2**32-1 - 2**(32-shiftamount)-1))
+                val = (val >> shiftamount) | ((val >> 31) * ((2**shiftamount-1) << (32-shiftamount)))
         elif shiftInfo[0] == "ROR":
             if shiftamount == 0:
                 # The form of the shift field which might be expected to give ROR #0 is used to encode
@@ -557,7 +557,7 @@ class Simulator:
                 # Flag
                 val = bool(value)
                 if self.flags[target] != val:
-                    self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Erreur : le drapeau {} devrait signaler {}, mais il signale {}".format(target, val, value))))
+                    self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Erreur : le drapeau {} devrait signaler {}, mais il signale {}".format(target, val, self.flags[target]))))
             else:
                 # Assert type unknown
                 self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Assertion inconnue!")))
