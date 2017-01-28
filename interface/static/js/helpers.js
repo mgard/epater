@@ -25,7 +25,7 @@ function formatHexUnsigned32Bits(i) {
 
 
 function image(relativePath) {
-    return "./editablegrid/images/" + relativePath;
+    return "static/js/editablegrid/images/" + relativePath;
 }
 
 // ///
@@ -33,7 +33,7 @@ function image(relativePath) {
 function saveTextAsFile() {
     var textToWrite = editor.getValue();
     var textFileAsBlob = new Blob([textToWrite],  {type: 'text/plain'});
-    var fileNameToSaveAs = "prog.s";
+    var fileNameToSaveAs = "source.txt";
     var downloadLink = document.createElement("a");
     downloadLink.download = fileNameToSaveAs;
     downloadLink.innerHTML = "Download File";
@@ -51,6 +51,21 @@ function saveTextAsFile() {
     }
     downloadLink.click();
 }
+
+$(window).bind('keydown', function(event) {
+    if (event.ctrlKey || event.metaKey) {
+        switch (String.fromCharCode(event.which).toLowerCase()) {
+        case 's':
+            event.preventDefault();
+            saveTextAsFile();
+            break;
+        case 'o':
+            event.preventDefault();
+            $("#fileToLoad").trigger('click'); 
+            break;
+        }
+    }
+});
 
 function loadFileAsText(){
     var fileToLoad = document.getElementById("fileToLoad").files[0];
@@ -74,3 +89,4 @@ var confirmOnPageExit = function (e)
     // For Chrome, Safari, IE8+ and Opera 12+
     return message;
 };
+window.onbeforeunload = confirmOnPageExit;

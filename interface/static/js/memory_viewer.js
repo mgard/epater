@@ -1,24 +1,32 @@
 
 var editableGrid = null;
 
-function addHoverMemoryView() {
-  $("#memoryview td").each(function (idx, e) {
-    var suffix = this.classList[0].slice(-2);
-    if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
-    suffix = parseInt(suffix);
-    if (!isNaN(suffix)) {
-      suffix = suffix.toString(16);
-      var addr = $('td:first', $(e).closest('tr')).text().slice(0,9) + suffix;
-      $(e).tooltipster({
-        content: 'Adresse: ' + addr,
-        position: 'top'
-      });
-    }
-  });
-}
-
 
 function updateMemoryBreakpointsView() {
+  for (var i = 0; i < mem_highlights_r.length; i++) {
+    tofind = formatHexUnsigned32Bits(mem_highlights_r[i]).slice(0, 9) + "0";
+    var tableRow = $("td", $("#memoryview")).filter(function() {
+      return $(this).text() == tofind;
+    }).closest("tr");
+    if (tableRow.length < 1) {
+      continue;
+    }
+    col = parseInt(mem_highlights_r[i], 16) % 16;
+    $('.editablegrid-c'+col, tableRow).addClass('highlightread');
+  }
+
+  for (var i = 0; i < mem_highlights_w.length; i++) {
+    tofind = formatHexUnsigned32Bits(mem_highlights_w[i]).slice(0, 9) + "0";
+    var tableRow = $("td", $("#memoryview")).filter(function() {
+      return $(this).text() == tofind;
+    }).closest("tr");
+    if (tableRow.length < 1) {
+      continue;
+    }
+    col = parseInt(mem_highlights_w[i], 16) % 16;
+    $('.editablegrid-c'+col, tableRow).addClass('highlightwrite');
+  }
+
   for (var i = 0; i < mem_breakpoints_r.length; i++) {
     tofind = formatHexUnsigned32Bits(mem_breakpoints_r[i]).slice(0, 9) + "0";
     var tableRow = $("td", $("#memoryview")).filter(function() {
@@ -80,6 +88,12 @@ function updateMemoryBreakpointsView() {
   }
 }
 
+function changeMemoryViewPage() {
+  var target = $("#jump_memory").val();
+  var page = Math.floor(parseInt(target) / (16*20));
+  editableGrid.setPageIndex(page);
+}
+
 $(document).ready(function() {
   EditableGrid.prototype.updatePaginator = function()
   {
@@ -89,34 +103,31 @@ $(document).ready(function() {
       // "first" link
       var link = $("<a>").html("<img src='" + image("gofirst.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-      else link.css("cursor",  "pointer").click(function(event) { editableGrid.firstPage(); addHoverMemoryView(); });
+      else link.css("cursor",  "pointer").click(function(event) { editableGrid.firstPage(); });
       paginator.append(link);
 
       // "prev" link
       link = $("<a>").html("<img src='" + image("prev.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-      else link.css("cursor",  "pointer").click(function(event) { editableGrid.prevPage(); addHoverMemoryView(); });
+      else link.css("cursor",  "pointer").click(function(event) { editableGrid.prevPage(); });
       paginator.append(link);
 
       var mem_begin = $(".editablegrid-ch:eq(1)").text();
       paginator.append('<input id="jump_memory" type="text" value="' + mem_begin + '"/><input id="jump_memory_go" type="submit" value="Go">');
-      $("#jump_memory_go").click(function () {
-        var target = $("#jump_memory").val();
-        var page = Math.floor(parseInt(target) / (16*20));
-        editableGrid.setPageIndex(page);
-        addHoverMemoryView();
-      });
+
+      $("#jump_memory").keyup(function(e){ if (e.keyCode == 13) { changeMemoryViewPage(); } });
+      $("#jump_memory_go").click(changeMemoryViewPage);
 
       // "next" link
       link = $("<a>").html("<img src='" + image("next.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-      else link.css("cursor",  "pointer").click(function(event) { editableGrid.nextPage(); addHoverMemoryView(); });
+      else link.css("cursor",  "pointer").click(function(event) { editableGrid.nextPage(); });
       paginator.append(link);
 
       // "last" link
       link = $("<a>").html("<img src='" + image("golast.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-      else link.css("cursor",  "pointer").click(function(event) { editableGrid.lastPage(); addHoverMemoryView(); });
+      else link.css("cursor",  "pointer").click(function(event) { editableGrid.lastPage(); });
       paginator.append(link);
 
       $(".editablegrid-c0, .editablegrid-c1, .editablegrid-c2, .editablegrid-c3, .editablegrid-c4, .editablegrid-c5, .editablegrid-c6, .editablegrid-c7, .editablegrid-c8, .editablegrid-c9, .editablegrid-c10, .editablegrid-c11, .editablegrid-c12, .editablegrid-c13, .editablegrid-c14, .editablegrid-c15").click(function(e) {
@@ -135,7 +146,6 @@ $(document).ready(function() {
         }
       });
     };
-
 
   // Memory viewer
   var metadata = [];
@@ -160,7 +170,7 @@ $(document).ready(function() {
   // Not necessary?
   var data = [];
   for (var i = 0; i < 20; i++) {
-    data.push({id: i,  values: {"c0": "00",  "c1": "00",  "c2": "00",  "c3": "00",  "c4": "00",  "c5": "00",  "c6": "00",  "c7": "00",  "c8": "00",  "c9": "00",  "c10": "00",  "c11": "00",  "c12": "00",  "c13": "00",  "c14": "00",  "c15": "00"}});
+    data.push({id: i,  values: {"c0": "--",  "c1": "--",  "c2": "--",  "c3": "--",  "c4": "--",  "c5": "--",  "c6": "--",  "c7": "--",  "c8": "--",  "c9": "--",  "c10": "--",  "c11": "--",  "c12": "--",  "c13": "--",  "c14": "--",  "c15": "--"}});
     data[i]["values"]["ch"] = formatHexUnsigned32Bits(i*16)
   }
 
@@ -186,7 +196,6 @@ $(document).ready(function() {
   });
   editableGrid.load({"metadata": metadata,  "data": data});
   editableGrid.renderGrid("memoryview",  "testgrid");
-  addHoverMemoryView();
 
   $('#help_r').tooltipster({
     contentAsHTML: true,

@@ -2,7 +2,7 @@
 
 ### An ARM emulator in Python for educational purposes
 
-**epater** (*Environnement de Programmation ARM Téléopéré *) is an ARM emulator targeted for academic and learning purposes. It is a two parts project, consisting of:
+**epater** (*Environnement de Programmation ARM Téléopéré pour l'Éducation et la Recherche*) is an ARM emulator targeted for academic and learning purposes. It is a two parts project, consisting of:
 
 1. An assembler program able to translate ARM assembly to ARMv7 bytecode
 2. An emulator running ARMv7 bytecode

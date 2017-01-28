@@ -3,16 +3,17 @@ from procsimulator import Simulator, Memory, Register
 
 class BCInterpreter:
 
-    def __init__(self, bytecode, mappingInfo):
+    def __init__(self, bytecode, mappingInfo, assertInfo={}):
         self.bc = bytecode
         self.addr2line = mappingInfo
+        self.assertInfo = assertInfo
         # Useful to set line breakpoints
         self.line2addr = {}
         for addr,lines in mappingInfo.items():
             for line in lines:
                 self.line2addr[line] = addr
         self.lineBreakpoints = []
-        self.sim = Simulator(bytecode)
+        self.sim = Simulator(bytecode, self.assertInfo)
         self.reset()
 
     def reset(self):
@@ -95,10 +96,11 @@ class BCInterpreter:
     @property
     def currentBreakpoint(self):
         # Returns a namedTuple with the fields
-        # 'source' = 'register' | 'memory' | ' flag'
+        # 'source' = 'register' | 'memory' | 'flag' | 'assert'
         # 'mode' = integer (same interpretation as Unix permissions)
         #                   if source='memory' then mode can also be 8 : it means that we're trying to access an uninitialized memory address
         # 'infos' = supplemental information (register index if source='register', flag name if source='flag', address if source='memory')
+        #               if source='assert', then infos is a tuple (line (integer), description (string))
         # If no breakpoint has been trigged in the last instruction, then return None
         return self.sim.sysHandle.breakpointInfo if self.sim.sysHandle.breakpointTrigged else None
 
@@ -126,12 +128,27 @@ class BCInterpreter:
             return
         self.sim.mem.set(addr, val[0], 1)
 
+    def getCurrentInfos(self):
+        # Return [["highlightread", ["r3", "SVC_r12", "z", "sz"]], ["highlightwrite", ["r1", "MEM_adresseHexa"]], ["nextline", 42], ["disassembly", ""]]
+        s = self.sim.disassemblyInfo
+
+        # Convert nextline from addr to line number
+        idx = [i for i, x in enumerate(s) if x[0] == "nextline"]
+        try:
+            s[idx[0]][1] = self.addr2line[s[idx[0]][1]][-1]
+        except IndexError:
+            s = [x for i, x in enumerate(s) if x[0] != "nextline"]
+
+        return s
+
     def getRegisters(self):
         return self.sim.regs.getAllRegisters()
 
     def setRegisters(self, regsDict):
         for r,v in regsDict.items():
             self.sim.regs[r].set(v, mayTriggerBkpt=False)
+        # Changing the registers may change some infos in the prediction (for instance, memory cells affected by a mem access)
+        self.sim.decodeInstr()
 
     def getFlags(self):
         # Return a dictionnary of the flags; if the current mode has a SPSR, then this method also returns
@@ -153,6 +170,8 @@ class BCInterpreter:
                 self.sim.regs.getSPSR().setFlag(f.upper(), int(v), mayTriggerBkpt=False)
             elif len(f) == 1:
                 self.sim.flags.setFlag(f.upper(), int(v), mayTriggerBkpt=False)
+        # Changing the flags may change the decision to execute or not the next instruction, we update it
+        self.sim.decodeInstr()
 
     def getProcessorMode(self):
         return self.sim.flags.getMode()

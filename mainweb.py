@@ -1,4 +1,5 @@
 import traceback
+import glob
 import string
 import time
 import random
@@ -6,17 +7,21 @@ import asyncio
 import json
 import os
 import sys
+import re
+import binascii
+import base64
+from urllib.parse import quote, unquote
 from copy import copy
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from multiprocessing import Process
 import smtplib
 from email.mime.text import MIMEText
 
 import websockets
-from bs4 import BeautifulSoup
 from gevent import monkey; monkey.patch_all()
 import bottle
-from bottle import route, get, template, static_file, request
+from bottle import route, static_file, get, request, template
+from bs4 import BeautifulSoup
 
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
@@ -26,7 +31,7 @@ with open("emailpass.txt") as fhdl:
     email_password = fhdl.read().strip()
 
 
-UPDATE_THROTTLE_SEC = 0.2
+UPDATE_THROTTLE_SEC = 0.3
 
 interpreters = {}
 connected = set()
@@ -35,15 +40,25 @@ connected = set()
 DEBUG = 'DEBUG' in sys.argv
 
 
-async def producer(data_list):
+async def producer(ws, data_list):
     while True:
+        if ws not in connected:
+            break
         if data_list:
-            return json.dumps(data_list.pop(0))
+            out = []
+            while True:
+                try:
+                    out.append(data_list.pop(0))
+                except IndexError:
+                    break
+            return json.dumps(out)
         await asyncio.sleep(0.05)
 
 
 async def run_instance(websocket):
     while True:
+        if websocket not in connected:
+            break
         if websocket in interpreters:
             interp = interpreters[websocket]
             if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (interp.user_asked_stop__ == False):
@@ -53,6 +68,8 @@ async def run_instance(websocket):
 
 async def update_ui(ws, to_send):
     while True:
+        if ws not in connected:
+            break
         if ws in interpreters:
             interp = interpreters[ws]
             if (interp.next_report__ < time.time() and len(to_send) < 10 and interp.num_exec__ > 0):
@@ -68,7 +85,7 @@ async def handler(websocket, path):
     ui_update_queue = []
     try:
         listener_task = asyncio.ensure_future(websocket.recv())
-        producer_task = asyncio.ensure_future(producer(to_send))
+        producer_task = asyncio.ensure_future(producer(websocket, to_send))
         to_run_task = asyncio.ensure_future(run_instance(websocket))
         update_ui_task = asyncio.ensure_future(update_ui(websocket, to_send))
         while True:
@@ -95,7 +112,7 @@ async def handler(websocket, path):
             if producer_task in done:
                 message = producer_task.result()
                 await websocket.send(message)
-                producer_task = asyncio.ensure_future(producer(to_send))
+                producer_task = asyncio.ensure_future(producer(websocket, to_send))
 
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
@@ -120,6 +137,7 @@ async def handler(websocket, path):
                 interpreters[websocket].next_report__ = time.time() + UPDATE_THROTTLE_SEC
                 ui_update_dict = OrderedDict()
                 mem_update = OrderedDict()
+
                 for el in ui_update_queue:
                     if el[0] == "mempartial":
                         for k,v in el[1]:
@@ -139,15 +157,16 @@ async def handler(websocket, path):
     except Exception as e:
         ex = traceback.format_exc()
         print("Simulator crashed:\n{}".format(ex))
-        try:
-            code = interpreters[websocket].code__
-        except (KeyError, AttributeError):
-            code = ""
-        try:
-            hist = interpreters[websocket].history__
-        except (KeyError, AttributeError):
-            hist = []
-        body = """<html><head></head>
+        if not DEBUG:
+            try:
+                code = interpreters[websocket].code__
+            except (KeyError, AttributeError):
+                code = ""
+            try:
+                hist = interpreters[websocket].history__
+            except (KeyError, AttributeError):
+                hist = []
+            body = """<html><head></head>
 (Simulator crash)
 <h4>Traceback:</h4>
 <pre>{ex}</pre>
@@ -156,8 +175,8 @@ async def handler(websocket, path):
 <h4>Operation history:</h4>
 <pre>{hist}</pre>
 </html>""".format(code=code, ex=ex, hist="<br/>".join(str(x) for x in hist))
-        sendEmail(body)
-        print("Email sent!")
+            sendEmail(body)
+            print("Email sent!")
     finally:
         if websocket in interpreters:
             del interpreters[websocket]
@@ -168,13 +187,10 @@ async def handler(websocket, path):
 def sendEmail(msg):
     msg = MIMEText(msg, 'html')
 
-    # me == the sender's email address
-    # you == the recipient's email address
     msg['Subject'] = "Error happened on ASM Simulator"
     msg['From'] = "simulateurosa@gmail.com"
     msg['To'] = "simulateurosa@gmail.com"
 
-    # Send the message via our own SMTP server.
     s = smtplib.SMTP('smtp.gmail.com', 587)
     s.starttls()
     s.login("simulateurosa@gmail.com", email_password)
@@ -231,8 +247,13 @@ def updateDisplay(interp, force_all=False):
 
     try:
         retval.append(["debugline", interp.getCurrentLine()])
+        retval.extend(interp.getCurrentInfos())
     except AssertionError:
         retval.append(["debugline", -1])
+        #retval.append(["highlightread", []])
+        #retval.append(["highlightwrite", []])
+        retval.append(["nextline", -1])
+        retval.append(["disassembly", "No info"])
 
     try:
         instr_addr = interp.getCurrentInstructionAddress()
@@ -270,13 +291,15 @@ def updateDisplay(interp, force_all=False):
         retval.extend([["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]],
                        ["mempartial", []]])
 
-    retval.append(["cycles_count", interp.getCycleCount()])
+    retval.append(["cycles_count", interp.getCycleCount() + 1])
 
-    # TODO: check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
+    # Check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
     if interp.currentBreakpoint:
         if interp.currentBreakpoint.source == 'memory' and bool(interp.currentBreakpoint.mode & 8):
-            retval.append(["error", """Un accès à l'extérieur de la mémoire initialisée a été effectué.
-{}""".format(currentBreakpoint.info["desc"])])
+            retval.append(["error", """Un accès à l'extérieur de la mémoire initialisée a été effectué. {}""".format(interp.currentBreakpoint.infos)])
+
+        if interp.currentBreakpoint.source == 'assert':
+            retval.append(["codeerror", interp.currentBreakpoint.infos[0] + 1, interp.currentBreakpoint.infos[1]])
     return retval
 
 
@@ -297,19 +320,22 @@ def process(ws, msg_in):
                 interpreters[ws].history__.append(data)
 
             if data[0] != 'assemble' and ws not in interpreters:
-                raise Exception("Veuillez assembler le code avant d'effectuer cette opération.")
+                retval.append(["error", "Veuillez assembler le code avant d'effectuer cette opération."])
             elif data[0] == 'assemble':
                 # TODO: Afficher les erreurs à l'écran "codeerror"
                 code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)
-                bytecode, bcinfos = ASMparser(code.splitlines())
-                interpreters[ws] = BCInterpreter(bytecode, bcinfos)
-                force_update_all = True
-                interpreters[ws].code__ = copy(code)
-                interpreters[ws].last_step__ = time.time()
-                interpreters[ws].next_report__ = 0
-                interpreters[ws].animate_speed__ = 0.1
-                interpreters[ws].num_exec__ = 0
-                interpreters[ws].user_asked_stop__ = False
+                bytecode, bcinfos, assertions, errors = ASMparser(code.splitlines())
+                if errors:
+                    retval.extend(errors)
+                else:
+                    interpreters[ws] = BCInterpreter(bytecode, bcinfos, assertions)
+                    force_update_all = True
+                    interpreters[ws].code__ = copy(code)
+                    interpreters[ws].last_step__ = time.time()
+                    interpreters[ws].next_report__ = 0
+                    interpreters[ws].animate_speed__ = 0.1
+                    interpreters[ws].num_exec__ = 0
+                    interpreters[ws].user_asked_stop__ = False
             elif data[0] == 'stepback':
                 interpreters[ws].stepBack()
                 force_update_all = True
@@ -372,17 +398,22 @@ def process(ws, msg_in):
         traceback.print_exc()
         retval.append(["error", str(e)])
 
-        ex = traceback.format_exc()
-        print("Handling loop crashed:\n{}".format(ex))
-        try:
-            code = interpreters[websocket].code__
-        except (KeyError, AttributeError):
-            code = ""
-        try:
-            hist = interpreters[websocket].history__
-        except (KeyError, AttributeError):
-            hist = []
-        body = """<html><head></head>
+        if not DEBUG:
+            ex = traceback.format_exc()
+            print("Handling loop crashed:\n{}".format(ex))
+            try:
+                code = interpreters[ws].code__
+            except (KeyError, AttributeError):
+                code = ""
+            try:
+                hist = interpreters[ws].history__
+            except (KeyError, AttributeError):
+                hist = []
+            try:
+                cmd = msg
+            except NameError:
+                cmd = ""
+            body = """<html><head></head>
 (Handling loop crash)
 <h4>Traceback:</h4>
 <pre>{ex}</pre>
@@ -390,9 +421,11 @@ def process(ws, msg_in):
 <pre>{code}</pre>
 <h4>Operation history:</h4>
 <pre>{hist}</pre>
-</html>""".format(code=code, ex=ex, hist="<br/>".join(str(x) for x in hist))
-        sendEmail(body)
-        print("Email sent!")
+<h4>Current command:</h4>
+<pre>{cmd}</pre>
+</html>""".format(code=code, ex=ex, hist="<br/>".join(str(x) for x in hist), cmd=cmd)
+            sendEmail(body)
+            print("Email sent!")
 
     del msg_in[:]
 
@@ -401,7 +434,7 @@ def process(ws, msg_in):
     return retval
 
 
-default_code = """SECTION INTVEC
+debug_code = """SECTION INTVEC
 
 B main
 
@@ -460,28 +493,83 @@ SECTION DATA
 
 variablemem DS32 10"""
 
+default_code = """SECTION INTVEC
+
+B main
+
+
+SECTION CODE
+
+main
+
+
+SECTION DATA
+"""
+
+
 index_template = open('./interface/index.html', 'r').read()
+simulator_template = open('./interface/simulateur.html', 'r').read()
 @get('/')
 def index():
-    if "exercice" in request.query:
-        with open(os.path.join("exercices", "{}.html".format(request.query["exercice"])), 'r') as fhdl:
-            exercice_html = fhdl.read()
-        soup = BeautifulSoup(exercice_html, "html.parser")
-        enonce = soup.find("div", {"id": "enonce"})
-        code = soup.find("div", {"id": "code"}).text
-        if not code:
-            code = ""
-        if not enonce:
-            enonce = ""
+    page = request.query.get("page", "demo")
+
+    code = default_code
+    enonce = ""
+    solution = ""
+    title = ""
+    sections = {}
+    identifier = ""
+
+    if "sim" in request.query:
+        this_template = simulator_template
+        if request.query["sim"] == "debug":
+            code = debug_code
+
+        elif not request.query["sim"] == "nouveau":
+            try:
+                request.query["sim"] = base64.b64decode(unquote(request.query["sim"])).decode('utf-8')
+                with open(os.path.join("exercices", request.query["sim"]), 'r') as fhdl:
+                    exercice_html = fhdl.read()
+                soup = BeautifulSoup(exercice_html, "html.parser")
+                enonce = soup.find("div", {"id": "enonce"})
+                code = soup.find("div", {"id": "code"}).text
+                solution = soup.find("div", {"id": "solution"})
+                if not code:
+                    code = ""
+                if not enonce:
+                    enonce = ""
+            except (FileNotFoundError, binascii.Error):
+                pass
     else:
-        code = default_code
-        enonce = ""
-    return template(index_template, code=code, enonce=enonce)
+        this_template = index_template
+        files = []
+        if page in ("demo", "exo", "tp"):
+            files = glob.glob("exercices/{}/*/*.html".format(page), recursive=True)
+            files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
+        sections = defaultdict(dict)
+        for f in files:
+            fs = f.split(os.sep)
+            sections[fs[1].replace("_", " ")][fs[2].replace(".html", "").replace("_", " ")] = quote(base64.b64encode(f.encode('utf-8')), safe='')
+
+        print(sections)
+
+        if len(sections) == 0:
+            sections = {"Aucune section n'est disponible en ce moment.": {}}
+        print(sections)
+
+        if page == "exo":
+            title = "Exercices facultatifs"
+        elif page == "tp":
+            title = "Travaux pratiques"
+        else:
+            title = "Démonstrations"
+
+    return template(this_template, code=code, enonce=enonce, solution=solution, page=page, title=title, sections=sections, identifier=identifier)
 
 
-@route('/<filename:path>')
+@route('/static/<filename:path>')
 def static_serve(filename):
-    return static_file(filename, root='./interface/')
+    return static_file(filename, root='./interface/static/')
 
 
 def http_server():
@@ -490,12 +578,14 @@ def http_server():
 
 if __name__ == '__main__':
 
-    p = Process(target=http_server)
-    p.start()
+    if DEBUG:
+        p = Process(target=http_server)
+        p.start()
 
     # Websocket Server
-    start_server = websockets.serve(handler, '127.0.0.1', 31415)
+    start_server = websockets.serve(handler, '0.0.0.0', 31415)
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
 
-    p.join()
+    if DEBUG:
+        p.join()
