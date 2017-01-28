@@ -643,6 +643,10 @@
                 resetView();
             });
 
+            $('a[href$="#tabsmain-simulation"]').click(function() {
+                    editor.resize();
+            });
+
             $("input[type=text]").change(function () {
                 var objid = $(this).attr("id");
                 if (objid == animate_speed) { return; }

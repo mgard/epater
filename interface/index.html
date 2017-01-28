@@ -16,13 +16,21 @@
         </div>
         <div id="content">
         <h4>{{ title }}</h4>
-        % for section_name, items in sections.items():
-            {{ section_name }}
+        % if page == "tp":
             <ul>
-            % for item, link in items.items():
-                <li><a href="?page={{ page }}&sim={{ link }}">{{ item }}</a></li>
+            % for tp, link in sections.items():
+                <li><a href="?page={{ page }}&sim={{ link }}">{{ tp }}</a>
             % end
             </ul>
+        % else:
+            % for section_name, items in sections.items():
+                {{ section_name }}
+                <ul>
+                % for item, link in items.items():
+                    <li><a href="?page={{ page }}&sim={{ link }}">{{ item }}</a></li>
+                % end
+                </ul>
+            %end
         % end
         </div>
         <div style="clear: both;"></div>
