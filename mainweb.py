@@ -324,6 +324,9 @@ def process(ws, msg_in):
             elif data[0] == 'assemble':
                 # TODO: Afficher les erreurs à l'écran "codeerror"
                 code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)
+                if ws in interpreters:
+                    del interpreters[ws]
+
                 bytecode, bcinfos, assertions, errors = ASMparser(code.splitlines())
                 if errors:
                     retval.extend(errors)
@@ -571,7 +574,9 @@ def index():
         else:
             title = "Démonstrations"
 
-    return template(this_template, code=code, enonce=enonce, solution=solution, page=page, title=title, sections=sections, identifier=identifier)
+    return template(this_template, code=code, enonce=enonce, solution=solution,
+                    page=page, title=title, sections=sections, identifier=identifier,
+                    rand=random.randint(0, 2**16))
 
 
 @route('/static/<filename:path>')

@@ -1,4 +1,4 @@
-var ws = new WebSocket("ws://" + window.location.hostname + ":31415/");
+var ws = new WebSocket("ws://" + window.location.hostname + ":31415/")
 
 // Breakpoints and markers
 var asm_breakpoints = [];
@@ -220,7 +220,9 @@ function sendCmd(cmd) {
 
 function sendData(data) {
     //console.log("envoi: ", +new Date()/1000);
-    if (ws.readyState !== 1) {
+    if (ws.readyState === 0) {
+        setTimeout(function () {sendData(data)}, 500);
+    } else if (ws.readyState > 1) {
         displayErrorMsg("Perte de la connexion au simulateur.");
         $("input").prop("disabled", true);
     } else {
