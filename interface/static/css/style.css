@@ -1,5 +1,39 @@
-html, body {
-    height:100%;
+html {
+    height: 100%;
+}
+
+body {
+    height: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+#left_menu {
+    height: 100%;
+    background-color: teal;
+    width: 100px;
+    float: left;
+}
+
+.left_item {
+    margin: 2px 0 2px;
+    width: 98%;
+    text-align: center;
+    background-color: white;
+    height: 3em;
+}
+
+#content {
+    float: left;
+    padding-left: 2em;
+}
+
+#content a {
+    color: black;
+}
+
+#left_menu a {
+    text-decoration: none;
 }
 
 body {
@@ -13,7 +47,7 @@ h4 {
 }
 
 #disassembly {
-    height: 7em;
+    height: 9em;
     width: 430px;
     overflow-y: scroll;
 }
@@ -72,7 +106,7 @@ h4 {
     margin: 0;
 }
 
-#content {
+#content-sim {
     height: 100%;
     margin: 0 auto;
 }

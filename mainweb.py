@@ -8,6 +8,9 @@ import json
 import os
 import sys
 import re
+import binascii
+import base64
+from urllib.parse import quote, unquote
 from copy import copy
 from collections import OrderedDict, defaultdict
 from multiprocessing import Process
@@ -18,6 +21,7 @@ import websockets
 from gevent import monkey; monkey.patch_all()
 import bottle
 from bottle import route, static_file, get, request, template
+from bs4 import BeautifulSoup
 
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
@@ -430,7 +434,7 @@ def process(ws, msg_in):
     return retval
 
 
-default_code = """SECTION INTVEC
+debug_code = """SECTION INTVEC
 
 B main
 
@@ -489,6 +493,19 @@ SECTION DATA
 
 variablemem DS32 10"""
 
+default_code = """SECTION INTVEC
+
+B main
+
+
+SECTION CODE
+
+main
+
+
+SECTION DATA
+"""
+
 
 index_template = open('./interface/index.html', 'r').read()
 simulator_template = open('./interface/simulateur.html', 'r').read()
@@ -501,40 +518,53 @@ def index():
     solution = ""
     title = ""
     sections = {}
+    identifier = ""
 
-    if page == "demo" or "sim" in request.query:
-        request.query["sim"] = "new"
-        try:
-            this_template = simulator_template
-            with open(os.path.join("exercices", "{}.html".format(request.query["sim"])), 'r') as fhdl:
-                exercice_html = fhdl.read()
-            soup = BeautifulSoup(exercice_html, "html.parser")
-            enonce = soup.find("div", {"id": "enonce"})
-            code = soup.find("div", {"id": "code"}).text
-            solution = soup.find("div", {"id": "solution"})
-            if not code:
-                code = ""
-            if not enonce:
-                enonce = ""
-        except FileNotFoundError:
-            pass
+    if "sim" in request.query:
+        this_template = simulator_template
+        if request.query["sim"] == "debug":
+            code = debug_code
+
+        elif not request.query["sim"] == "nouveau":
+            try:
+                request.query["sim"] = base64.b64decode(unquote(request.query["sim"])).decode('utf-8')
+                with open(os.path.join("exercices", request.query["sim"]), 'r') as fhdl:
+                    exercice_html = fhdl.read()
+                soup = BeautifulSoup(exercice_html, "html.parser")
+                enonce = soup.find("div", {"id": "enonce"})
+                code = soup.find("div", {"id": "code"}).text
+                solution = soup.find("div", {"id": "solution"})
+                if not code:
+                    code = ""
+                if not enonce:
+                    enonce = ""
+            except (FileNotFoundError, binascii.Error):
+                pass
     else:
         this_template = index_template
-        files = glob.glob("exercices/{}/*.html".format(page), recursive=True)
-        files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
+        files = []
+        if page in ("demo", "exo", "tp"):
+            files = glob.glob("exercices/{}/*/*.html".format(page), recursive=True)
+            files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
         sections = defaultdict(dict)
         for f in files:
             fs = f.split(os.sep)
-            sections[fs[0]][fs[1].replace(".html", "")] = f.replace(os.sep, "_")
+            sections[fs[1].replace("_", " ")][fs[2].replace(".html", "").replace("_", " ")] = quote(base64.b64encode(f.encode('utf-8')), safe='')
+
+        print(sections)
+
+        if len(sections) == 0:
+            sections = {"Aucune section n'est disponible en ce moment.": {}}
+        print(sections)
 
         if page == "exo":
             title = "Exercices facultatifs"
         elif page == "tp":
             title = "Travaux pratiques"
         else:
-            title = "D&eacute;monstrations"
+            title = "Démonstrations"
 
-    return template(this_template, code=code, enonce=enonce, solution=solution, page=page, title=title, sections=sections)
+    return template(this_template, code=code, enonce=enonce, solution=solution, page=page, title=title, sections=sections, identifier=identifier)
 
 
 @route('/static/<filename:path>')
