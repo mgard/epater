@@ -549,13 +549,10 @@ def index():
         sections = defaultdict(dict)
         for f in files:
             fs = f.split(os.sep)
-            sections[fs[1].replace("_", " ")][fs[2].replace(".html", "").replace("_", " ")] = quote(base64.b64encode(f.encode('utf-8')), safe='')
-
-        print(sections)
+            sections[fs[1].replace("_", " ").encode('utf-8', 'replace')][fs[2].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')] = quote(base64.b64encode(f.encode('utf-8')), safe='')
 
         if len(sections) == 0:
             sections = {"Aucune section n'est disponible en ce moment.": {}}
-        print(sections)
 
         if page == "exo":
             title = "Exercices facultatifs"
