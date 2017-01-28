@@ -514,7 +514,7 @@ def index():
     page = request.query.get("page", "demo")
 
     code = default_code
-    enonce = ""
+    enonce = "<h4>Pas d'&eacute;nonc&eacute;</h4>"
     solution = ""
     title = ""
     sections = {}
@@ -544,15 +544,22 @@ def index():
         this_template = index_template
         files = []
         if page in ("demo", "exo", "tp"):
-            files = glob.glob("exercices/{}/*/*.html".format(page), recursive=True)
+            tomatch = "exercices/{}/*/*.html"
+            if page == "tp":
+                tomatch = "exercices/{}/*.html"
+            files = glob.glob(tomatch.format(page), recursive=True)
             files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
         sections = OrderedDict()
         for f in sorted(files):
             fs = f.split(os.sep)
-            k1 = fs[1].replace("_", " ").encode('utf-8', 'replace')
-            if k1 not in sections:
-                sections[k1] = OrderedDict()
-            sections[k1][fs[2].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
+            if page == "tp":
+                k1 = fs[1].replace("_", " ").encode('utf-8', 'replace')
+                sections[k1] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
+            else:
+                k1 = fs[1].replace("_", " ").encode('utf-8', 'replace')
+                if k1 not in sections:
+                    sections[k1] = OrderedDict()
+                sections[k1][fs[2].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
 
         if len(sections) == 0:
             sections = {"Aucune section n'est disponible en ce moment.": {}}
