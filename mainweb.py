@@ -546,10 +546,13 @@ def index():
         if page in ("demo", "exo", "tp"):
             files = glob.glob("exercices/{}/*/*.html".format(page), recursive=True)
             files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
-        sections = defaultdict(dict)
-        for f in files:
+        sections = OrderedDict()
+        for f in sorted(files):
             fs = f.split(os.sep)
-            sections[fs[1].replace("_", " ").encode('utf-8', 'replace')][fs[2].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')] = quote(base64.b64encode(f.encode('utf-8')), safe='')
+            k1 = fs[1].replace("_", " ").encode('utf-8', 'replace')
+            if k1 not in sections:
+                sections[k1] = OrderedDict()
+            sections[k1][fs[2].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
 
         if len(sections) == 0:
             sections = {"Aucune section n'est disponible en ce moment.": {}}
