@@ -1,4 +1,5 @@
 import traceback
+import locale
 import glob
 import string
 import time
@@ -510,6 +511,22 @@ SECTION DATA
 """
 
 
+def decodeWSGI(data):
+    return "".join(chr((0xdc00 if x > 127 else 0) + x) for x in data)
+
+
+def encodeWSGI(data):
+    return bytes([(ord(x) % 0xdc00) for x in data]).decode('utf-8')
+
+
+def encodeWSGIb(data):
+    return bytes([(x % 0xdc00) for x in data]).decode('utf-8')
+
+
+def encodeWSGIb(data):
+    return bytes([(x % 0xdc00) for x in data]).decode('utf-8')
+
+
 index_template = open('./interface/index.html', 'r').read()
 simulator_template = open('./interface/simulateur.html', 'r').read()
 @get('/')
@@ -530,9 +547,19 @@ def index():
 
         elif not request.query["sim"] == "nouveau":
             try:
-                request.query["sim"] = base64.b64decode(unquote(request.query["sim"])).decode('utf-8')
-                with open(os.path.join("exercices", request.query["sim"]), 'r') as fhdl:
-                    exercice_html = fhdl.read()
+                request.query["sim"] = base64.b64decode(unquote(request.query["sim"]))
+                # YAHOG -- When in WSGI, we must add 0xdc00 to every extended (e.g. accentuated) character in order for the 
+                # open() call to understand correctly the path
+                if locale.getdefaultlocale() == (None, None):
+                    request.query["sim"] = decodeWSGI(request.query["sim"])
+                    with open(os.path.join("exercices", request.query["sim"]), 'rb') as fhdl:
+                        exercice_html = fhdl.read()
+                    exercice_html = encodeWSGIb(exercice_html)
+                else:
+                    request.query["sim"] = request.query["sim"].decode("utf-8")
+
+                    with open(os.path.join("exercices", request.query["sim"]), 'r') as fhdl:
+                        exercice_html = fhdl.read()
                 soup = BeautifulSoup(exercice_html, "html.parser")
                 enonce = soup.find("div", {"id": "enonce"})
                 code = soup.find("div", {"id": "code"}).text
@@ -554,6 +581,11 @@ def index():
             files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
         sections = OrderedDict()
         for f in sorted(files):
+            # YAHOG -- When in WSGI, Python adds 0xdc00 to every extended (e.g. accentuated) character, leading to 
+            # errors in utf-8 re-interpretation.
+            if locale.getdefaultlocale() == (None, None):
+                f = encodeWSGI(f)
+
             fs = f.split(os.sep)
             if page == "tp":
                 k1 = fs[1].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')
