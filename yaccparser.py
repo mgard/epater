@@ -171,10 +171,10 @@ def p_datainst3op(p):
     p[0] = b
 
 def p_datainst3op_error(p):
-    """datainst3op : OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG error ENDLINESPACES
-                   | OPDATA3OP logmnemonic SPACEORTAB REG error COMMA"""
+    """datainst3op : OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG error
+                   | OPDATA3OP logmnemonic SPACEORTAB REG CONST error"""
     print("!!!!!", len(p))
-    if len(p) == 9:
+    if len(p) == 8:
         raise YaccError("L'instruction {} requiert 3 arguments".format(p[1]))
     else:
         raise YaccError("Le registre R{}{} n'existe pas".format(p[4], p[5]))
