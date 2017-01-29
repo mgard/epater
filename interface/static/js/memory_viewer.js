@@ -197,29 +197,4 @@ $(document).ready(function() {
   editableGrid.load({"metadata": metadata,  "data": data});
   editableGrid.renderGrid("memoryview",  "testgrid");
 
-  $('#help_r').tooltipster({
-    contentAsHTML: true,
-    content: 'Lecture (read)',
-    position: 'top'
-  });
-  $('#help_w').tooltipster({
-    contentAsHTML: true,
-    content: '&Eacute;criture (write)',
-    position: 'top'
-  });
-  $('#help_rw').tooltipster({
-    contentAsHTML: true,
-    content: 'Lecture ou &eacute;criture (read/write)',
-    position: 'top'
-  });
-  $('#help_e').tooltipster({
-    contentAsHTML: true,
-    content: 'Ex&eacute;cution (execute)',
-    position: 'top'
-  });
-  $('#help_instr').tooltipster({
-    contentAsHTML: true,
-    content: 'Instruction courante',
-    position: 'top'
-  });
 });
