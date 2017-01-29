@@ -529,7 +529,10 @@ class Simulator:
 
     def _checkOverflow(self, op1, op2, res):
         if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
-            return not bool((op1 & 0x80000000) ^ (res & 0x80000000))
+            op1 = op1-2**32 if op1 & 0x80000000 else op1
+            op2 = op2-2**32 if op2 & 0x80000000 else op2
+            res = op1 + op2
+            return -2**31 > res or res > 2**31
         return False
 
     def execAssert(self, assertionInfo):
