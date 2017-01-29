@@ -4,6 +4,7 @@
         <meta charset="UTF-8">
         <title>Simulateur ARM</title>
         <link rel="stylesheet" type="text/css" media="screen" href="static/css/style.css"/>
+        <link rel="stylesheet" type="text/css" media="screen" href="static/css/jquery-ui.css"/>
         <script src="static/js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript">
             window.define = window.define || ace.define;
@@ -396,14 +397,22 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div class="border_container"><h4>Interruptions</h4>
-                                        <input type="checkbox" id="interrupt_active" name="interrupt_active" value="activate"/>Activer<br/>
-                                        Type <select id="interrupt_type">
-                                            <option value="FIQ">FIQ</option>
-                                            <option value="IRQ">IRQ</option>
-                                        </select><br/>
-                                        <input class="regVal" id="interrupt_cycles" type="text" value="500" name="interrupt_cycles"/>&nbsp;cycles<br/>
-                                        <input class="regVal" id="interrupt_cycles_first" type="text" value="500" name="interrupt_cycles_first"/>&nbsp;cycles (premier)
+                                    <div id="config_wrapper">
+                                        <button id="configurations">Configurations</button>
+                                        <div id="config_diag" style="display: hidden;">
+                                            <h1>Configurations</h1>
+                                            <h4>Interruptions</h4>
+                                            <input type="checkbox" id="interrupt_active" name="interrupt_active" value="activate"/>Activer<br/>
+                                            Type <select id="interrupt_type">
+                                                <option value="FIQ">FIQ</option>
+                                                <option value="IRQ">IRQ</option>
+                                            </select><br/>
+                                            <input class="config_input" id="interrupt_cycles" type="text" value="500" name="interrupt_cycles"/>&nbsp;cycles<br/>
+                                            <input class="config_input" id="interrupt_cycles_first" type="text" value="500" name="interrupt_cycles_first"/>&nbsp;cycles (premier)
+                                            <hr/>
+                                            Vitesse d'ex&eacute;cution : &nbsp;<input class="config_input" id="animate_speed" type="text" value="100"/>ms<br/>
+                                            <div style="height: 3em;"></div>
+                                        </div>
                                     </div>
                                 </td>
                                 <td id="editorPanel">
@@ -427,7 +436,6 @@
                                         <div id="memoryview"></div>
                                         <div id="paginator"></div>
                                         <input type="checkbox" id="follow_pc" checked="checked"/>Suivre PC<br/>
-                                        Vitesse d'ex&eacute;cution : &nbsp;<input class="regVal" id="animate_speed" type="text" value="100"/>ms<br/>
                                         Cycle courant : <input id="cycles_count" type="text" value="0"/>
                                         
                                     </div>
@@ -466,6 +474,7 @@
     </script>
 
     <script src="static/js/jquery-1.11.1.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="static/js/jquery-ui-1.12.1.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="static/js/tooltipster/js/jquery.tooltipster.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="static/js/jquery.easytabs.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="static/js/jquery.easing.min.js" type="text/javascript" charset="utf-8"></script>
@@ -486,8 +495,19 @@
         $("#message_bar").click(function(){
           $(this).slideToggle("normal", "easeInOutBack", function() {});
         });
-        
+
         $(document).ready(function() {
+
+            $("#config_diag").dialog({
+                autoOpen: false,
+                modal: true,
+                width: 700,
+                buttons: []
+            });
+            $("#configurations").click(function() {
+                $("#config_diag").dialog("open");
+                //event.preventDefault();
+            });
 
 			editor.on("guttermousedown",  function(e) {
 				var target = e.domEvent.target;
@@ -510,12 +530,12 @@
             });
 
             $('a[href$="#tabsmain-simulation"]').click(function() {
-                    editor.resize();
+                editor.resize();
             });
 
             $("input[type=text]").change(function () {
                 var objid = $(this).attr("id");
-                if (objid == animate_speed) { return; }
+                if (objid == "animate_speed") { return; }
 
                 if (objid == "interrupt_active") {
                     if (document.getElementById('interrupt_active').checked) {
