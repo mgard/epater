@@ -3,7 +3,7 @@ from collections import defaultdict
 from copy import deepcopy
 
 from ply.lex import LexError
-from tokenizer import ParserError
+from tokenizer import ParserError, lexer
 import yaccparser
 from settings import getSetting
 
@@ -89,6 +89,8 @@ def parse(code):
 
         line += "\n"
         try:
+            # We ensure that we are in the initial state of the lexer (in case of error in the previous lines)
+            lexer.begin("INITIAL")
             parsedLine = yaccparser.parser.parse(input=line)
         except ParserError as e:
             listErrors.append(("codeerror", i, str(e)))

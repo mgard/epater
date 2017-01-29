@@ -60,7 +60,9 @@ tokens = (
    'ASSERTION',
    'ASSERTIONDATA',
    'CONSTDEC',
+   'CONSTDECWITHOUTSIZE',
    'VARDEC',
+   'VARDECWITHOUTSIZE',
    'SPACEORTAB',
    'ENDLINESPACES',
    'STARTSPACES',
@@ -147,16 +149,27 @@ def t_assertion_ASSERTIONDATA(t):
 
 # A constant or variable declaration
 def t_CONSTDEC(t):
-    r'(?<=[\t ])DC(8|16|32)\s+'
+    r'(?<=[\t ])DC[0-9]+\s+'
     t.lexer.begin('decwithvalues')
     t.value = int(t.value[2:])
     return t
 
 def t_VARDEC(t):
-    r'(?<=[\t ])DS(8|16|32)\s+'
+    r'(?<=[\t ])DS[0-9]+\s+'
     t.lexer.begin('decwithsize')
     t.value = int(t.value[2:])
     return t
+
+def t_VARDECWITHOUTSIZE(t):
+    r'(?<=[\t ])DS\s+'
+    t.lexer.begin('decwithsize')
+    return t
+
+def t_CONSTDECWITHOUTSIZE(t):
+    r'(?<=[\t ])DC\s+'
+    t.lexer.begin('decwithvalues')
+    return t
+
 
 
 # A data operation (2 operands)
