@@ -164,7 +164,7 @@ def parse(code):
             # If there are some unresolved dependencies, we note it
             dep = parsedLine["BYTECODE"][1]
             if dep is not None:
-                unresolvedDepencencies[(currentSection, currentAddr)] = dep
+                unresolvedDepencencies[(currentSection, currentAddr, i)] = dep
                 if dep[0] == "addrptr":
                     # We will need to add a constant with this label address at the end of the section
                     requiredLabelsPtr.append((dep[1], i))
@@ -181,6 +181,10 @@ def parse(code):
     # At the end of the CODE section, we write all the label adresses referenced
     currentAddr = bytecode['__MEMINFOEND'][sectionToUse]
     for labelPtr,lineNo in requiredLabelsPtr:
+        if labelPtr not in labelsAddr:
+            listErrors.append(("codeerror", lineNo, "Cette ligne demande l'adresse de l'étiquette {}, mais celle-ci n'est déclarée nulle part".format(labelPtr)))
+            continue
+
         assert labelPtr in labelsAddr, "{} not in the label dict!".format(labelPtr)
         if labelPtr in labelsPtrAddr:
             # Already added (it's just referenced at two different places)
@@ -196,13 +200,19 @@ def parse(code):
 
     # At this point, all dependencies should have been resolved (e.g. all the labels should have been seen)
     # We fix the bytecode of the affected instructions
-    for (sec, addr), depInfo in unresolvedDepencencies.items():
+    for (sec, addr, line), depInfo in unresolvedDepencencies.items():
         # We retrieve the instruction and fit it into a 32 bit integer
         reladdr = addr - bytecode['__MEMINFOSTART'][sec]
         instrInt = struct.unpack("<I", bytecode[sec][reladdr:reladdr+4])[0]
         if depInfo[0] in ('addr', 'addrptr'):
             # A LDR/STR on a label or a label's address
-            addrToReach = (labelsAddr if depInfo[0] == 'addr' else labelsPtrAddr)[depInfo[1]]
+            dictToLookIn = (labelsAddr if depInfo[0] == 'addr' else labelsPtrAddr)
+            try:
+                addrToReach = dictToLookIn[depInfo[1]]
+            except KeyError:    # The label was never defined
+                listErrors.append(("codeerror", line, "L'étiquette {} n'est déclarée nulle part".format(depInfo[1])))
+                continue
+
             diff = addrToReach - (addr + pcoffset)
             if diff >= 0:
                 instrInt |= 1 << 23
@@ -211,9 +221,15 @@ def parse(code):
             # A branch on a given label
             # This is different than the previous case, since the offset is divided by 4
             # (when taking the branch, the offset is "shifted left two bits, sign extended to 32 bits"
-            addrToReach = labelsAddr[depInfo[1]]
+            try:
+                addrToReach = labelsAddr[depInfo[1]]
+            except KeyError:    # The label was never defined
+                listErrors.append(("codeerror", line, "L'étiquette {} n'est déclarée nulle part".format(depInfo[1])))
+                continue
             diff = addrToReach - (addr + pcoffset)
-            assert diff % 4 == 0
+            if diff % 4 != 0:
+                listErrors.append(("codeerror", line, "L'étiquette {} correspond à un décalage de {} octets, qui n'est pas un multiple de 4, ce qui est requis par ARM".format(depInfo[1], diff)))
+
             instrInt |= (diff // 4) & 0xFFFFFF
         else:
             assert False
@@ -221,6 +237,10 @@ def parse(code):
         # We put back the modified instruction in the bytecode
         b = struct.pack("<I", instrInt)
         bytecode[sec][reladdr:reladdr+4] = b
+
+    if len(listErrors) > 0:
+        # At least one line did not assemble, we cannot continue
+        return None, None, None, listErrors
 
     # No errors
     return bytecode, addrToLine, assertions, []
