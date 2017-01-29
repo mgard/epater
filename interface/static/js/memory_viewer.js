@@ -135,13 +135,13 @@ $(document).ready(function() {
         if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
         suffix = parseInt(suffix).toString(16);
         var addr = $('td:first', $(e.target).closest('tr')).text().slice(0,9) + suffix;
-        if(e.shiftKey) {
+        if(e.shiftKey || event.metaKey) {
           sendCmd(['breakpointsmem', addr, 'r']);
         }
-        if(e.ctrlKey) {
+        if(e.ctrlKey || event.metaKey) {
           sendCmd(['breakpointsmem', addr, 'w']);
         }
-        if(e.altKey) {
+        if(e.altKey || event.metaKey) {
           sendCmd(['breakpointsmem', addr, 'e']);
         }
       });
