@@ -1,7 +1,8 @@
 import struct
 import ply.yacc as yacc
+from ply.lex import LexToken
 
-from tokenizer import tokens, ParserError
+from tokenizer import tokens, ParserError, lexer
 from settings import getSetting
 
 import instruction
@@ -12,6 +13,7 @@ class YaccError(ParserError):
     """
     def __init__(self, msg):
         self.msg = msg
+        lexer.begin('INITIAL')
 
     def __str__(self):
         return self.msg
@@ -32,7 +34,7 @@ def p_line(p):
 
 def p_linelabel(p):
     """linelabel : LABEL
-                 | LABEL COMMENT"""
+                 | LABEL SPACEORTAB COMMENT"""
     p[0] = {'LABEL': p[1]}
 
 def p_linelabel_error(p):
@@ -42,29 +44,29 @@ def p_linelabel_error(p):
 
 def p_sectiondeclaration(p):
     """sectiondeclaration : SECTION SECTIONNAME
-                          | SECTION SECTIONNAME COMMENT"""
+                          | SECTION SECTIONNAME SPACEORTAB COMMENT"""
     p[0] = {'SECTION': p[2]}
 
 def p_lineassertion(p):
     """lineassertion : ASSERTION ASSERTIONDATA
-                     | ASSERTION ASSERTIONDATA COMMENT"""
+                     | ASSERTION ASSERTIONDATA SPACEORTAB COMMENT"""
     p[0] = {'ASSERTION': p[2]}
 
 def p_linedeclaration(p):
     """linedeclaration : LABEL SPACEORTAB declarationconst
-                       | LABEL SPACEORTAB declarationconst COMMENT
+                       | LABEL SPACEORTAB declarationconst SPACEORTAB COMMENT
                        | LABEL SPACEORTAB declarationsize
-                       | LABEL SPACEORTAB declarationsize COMMENT"""
+                       | LABEL SPACEORTAB declarationsize SPACEORTAB COMMENT"""
     p[0] = {'LABEL': p[1], 'BYTECODE': p[3]}
 
 def p_lineinstruction(p):
     """lineinstruction : instruction
-                       | instruction COMMENT"""
+                       | instruction SPACEORTAB COMMENT"""
     p[0] = {'BYTECODE': p[1]}
 
 def p_linelabelinstr(p):
     """linelabelinstr : LABEL SPACEORTAB instruction
-                      | LABEL SPACEORTAB instruction COMMENT"""
+                      | LABEL SPACEORTAB instruction SPACEORTAB COMMENT"""
     p[0] = {'LABEL': p[1], 'BYTECODE': p[3]}
 
 def p_instruction(p):
@@ -127,8 +129,16 @@ def p_datainst2op(p):
     p[0] = b
 
 def p_datainst2op_error(p):
-    """datainst2op : OPDATA2OP logmnemonic flagscondandspace REG error op2"""
-    raise YaccError("Les registres et/ou constantes utilisés dans une opération doivent être séparés par une virgule")
+    """datainst2op : OPDATA2OP logmnemonic flagscondandspace error COMMA op2
+                   | OPDATA2OP logmnemonic flagscondandspace REG error op2
+                   | OPDATA2OP logmnemonic flagscondandspace REG error COMMA op2"""
+
+    if len(p) == 8:
+        raise YaccError("Le registre R{}{} n'existe pas".format(p[4], p[5].value))
+    elif isinstance(p[4], LexToken):
+        raise YaccError("L'instruction {} requiert un registre comme premier argument".format(p[1]))
+    else:
+        raise YaccError("Les registres et/ou constantes utilisés dans une opération doivent être séparés par une virgule")
 
 def p_datainst3op(p):
     """datainst3op : OPDATA3OP logmnemonic flagscondandspace REG COMMA REG COMMA op2"""
@@ -147,21 +157,22 @@ def p_datainst3op(p):
     # We return the bytecode
     p[0] = b
 
-def boum(p):
-    """datainst3op : OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG CONST error
-                   | OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG error
-                   | OPDATA3OP logmnemonic SPACEORTAB REG CONST error"""
-    lenp = len(p)
-
-
-    if lenp == 5:
-        raise YaccError("L'instruction {} requiert un registre comme premier argument".format(p[1]))
-    elif lenp == 8:
+def p_datainst3op_error(p):
+    """datainst3op : OPDATA3OP logmnemonic flagscondandspace REG error REG COMMA op2
+                   | OPDATA3OP logmnemonic flagscondandspace REG COMMA REG error op2
+                   | OPDATA3OP logmnemonic flagscondandspace REG COMMA REG
+                   | OPDATA3OP logmnemonic flagscondandspace REG error COMMA REG COMMA op2
+                   | OPDATA3OP logmnemonic flagscondandspace REG COMMA REG error COMMA op2"""
+    if len(p) == 9:
+        raise YaccError("Les registres et/ou constantes utilisés dans une opération doivent être séparés par une virgule")
+    elif len(p) == 7:
         raise YaccError("L'instruction {} requiert 3 arguments".format(p[1]))
-    elif lenp == 9:
-        raise YaccError("Le registre R{}{} n'existe pas".format(p[6], p[7]))
-    else:
-        raise YaccError("Le registre R{}{} n'existe pas".format(p[4], p[5]))
+    elif len(p) == 10:
+        if isinstance(p[5], LexToken):
+            raise YaccError("Le registre R{}{} n'existe pas".format(p[4], p[5].value))
+        else:
+            raise YaccError("Le registre R{}{} n'existe pas".format(p[6], p[7].value))
+
 
 def p_datainsttest(p):
     """datainsttest : OPDATATEST logmnemonic condandspace REG COMMA op2"""
@@ -651,12 +662,12 @@ def p_declarationsize(p):
     p[0] = (struct.pack("<" + "B" * dimBytes, *[getSetting("fillValue")] * dimBytes), None)
 
 
-def p_error(p):
-    print("Syntax error in input!")
-    print("Wrong data:")
-    print(p)
-    print("End wrong data")
-    return
+#def p_error(p):
+#    print("Syntax error in input!")
+#    print("Wrong data:")
+#    print(p)
+#    print("End wrong data")
+#    return
 
 parser = yacc.yacc()
 

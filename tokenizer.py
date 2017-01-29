@@ -109,12 +109,16 @@ class LexError(ParserError):
     """
     def __init__(self, msg):
         self.msg = msg
+        lexer.begin('INITIAL')
 
     def __str__(self):
         return self.msg
 
 # A comment is always a comment
-t_ANY_COMMENT = r';.*$'
+def t_ANY_COMMENT(t):
+    r';.*$'
+    t.lexer.begin('INITIAL')
+    return t
 
 # A new line resets the state
 def t_ANY_ENDLINESPACES(t):
@@ -410,7 +414,7 @@ def t_psrinstr_PSR(t):
 # - Memory acesses
 # - Multiple memory accesses
 # - Branches (with BX)
-def t_datainstr_shiftinstr_cmpinstr_meminstr_multiplememinstr_branchinstr_psrinstr_mulinstr_REG(t):
+def t_ANY_REG(t):
     r'(R1[0-5]|R[0-9]|SP|LR|PC)'
     if t.value[0] != 'R':
         t.value = {'SP': 13, 'LR': 14, 'PC': 15}[t.value]
@@ -419,13 +423,6 @@ def t_datainstr_shiftinstr_cmpinstr_meminstr_multiplememinstr_branchinstr_psrins
     t.lexer.countArgs += 1
     return t
 
-# To declare a constant
-t_datainstr_shiftinstr_cmpinstr_meminstr_generalinstr_psrinstr_svcinstr_SHARP = r'\#'
-def t_datainstr_shiftinstr_cmpinstr_meminstr_generalinstr_psrinstr_svcinstr_decwithsize_CONST(t):
-    r'[+-]?(0x[0-9a-fA-F]+|[0-9]+)'
-    t.value = int(t.value.strip(), 16) if '0x' in t.value.lower() else int(t.value.strip())
-    t.lexer.countArgs += 1
-    return t
 
 # The constant declaration (DC) is the only case where we may have multiple constants on the same line
 def t_decwithvalues_LISTINIT(t):
@@ -436,6 +433,15 @@ def t_decwithvalues_LISTINIT(t):
         v = v.strip().lower()
         valsInt.append(int(v, 16) if '0x' in v else int(v))
     t.value = valsInt
+    return t
+
+
+# To declare a constant
+t_ANY_SHARP = r'\#'
+def t_ANY_CONST(t):
+    r'[+-]?(0x[0-9a-fA-F]+|[0-9]+)'
+    t.value = int(t.value.strip(), 16) if '0x' in t.value.lower() else int(t.value.strip())
+    t.lexer.countArgs += 1
     return t
 
 def t_datainstr_cmpinstr_meminstr_INNERSHIFT(t):

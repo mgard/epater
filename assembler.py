@@ -2,8 +2,7 @@ import struct
 from collections import defaultdict
 from copy import deepcopy
 
-#from lexparser import lexer, MemAccessPreInfo, ShiftInfo, DummyToken, LexError
-#from instruction import InstructionToBytecode
+from ply.lex import LexError
 from tokenizer import ParserError
 import yaccparser
 from settings import getSetting
@@ -90,6 +89,9 @@ def parse(code):
             parsedLine = yaccparser.parser.parse(input=line)
         except ParserError as e:
             listErrors.append(("codeerror", i, str(e)))
+            continue
+        except LexError as e:
+            listErrors.append(("codeerror", i, "Format de l'instruction invalide"))
             continue
         else:
             if parsedLine is None:
