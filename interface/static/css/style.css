@@ -235,8 +235,11 @@ img {
     /* this makes the Breakpoints work. */
 }
 
+.ace-tm {
+    color: #FFF !important;
+}
 .ace_keyword {
-    color: #FB2472 !important;
+    color: #2472FB !important;
 }
 .ace_asmcomment {
     color: #95989A;
