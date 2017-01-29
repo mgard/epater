@@ -183,6 +183,7 @@ function disableSim() {
     $("#stepout").prop('disabled', true);
     $("#stepforward").prop('disabled', true);
     $("input[type=text]").prop('disabled', true);
+    $(".config_input").prop('disabled', false);
 }
 
 function assemble() {

@@ -92,6 +92,7 @@ select, button, input[type=submit] {
     border: 1px solid #1476BD;
     color: #FFF;
     height: 1.6em;
+    font-size: 1.1em;
 }
 
 #disassembly {
@@ -341,14 +342,6 @@ img {
     height: 35px;
     vertical-align: top;
 }
-/*#assemble {
-    color: #ffffff;
-    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
-    background-color: #5bb75b;
-    border-color: #51a351 #51a351 #387038;
-    border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1);
-    border-radius: 5px;
-}*/
 
 .border_container {
     border: 1px solid #95989A;
@@ -360,8 +353,21 @@ img {
 }
 
 #after-reg {
+    text-align: center;
+    padding: 5px 0;
     border: 1px solid #95989A;
     border-top: none;
+}
+
+#config_wrapper {
+    text-align: center;
+    padding: 10px;
+    height: auto;
+}
+
+#configurations {
+    padding: 10px 20px;
+    height: auto;
 }
 
 .registers {
@@ -378,8 +384,9 @@ img {
     font-size: 0.8em;
 }
 
-#autosave_menu {
-    margin-left: 15px;
+.ui-widget-header {
+    border: none !important;
+    background: none !important;
 }
 
 /* Tabs */
@@ -414,10 +421,10 @@ img {
 }
 
 .flat_button {
-  font: bold 11px Arial;
   text-decoration: none;
   padding: 2px 6px 2px 6px;
   background-color: #28648F;
   border: 1px solid #1476BD;
   color: #FFF;
+  font-size: 1.1em;
 }
