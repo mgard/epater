@@ -87,122 +87,96 @@ def p_datainstruction(p):
     # so we just pack it in a bytes object
     p[0] = (struct.pack("<I", p[1]), None)
 
+
+def p_condandspace(p):
+    """condandspace : SPACEORTAB
+                    | CONDITION SPACEORTAB"""
+    cond = instruction.conditionMapping['AL' if len(p) == 2 else p[1]] << 28
+    p[0] = cond
+
+def p_flagscondandspace(p):
+    """flagscondandspace : MODIFYFLAGS condandspace
+                         | condandspace"""
+    condandflags = p[1] if len(p) == 2 else p[2]
+    if len(p) == 3:
+        condandflags |= 1 << 20     # Set flags
+    p[0] = condandflags
+
+def p_bytecondandspace(p):
+    """bytecondandspace : BYTEONLY condandspace
+                        | condandspace"""
+    condandbyte = p[1] if len(p) == 2 else p[2]
+    if len(p) == 3:
+        condandbyte |= 1 << 22      # Set byte mode
+    p[0] = condandbyte
+
+
 def p_datainst2op(p):
-    """datainst2op : OPDATA2OP logmnemonic SPACEORTAB REG COMMA op2
-                   | OPDATA2OP logmnemonic CONDITION SPACEORTAB REG COMMA op2
-                   | OPDATA2OP logmnemonic MODIFYFLAGS SPACEORTAB REG COMMA op2
-                   | OPDATA2OP logmnemonic MODIFYFLAGS CONDITION SPACEORTAB REG COMMA op2"""
-    # Create a list from the Yacc generator (so we can use negative indices)
-    plist = list(p)
+    """datainst2op : OPDATA2OP logmnemonic flagscondandspace REG COMMA op2"""
     # We build the instruction bytecode
     # Add the mnemonic
-    # We DON'T use plist[1] because the op2 rule might have changed it (to fit a constant)!
+    # We DON'T use p[1] because the op2 rule might have changed it (to fit a constant)!
     b = instruction.dataOpcodeMapping[currentMnemonic] << 21
     # Add the destination register
-    b |= plist[-3] << 12
+    b |= p[4] << 12
     # Add the second operand
-    b |= plist[-1]
-
-    conditionSet = False
-    if len(plist) == 8:
-        if plist[3] == 'S':
-            # Set flags
-            b |= 1 << 20
-        else:
-            # Set condition
-            b |= instruction.conditionMapping[plist[3]] << 28
-            conditionSet = True
-    if len(plist) == 9:
-        # Set flags
-        b |= 1 << 20
-        # Set condition
-        b |= instruction.conditionMapping[plist[4]] << 28
-        conditionSet = True
-
-    if not conditionSet:
-        # Set AL condition
-        b |= instruction.conditionMapping['AL'] << 28
-
+    b |= p[6]
+    # Add the condition and set flags bits
+    b |= p[3]
     # We return the bytecode
     p[0] = b
 
 def p_datainst2op_error(p):
-    """datainst2op : OPDATA2OP logmnemonic SPACEORTAB REG error op2"""
+    """datainst2op : OPDATA2OP logmnemonic flagscondandspace REG error op2"""
     raise YaccError("Les registres et/ou constantes utilisés dans une opération doivent être séparés par une virgule")
 
 def p_datainst3op(p):
-    """datainst3op : OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG COMMA op2
-                   | OPDATA3OP logmnemonic CONDITION SPACEORTAB REG COMMA REG COMMA op2
-                   | OPDATA3OP logmnemonic MODIFYFLAGS SPACEORTAB REG COMMA REG COMMA op2
-                   | OPDATA3OP logmnemonic MODIFYFLAGS CONDITION SPACEORTAB REG COMMA REG COMMA op2"""
-    # Create a list from the Yacc generator (so we can use negative indices)
-    plist = list(p)
+    """datainst3op : OPDATA3OP logmnemonic flagscondandspace REG COMMA REG COMMA op2"""
     # We build the instruction bytecode
     # Add the mnemonic
     # We DON'T use plist[1] because the op2 rule might have changed it (to fit a constant)!
     b = instruction.dataOpcodeMapping[currentMnemonic] << 21
     # Add the destination register
-    b |= plist[-5] << 12
+    b |= p[4] << 12
     # Add the first register operand
-    b |= plist[-3] << 16
+    b |= p[6] << 16
     # Add the second operand
-    b |= plist[-1]
-
-    conditionSet = False
-    if len(plist) == 10:
-        if plist[3] == 'S':
-            # Set flags
-            b |= 1 << 20
-        else:
-            # Set condition
-            b |= instruction.conditionMapping[plist[3]] << 28
-            conditionSet = True
-    if len(plist) == 11:
-        # Set flags
-        b |= 1 << 20
-        # Set condition
-        b |= instruction.conditionMapping[plist[4]] << 28
-        conditionSet = True
-
-    if not conditionSet:
-        # Set AL condition
-        b |= instruction.conditionMapping['AL'] << 28
+    b |= p[8]
+    # Add the condition and set flags bits
+    b |= p[3]
     # We return the bytecode
     p[0] = b
 
-def p_datainst3op_error(p):
-    """datainst3op : OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG error
+def boum(p):
+    """datainst3op : OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG CONST error
+                   | OPDATA3OP logmnemonic SPACEORTAB REG COMMA REG error
                    | OPDATA3OP logmnemonic SPACEORTAB REG CONST error"""
-    print("!!!!!", len(p))
-    if len(p) == 8:
+    lenp = len(p)
+
+
+    if lenp == 5:
+        raise YaccError("L'instruction {} requiert un registre comme premier argument".format(p[1]))
+    elif lenp == 8:
         raise YaccError("L'instruction {} requiert 3 arguments".format(p[1]))
+    elif lenp == 9:
+        raise YaccError("Le registre R{}{} n'existe pas".format(p[6], p[7]))
     else:
         raise YaccError("Le registre R{}{} n'existe pas".format(p[4], p[5]))
 
 def p_datainsttest(p):
-    """datainsttest : OPDATATEST logmnemonic SPACEORTAB REG COMMA op2
-                    | OPDATATEST logmnemonic CONDITION SPACEORTAB REG COMMA op2"""
-    # Create a list from the Yacc generator (so we can use negative indices)
-    plist = list(p)
+    """datainsttest : OPDATATEST logmnemonic condandspace REG COMMA op2"""
     # We build the instruction bytecode
     # Add the mnemonic
     # We DON'T use plist[1] because the op2 rule might have changed it (to fit a constant)!
     b = instruction.dataOpcodeMapping[currentMnemonic] << 21
     # Add the first register operand
-    b |= plist[-3] << 16
+    b |= p[4] << 16
     # Add the second operand
-    b |= plist[-1]
-
+    b |= p[6]
     # We always add the S bit
     b |= 1 << 20
-
-    if len(plist) == 8:
-        # Set condition
-        b |= instruction.conditionMapping[plist[3]] << 28
-    else:
-        # Set AL condition
-        b |= instruction.conditionMapping['AL'] << 28
-
+    # Set condition
+    b |= p[3]
     # We return the bytecode
     p[0] = b
 
@@ -297,157 +271,71 @@ def p_shiftinstruction(p):
     p[0] = (struct.pack("<I", p[0]), None)
 
 def p_shiftinstrrrx(p):
-    """shiftinstrrrx : OPSHIFT logmnemonic SPACEORTAB REG COMMA REG
-                     | OPSHIFT logmnemonic MODIFYFLAGS SPACEORTAB REG COMMA REG
-                     | OPSHIFT logmnemonic CONDITION SPACEORTAB REG COMMA REG
-                     | OPSHIFT logmnemonic MODIFYFLAGS CONDITION SPACEORTAB REG COMMA REG"""
-    plist = list(p)
+    """shiftinstrrrx : OPSHIFT logmnemonic flagscondandspace REG COMMA REG"""
     assert p[1] == "RRX"
     p[0] = instruction.shiftMapping[p[1]] << 5
-
     # Source register
-    p[0] |= plist[-1]
+    p[0] |= p[6]
     # Destination register
-    p[0] |= plist[-3] << 12
+    p[0] |= p[4] << 12
+    # Add the condition and set flags bits
+    p[0] |= p[3]
 
-    conditionSet = False
-    if len(plist) == 8:
-        if plist[3] == 'S':
-            # Set flags
-            p[0] |= 1 << 20
-        else:
-            # Set condition
-            p[0] |= instruction.conditionMapping[plist[3]] << 28
-            conditionSet = True
-    if len(plist) == 9:
-        # Set flags
-        p[0] |= 1 << 20
-        # Set condition
-        p[0] |= instruction.conditionMapping[plist[4]] << 28
-        conditionSet = True
 
-    if not conditionSet:
-        # Set AL condition
-        p[0] |= instruction.conditionMapping['AL'] << 28
 
 def p_shiftinstrconst(p):
-    """shiftinstrconst : OPSHIFT logmnemonic SPACEORTAB REG COMMA REG COMMA SHARP CONST
-                       | OPSHIFT logmnemonic MODIFYFLAGS SPACEORTAB REG COMMA REG COMMA SHARP CONST
-                       | OPSHIFT logmnemonic CONDITION SPACEORTAB REG COMMA REG COMMA SHARP CONST
-                       | OPSHIFT logmnemonic MODIFYFLAGS CONDITION SPACEORTAB REG COMMA REG COMMA SHARP CONST"""
+    """shiftinstrconst : OPSHIFT logmnemonic flagscondandspace REG COMMA REG COMMA SHARP CONST"""
     global currentMnemonic
-    plist = list(p)
     # Shift mode
     p[0] = instruction.shiftMapping[p[1]] << 5
     # We shift by a constant
     # Destination register
-    p[0] |= plist[-6] << 12
+    p[0] |= p[4] << 12
     # Source register
-    p[0] |= plist[-4]
+    p[0] |= p[6]
     # Retrieve and check the constant value
-    const = plist[-1]
+    const = p[9]
     assert 0 <= const <= 32
     if not (currentMnemonic in ('LSR', 'ASR') and const == 32):     # Special cases
         p[0] |= const << 7
+    # Add the condition and set flags bits
+    p[0] |= p[3]
 
-    conditionSet = False
-    if len(plist) == 11:
-        if plist[3] == 'S':
-            # Set flags
-            p[0] |= 1 << 20
-        else:
-            # Set condition
-            p[0] |= instruction.conditionMapping[plist[3]] << 28
-            conditionSet = True
-    if len(plist) == 12:
-        # Set flags
-        p[0] |= 1 << 20
-        # Set condition
-        p[0] |= instruction.conditionMapping[plist[4]] << 28
-        conditionSet = True
-
-    if not conditionSet:
-        # Set AL condition
-        p[0] |= instruction.conditionMapping['AL'] << 28
 
 
 def p_shiftinstrreg(p):
-    """shiftinstrreg : OPSHIFT logmnemonic SPACEORTAB REG COMMA REG COMMA REG
-                     | OPSHIFT logmnemonic MODIFYFLAGS SPACEORTAB REG COMMA REG COMMA REG
-                     | OPSHIFT logmnemonic CONDITION SPACEORTAB REG COMMA REG COMMA REG
-                     | OPSHIFT logmnemonic MODIFYFLAGS CONDITION SPACEORTAB REG COMMA REG COMMA REG"""
-    plist = list(p)
+    """shiftinstrreg : OPSHIFT logmnemonic flagscondandspace REG COMMA REG COMMA REG"""
     # Shift mode
     p[0] = instruction.shiftMapping[p[1]] << 5
     # We shift by a register
     p[0] |= 1 << 4
     # Destination register
-    p[0] |= plist[-5] << 12
+    p[0] |= p[4] << 12
     # Source register
-    p[0] |= plist[-3]
+    p[0] |= p[6]
     # Shift register
-    p[0] |= plist[-1] << 8
-
-    conditionSet = False
-    if len(plist) == 10:
-        if plist[3] == 'S':
-            # Set flags
-            p[0] |= 1 << 20
-        else:
-            # Set condition
-            p[0] |= instruction.conditionMapping[plist[3]] << 28
-            conditionSet = True
-    if len(plist) == 11:
-        # Set flags
-        p[0] |= 1 << 20
-        # Set condition
-        p[0] |= instruction.conditionMapping[plist[4]] << 28
-        conditionSet = True
-
-    if not conditionSet:
-        # Set AL condition
-        p[0] |= instruction.conditionMapping['AL'] << 28
+    p[0] |= p[8] << 8
+    # Add the condition and set flags bits
+    p[0] |= p[3]
 
 
 def p_meminstruction(p):
-    """meminstruction : OPMEM logmnemonic SPACEORTAB REG COMMA memaccess
-                      | OPMEM logmnemonic CONDITION SPACEORTAB REG COMMA memaccess
-                      | OPMEM logmnemonic BYTEONLY SPACEORTAB REG COMMA memaccess
-                      | OPMEM logmnemonic BYTEONLY CONDITION SPACEORTAB REG COMMA memaccess"""
+    """meminstruction : OPMEM logmnemonic bytecondandspace REG COMMA memaccess"""
     global currentMnemonic
-    # Create a list from the Yacc generator (so we can use negative indices)
-    plist = list(p)
     # We build the instruction bytecode
     # Add the mnemonic and the bit signaling this as a memory operation
     p[0] = 1 << 26
     p[0] |= (1 << 20 if currentMnemonic == "LDR" else 0)
 
     # Add the source/destination register
-    p[0] |= plist[-3] << 12
+    p[0] |= p[4] << 12
 
     # Add the memory access info
-    memaccessinfo = plist[-1]
+    memaccessinfo = p[6]
     p[0] |= memaccessinfo[0]
 
-    conditionSet = False
-    if len(plist) == 8:
-        if plist[3] == 'B':
-            # Set bytes mode
-            p[0] |= 1 << 22
-        else:
-            # Set condition
-            p[0] |= instruction.conditionMapping[plist[3]] << 28
-            conditionSet = True
-    if len(plist) == 9:
-        # Set bytes mode
-        p[0] |= 1 << 22
-        # Set condition
-        p[0] |= instruction.conditionMapping[plist[4]] << 28
-        conditionSet = True
-
-    if not conditionSet:
-        # Set AL condition
-        p[0] |= instruction.conditionMapping['AL'] << 28
+    # Add the condition and byte mode bits
+    p[0] |= p[3]
 
     # We return the bytecode, with the eventual dependencies
     p[0] = (struct.pack("<I", p[0]), memaccessinfo[1])
@@ -550,38 +438,30 @@ def p_memaccesslabeladdr(p):
 
 
 def p_branchinstruction(p):
-    """branchinstruction : OPBRANCH logmnemonic SPACEORTAB LABEL
-                         | OPBRANCH logmnemonic SPACEORTAB REG
-                         | OPBRANCH logmnemonic CONDITION SPACEORTAB LABEL
-                         | OPBRANCH logmnemonic CONDITION SPACEORTAB REG"""
+    """branchinstruction : OPBRANCH logmnemonic condandspace LABEL
+                         | OPBRANCH logmnemonic condandspace REG"""
     global currentMnemonic
-    # Create a list from the Yacc generator (so we can use negative indices)
-    plist = list(p)
-    mode = "reg" if isinstance(plist[-1], int) else "label"
+    mode = "reg" if isinstance(p[4], int) else "label"
     # We build the instruction bytecode
     if currentMnemonic == 'BX':
         assert mode == "reg"
         p[0] = 0b000100101111111111110001 << 4
-        p[0] |= plist[-1]
+        p[0] |= p[4]
     else:
         assert mode == "label"
         p[0] = 5 << 25
         if currentMnemonic == 'BL':
             p[0] |= 1 << 24
 
-    if len(plist) == 6:
-        # We have a condition
-        p[0] |= instruction.conditionMapping[plist[3]] << 28
-    else:
-        # Set AL condition
-        p[0] |= instruction.conditionMapping['AL'] << 28
+    # Add the condition bits
+    p[0] |= p[3]
 
     if mode == "reg":
         # No dependencies
         p[0] = (struct.pack("<I", p[0]), None)
     else:
         # This instruction cannot be assembled yet: we need to know the label's address
-        p[0] = (struct.pack("<I", p[0]), ("addrbranch", plist[-1]))
+        p[0] = (struct.pack("<I", p[0]), ("addrbranch", p[4]))
 
 
 
@@ -606,11 +486,9 @@ def p_listregswithpsr(p):
         p[0] |= plist[2][i] << i
 
 def p_stackinstruction(p):
-    """stackinstruction : OPMULTIPLEMEM logmnemonic SPACEORTAB listregswithpsr
-                        | OPMULTIPLEMEM logmnemonic CONDITION listregswithpsr"""
+    """stackinstruction : OPMULTIPLEMEM logmnemonic condandspace listregswithpsr"""
     global currentMnemonic
     assert currentMnemonic in ("PUSH", "POP")
-    plist = list(p)
 
     p[0] = 1 << 27
     # SP is always used as base register with PUSH and POP
@@ -628,15 +506,11 @@ def p_stackinstruction(p):
         # Set mode to UP (add offset)
         p[0] |= 1 << 23
 
-    if len(plist[3].strip()) > 0:
-        # We have a condition
-        p[0] |= instruction.conditionMapping[plist[3]] << 28
-    else:
-        # Set AL condition
-        p[0] |= instruction.conditionMapping['AL'] << 28
+    # Add the condition bits
+    p[0] |= p[3]
 
     # Set the registers and optionnally the PSR bit
-    p[0] |= plist[-1]
+    p[0] |= p[4]
 
 def p_stmldmtargetreg(p):
     """stmldmtargetreg : REG
@@ -647,10 +521,8 @@ def p_stmldmtargetreg(p):
         p[0] |= 1 << 21
 
 def p_stmldminstruction(p):
-    """stmldminstruction : OPMULTIPLEMEM logmnemonic SPACEORTAB stmldmtargetreg COMMA listregswithpsr
-                         | OPMULTIPLEMEM logmnemonic LDMSTMMODE SPACEORTAB stmldmtargetreg COMMA listregswithpsr
-                         | OPMULTIPLEMEM logmnemonic CONDITION SPACEORTAB stmldmtargetreg COMMA listregswithpsr
-                         | OPMULTIPLEMEM logmnemonic LDMSTMMODE CONDITION SPACEORTAB stmldmtargetreg COMMA listregswithpsr"""
+    """stmldminstruction : OPMULTIPLEMEM logmnemonic condandspace stmldmtargetreg COMMA listregswithpsr
+                         | OPMULTIPLEMEM logmnemonic LDMSTMMODE condandspace stmldmtargetreg COMMA listregswithpsr"""
     plist = list(p)
     p[0] = 1 << 27
     # Set base register and write-back
@@ -659,26 +531,9 @@ def p_stmldminstruction(p):
     if currentMnemonic == "LDM":
         p[0] |= 1 << 20     # Set load
 
-    conditionSet = False
-    modeSet = False
     if len(p) == 8:
-        if p[3] in instruction.conditionMapping.keys():
-            # Set condition
-            p[0] |= instruction.conditionMapping[plist[3]] << 28
-            conditionSet = True
-        else:
-            # Set mode
-            mode = plist[3]
-            if currentMnemonic == "LDM":
-                assert mode in instruction.updateModeLDMMapping
-                p[0] |= instruction.updateModeLDMMapping[mode] << 23
-            else:   # STM
-                assert mode in instruction.updateModeSTMMapping
-                p[0] |= instruction.updateModeSTMMapping[mode] << 23
-            modeSet = True
-    elif len(p) == 9:
-        # Set mode
-        mode = plist[3]
+        # We have an explicit mode
+        mode = p[3]
         if currentMnemonic == "LDM":
             assert mode in instruction.updateModeLDMMapping
             p[0] |= instruction.updateModeLDMMapping[mode] << 23
@@ -686,65 +541,53 @@ def p_stmldminstruction(p):
             assert mode in instruction.updateModeSTMMapping
             p[0] |= instruction.updateModeSTMMapping[mode] << 23
 
-        # Set condition
-        p[0] |= instruction.conditionMapping[plist[4]] << 28
-        conditionSet = True
-        modeSet = True
-
-    if not conditionSet:
-        # Set AL condition
-        p[0] |= instruction.conditionMapping['AL'] << 28
-
-    if not modeSet:
+        # Add the condition bits
+        p[0] |= p[4]
+    else:
         # Set IA mode
         if currentMnemonic == "LDM":
             p[0] |= instruction.updateModeLDMMapping['IA'] << 23
-        else:   # STM
+        else:  # STM
             p[0] |= instruction.updateModeSTMMapping['IA'] << 23
+
+        # Add the condition bits
+        p[0] |= p[3]
 
     # Set the registers and optionnally the PSR bit
     p[0] |= plist[-1]
 
 
 def p_psrinstruction(p):
-    """psrinstruction : OPPSR logmnemonic SPACEORTAB REG COMMA PSR
-                      | OPPSR logmnemonic SPACEORTAB PSR COMMA REG
-                      | OPPSR logmnemonic SPACEORTAB PSR COMMA SHARP CONST
-                      | OPPSR logmnemonic CONDITION SPACEORTAB REG COMMA PSR
-                      | OPPSR logmnemonic CONDITION SPACEORTAB PSR COMMA REG
-                      | OPPSR logmnemonic CONDITION SPACEORTAB PSR COMMA SHARP CONST"""
+    """psrinstruction : OPPSR logmnemonic condandspace REG COMMA PSR
+                      | OPPSR logmnemonic condandspace PSR COMMA REG
+                      | OPPSR logmnemonic condandspace PSR COMMA SHARP CONST"""
     global currentMnemonic
-    plist = list(p)
     b = 1 << 24
 
     if currentMnemonic == "MRS":
-        assert isinstance(plist[-1], list)
+        assert isinstance(p[6], list)
         # Read the PSR
         b |= 0xF << 16
-        b |= plist[-3] << 12
-        if plist[-1][0] == "SPSR":
+        b |= p[4] << 12
+        if p[6][0] == "SPSR":
             b |= 1 << 22
     else:
-        assert isinstance(plist[-3], list)
+        assert isinstance(p[4], list)
         # Write the PSR
         b |= 0x28F << 12
-        if plist[-1] == '#':
+        if p[6] == '#':
             # Immediate
             raise NotImplementedError()
         else:
             # Register
-            b |= plist[-1]
-        if plist[-3][0] == "SPSR":
+            b |= p[6]
+        if p[4][0] == "SPSR":
             b |= 1 << 22
-        if len(plist[-3]) == 1 or (len(plist[-3]) > 1 and plist[-3][1] != "f"):
+        if len(p[4]) == 1 or (len(p[4]) > 1 and p[4][1] != "f"):
             b |= 1 << 16        # Transfer to the whole PSR (not just the flags)
 
-    if len(plist[3].strip()):
-        # Set condition
-        b |= instruction.conditionMapping[plist[3]] << 28
-    else:
-        # Set AL condition
-        b |= instruction.conditionMapping['AL'] << 28
+    # Add the condition bits
+    b |= p[3]
 
     # An PSR instruction is always complete (e.g. it never depends on the location of a label),
     # so we just pack it in a bytes object
@@ -752,21 +595,14 @@ def p_psrinstruction(p):
 
 
 def p_svcinstruction(p):
-    """svcinstruction : OPSVC logmnemonic SPACEORTAB CONST
-                      | OPSVC logmnemonic SPACEORTAB SHARP CONST
-                      | OPSVC logmnemonic CONDITION SPACEORTAB CONST
-                      | OPSVC logmnemonic CONDITION SPACEORTAB SHARP CONST"""
+    """svcinstruction : OPSVC logmnemonic condandspace CONST
+                      | OPSVC logmnemonic condandspace SHARP CONST"""
     plist = list(p)
     b = 0xF << 24
     b |= plist[-1] & 0xFFFFFF        # 24 bits only
-                                        # TODO : add a formal check?
-
-    if len(plist[3].strip()) > 0:
-        # Set condition
-        b |= instruction.conditionMapping[plist[3]] << 28
-    else:
-        # Set AL condition
-        b |= instruction.conditionMapping['AL'] << 28
+                                     # TODO : add a formal check?
+    # Add the condition bits
+    b |= p[3]
 
     # An SVC/SWI instruction is always complete (e.g. it never depends on the location of a label),
     # so we just pack it in a bytes object
@@ -774,45 +610,24 @@ def p_svcinstruction(p):
 
 
 def p_multiplyinstruction(p):
-    """multiplyinstruction : OPMUL logmnemonic SPACEORTAB REG COMMA REG COMMA REG
-                           | OPMUL logmnemonic MODIFYFLAGS SPACEORTAB REG COMMA REG COMMA REG
-                           | OPMUL logmnemonic CONDITION SPACEORTAB REG COMMA REG COMMA REG
-                           | OPMUL logmnemonic MODIFYFLAGS CONDITION SPACEORTAB REG COMMA REG COMMA REG
-                           | OPMUL logmnemonic SPACEORTAB REG COMMA REG COMMA REG COMMA REG
-                           | OPMUL logmnemonic MODIFYFLAGS SPACEORTAB REG COMMA REG COMMA REG COMMA REG
-                           | OPMUL logmnemonic CONDITION SPACEORTAB REG COMMA REG COMMA REG COMMA REG
-                           | OPMUL logmnemonic MODIFYFLAGS CONDITION SPACEORTAB REG COMMA REG COMMA REG COMMA REG"""
-    # TODO : factorize these rules
+    """multiplyinstruction : OPMUL logmnemonic flagscondandspace REG COMMA REG COMMA REG
+                           | OPMUL logmnemonic flagscondandspace REG COMMA REG COMMA REG COMMA REG"""
     global currentMnemonic
-    plist = list(p)
     p[0] = 9 << 4
     if currentMnemonic == 'MLA':
         p[0] |= 1 << 21
-        assert ',' in plist[-6]     # Check if we have 4 registers
-        p[0] |= plist[-1] << 12     # Set Rn
-        p[0] |= plist[-3] << 8      # Set Rs
-        p[0] |= plist[-5]           # Set Rm
-        p[0] |= plist[-7] << 16     # Set Rd
+        assert len(p) == 11         # Check if we have 4 registers
+        p[0] |= p[10] << 12         # Set Rn
+        p[0] |= p[8] << 8           # Set Rs
+        p[0] |= p[6]                # Set Rm
+        p[0] |= p[4] << 16          # Set Rd
     else:
-        p[0] |= plist[-1] << 8      # Set Rs
-        p[0] |= plist[-3]           # Set Rm
-        p[0] |= plist[-5] << 16     # Set Rd
+        p[0] |= p[8] << 8           # Set Rs
+        p[0] |= p[6]                # Set Rm
+        p[0] |= p[4] << 16          # Set Rd
 
-    conditionSet = False
-    if plist[3] == 'S':
-        # Set flags
-        p[0] |= 1 << 20
-        if len(plist[4].strip()) > 0:
-            # Set condition
-            p[0] |= instruction.conditionMapping[plist[4]] << 28
-            conditionSet = True
-    elif len(plist[3].strip()) > 0:
-        # Set condition
-        p[0] |= instruction.conditionMapping[plist[3]] << 28
-        conditionSet = True
-
-    if not conditionSet:
-        p[0] |= instruction.conditionMapping['AL'] << 28
+    # Add the condition bits
+    p[0] |= p[3]
 
     # A multiply instruction is always complete (e.g. it never depends on the location of a label),
     # so we just pack it in a bytes object
