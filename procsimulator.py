@@ -849,6 +849,44 @@ class Simulator:
                 description += "<li>Écrit le résultat dans R{}</li>\n".format(misc['rd'])
                 #self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
 
+        elif t == InstrType.multiply:
+            op1, op2 = misc['operandsmul']
+            destrd = misc['rd']
+            if misc['accumulate']:
+                # MLA
+                disassembly = "MLA"
+                description += "<li>Effectue une multiplication suivie d'une addition (A*B+C) entre :\n"
+                description += "<ol type=\"A\"><li>Le registre R{}</li>\n".format(op1)
+                description += "<li>Le registre R{}</li>\n".format(op2)
+                description += "<li>Le registre R{}</li></ol>\n".format(misc['operandadd'])
+                if misc['setflags']:
+                    disassembly += "S"
+                    description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
+                disassembly += "R{}, R{}, R{}, R{} ".format(destrd, op1, op2, misc['operandadd'])
+                highlightread.append("r{}".format(op1))
+                highlightread.append("r{}".format(op2))
+                highlightread.append("r{}".format(misc['operandadd']))
+            else:
+                # MUL
+                disassembly = "MUL"
+                description += "<li>Effectue une multiplication (A*B) entre :\n"
+                description += "<ol type=\"A\"><li>Le registre R{}</li>\n".format(op1)
+                description += "<li>Le registre R{}</li></ol>\n".format(op2)
+                if misc['setflags']:
+                    disassembly += "S"
+                    description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
+                disassembly += "R{}, R{}, R{} ".format(destrd, op1, op2)
+                highlightread.append("r{}".format(op1))
+                highlightread.append("r{}".format(op2))
+
+            description += "<li>Écrit le résultat dans R{}</li>".format(destrd)
+            highlightwrite.append("r{}".format(destrd))
+
+            if misc['setflags']:
+                for flag in ('c', 'z', 'n'):
+                    highlightwrite.append(flag)
+
+
         elif t == InstrType.dataop:
             # Get first operand value
             workingFlags = {}
@@ -958,7 +996,7 @@ class Simulator:
                         highlightwrite.append(flag.lower())
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
-                description += "<li>Écrit le résultat dans R{}".format(destrd)
+                description += "<li>Écrit le résultat dans R{}</li>".format(destrd)
                 highlightwrite.append("r{}".format(destrd))
 
         description += "</ol>"
@@ -1113,6 +1151,28 @@ class Simulator:
                     self.regs.getCPSR().set(valToSet)
             else:       # Read
                 self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
+
+        elif t == InstrType.multiply:
+            op1 = self.regs[misc['operandsmul'][0]].get()
+            op2 = self.regs[misc['operandsmul'][1]].get()
+            destrd = misc['rd']
+            if misc['accumulate']:
+                # MLA
+                res = op1 * op2 + self.regs[misc['operandadd']].get()
+            else:
+                # MUL
+                res = op1 * op2
+
+            self.regs[destrd].set(res & 0xFFFFFFFF)
+
+            # Z and V are set, C is set to "meaningless value" (see ARM spec 4.7.2), V is unaffected
+            workingFlags['Z'] = res == 0
+            workingFlags['N'] = res & 0x80000000  # "N flag will be set to the value of bit 31 of the result" (4.5.1)
+            workingFlags['C'] = 0       # I suppose "0" can be qualified as a meaningless value...
+
+            if misc['setflags']:
+                for flag in workingFlags:
+                    self.flags[flag] = workingFlags[flag]
 
         elif t == InstrType.dataop:
             workingFlags['C'] = 0
