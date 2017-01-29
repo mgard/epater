@@ -862,7 +862,7 @@ class Simulator:
                 if misc['setflags']:
                     disassembly += "S"
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
-                disassembly += "R{}, R{}, R{}, R{} ".format(destrd, op1, op2, misc['operandadd'])
+                disassembly += " R{}, R{}, R{}, R{} ".format(destrd, op1, op2, misc['operandadd'])
                 highlightread.append("r{}".format(op1))
                 highlightread.append("r{}".format(op2))
                 highlightread.append("r{}".format(misc['operandadd']))
@@ -875,7 +875,7 @@ class Simulator:
                 if misc['setflags']:
                     disassembly += "S"
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
-                disassembly += "R{}, R{}, R{} ".format(destrd, op1, op2)
+                disassembly += " R{}, R{}, R{} ".format(destrd, op1, op2)
                 highlightread.append("r{}".format(op1))
                 highlightread.append("r{}".format(op2))
 
