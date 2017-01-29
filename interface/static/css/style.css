@@ -45,6 +45,10 @@ li {
     padding-bottom: 0.5em;
 }
 
+.tplink {
+    font-size: 24px;
+}
+
 #content-td {
     vertical-align: top;
     padding-left: 20px !important;

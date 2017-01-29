@@ -157,27 +157,28 @@ async def handler(websocket, path):
 
     except Exception as e:
         ex = traceback.format_exc()
-        print("Simulator crashed:\n{}".format(ex))
-        if not DEBUG:
-            try:
-                code = interpreters[websocket].code__
-            except (KeyError, AttributeError):
-                code = ""
-            try:
-                hist = interpreters[websocket].history__
-            except (KeyError, AttributeError):
-                hist = []
-            body = """<html><head></head>
-(Simulator crash)
-<h4>Traceback:</h4>
-<pre>{ex}</pre>
-<h4>Code:</h4>
-<pre>{code}</pre>
-<h4>Operation history:</h4>
-<pre>{hist}</pre>
-</html>""".format(code=code, ex=ex, hist="<br/>".join(str(x) for x in hist))
-            sendEmail(body)
-            print("Email sent!")
+        if not isinstance(e, websockets.exceptions.ConnectionClosed):
+            print("Simulator crashed:\n{}".format(ex))
+            if not DEBUG:
+                try:
+                    code = interpreters[websocket].code__
+                except (KeyError, AttributeError):
+                    code = ""
+                try:
+                    hist = interpreters[websocket].history__
+                except (KeyError, AttributeError):
+                    hist = []
+                body = """<html><head></head>
+    (Simulator crash)
+    <h4>Traceback:</h4>
+    <pre>{ex}</pre>
+    <h4>Code:</h4>
+    <pre>{code}</pre>
+    <h4>Operation history:</h4>
+    <pre>{hist}</pre>
+    </html>""".format(code=code, ex=ex, hist="<br/>".join(str(x) for x in hist))
+                sendEmail(body)
+                print("Email sent!")
     finally:
         if websocket in interpreters:
             del interpreters[websocket]
