@@ -20,9 +20,9 @@ var AssemblyARMHighlightRules = function() {
          { token: 'memdeclare.assembly',
            regex: '\\bD[CS](?:8|16|32)\\b' },
          { token: 'constant.character.assembly',
-           regex: '[ \t]#?0x[0-9a-fA-F]*' },
+           regex: '[ \t]#?-?0x[0-9a-fA-F]*' },
          { token: 'constant.character.assembly',
-           regex: '[ \t]#?[0-9]*' },
+           regex: '[ \t]#?-?[0-9]*' },
          { token: 'label.assembly',
            regex: '^[ \t]*[a-zA-Z0-9_]*' }
     ] }
