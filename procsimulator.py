@@ -1110,6 +1110,8 @@ class Simulator:
             if misc['mode'] == 'LDR':
                 for reg in regs[::misc['sign']]:
                     m = self.mem.get(baseAddr, size=4)
+                    if m is None:       # No such address in the mapped memory, we cannot continue
+                        return False
                     val = struct.unpack("<I", m)[0]
                     self.regs[reg].set(val)
                     baseAddr += misc['sign'] * 4
