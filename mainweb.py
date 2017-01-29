@@ -511,11 +511,6 @@ SECTION DATA
 """
 
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> b902df4ea4190340f6dcaade1e8608bd20b3b019
 def decodeWSGI(data):
     return "".join(chr((0xdc00 if x > 127 else 0) + x) for x in data)
 
@@ -523,13 +518,15 @@ def decodeWSGI(data):
 def encodeWSGI(data):
     return bytes([(ord(x) % 0xdc00) for x in data]).decode('utf-8')
 
-<<<<<<< HEAD
+
 def encodeWSGIb(data):
     return bytes([(x % 0xdc00) for x in data]).decode('utf-8')
 
->>>>>>> Stashed changes
-=======
->>>>>>> b902df4ea4190340f6dcaade1e8608bd20b3b019
+
+def encodeWSGIb(data):
+    return bytes([(x % 0xdc00) for x in data]).decode('utf-8')
+
+
 index_template = open('./interface/index.html', 'r').read()
 simulator_template = open('./interface/simulateur.html', 'r').read()
 @get('/')
