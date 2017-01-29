@@ -8,31 +8,35 @@
         <script src="static/js/jquery.easytabs.min.js" type="text/javascript" charset="utf-8"></script>
     </head>
     <body>
-        <div id="left_menu">
-            <a href="?page=demo"><div class="left_item">D&eacute;mo</div></a>
-            <a href="?page=exo"><div class="left_item">Exercices facultatifs</div></a>
-            <a href="?page=tp"><div class="left_item">Travaux pratiques</div></a>
-            <a href="?sim=nouveau#tabsmain-simulation"><div class="left_item">Nouvelle session</div></a>
-        </div>
-        <div id="content">
-        <h4>{{ title }}</h4>
-        % if page == "tp":
-            <ul>
-            % for tp, link in sections.items():
-                <li><a href="?page={{ page }}&sim={{ link }}">{{ tp }}</a>
-            % end
-            </ul>
-        % else:
-            % for section_name, items in sections.items():
-                {{ section_name }}
-                <ul>
-                % for item, link in items.items():
-                    <li><a href="?page={{ page }}&sim={{ link }}">{{ item }}</a></li>
-                % end
-                </ul>
-            %end
-        % end
-        </div>
-        <div style="clear: both;"></div>
+        <table id="content-main">
+            <tr>
+                <td id="left_menu">
+                    <a href="?page=demo"><div class="left_item{{!' current_page' if page == "demo" else ""}}"><div class="left_item_inner">D&eacute;mo</div></div></a>
+                    <a href="?page=exo"><div class="left_item{{!' current_page' if page == "exo" else ""}}"><div class="left_item_inner">Exercices facultatifs</div></div></a>
+                    <a href="?page=tp"><div class="left_item{{!' current_page' if page == "tp" else ""}}"><div class="left_item_inner">Travaux pratiques</div></div></a>
+                    <a href="?sim=nouveau#tabsmain-simulation"><div class="left_item"><div class="left_item_inner">Nouvelle session</div></div></a>
+                    <div style="height: 100%;"></div>
+                </td>
+                <td id="content-td">
+                    <h1>{{ title }}</h1>
+                    % if page == "tp":
+                        <ul>
+                        % for tp, link in sections.items():
+                            <li><a href="?page={{ page }}&sim={{ link }}"><h2>{{ tp }}</h2></a>
+                        % end
+                        </ul>
+                    % else:
+                        % for section_name, items in sections.items():
+                            <h2>{{ section_name }}</h2>
+                            <ul>
+                            % for item, link in items.items():
+                                <li><a href="?page={{ page }}&sim={{ link }}">{{ item }}</a></li>
+                            % end
+                            </ul>
+                        %end
+                    % end
+                </td>
+            </tr>
+        </table>
     </body>
 </html>

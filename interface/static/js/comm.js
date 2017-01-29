@@ -20,7 +20,6 @@ ws.onerror = function (event) {
 
 function displayErrorMsg(msg) {
     $("#message_bar").text(msg);
-
     $("#message_bar").slideDown("normal", "easeInOutBack");
 }
 

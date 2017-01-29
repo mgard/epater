@@ -567,7 +567,9 @@ def index():
                 if not code:
                     code = ""
                 if not enonce:
-                    enonce = ""
+                    enonce = "<h4>Aucune &eacute;nonc&eacute; disponible en ce moment</h4>"
+                if not solution:
+                    solution = "<h4>Aucune solution disponible en ce moment</h4>"
             except (FileNotFoundError, binascii.Error):
                 pass
     else:
