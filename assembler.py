@@ -80,6 +80,9 @@ def parse(code):
     lastLineType = None
     for i,line in enumerate(code):
         line = line.strip()
+        if ';' in line:
+            # Remove the comments
+            line = line[:line.find(';')]
         if len(line) == 0:
             # Empty line
             continue
@@ -93,8 +96,12 @@ def parse(code):
         except LexError as e:
             listErrors.append(("codeerror", i, "Format de l'instruction invalide"))
             continue
+        except Exception as e:
+            listErrors.append(("codeerror", i, "Impossible d'interpréter l'instruction"))
+            print(str(e))
+            continue
         else:
-            if parsedLine is None:
+            if parsedLine is None or len(parsedLine) == 0:
                 # Unknown error, but the instruction did not parse
                 listErrors.append(("codeerror", i, "Instruction invalide"))
                 continue

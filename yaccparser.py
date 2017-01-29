@@ -172,6 +172,8 @@ def p_datainst3op_error(p):
             raise YaccError("Le registre R{}{} n'existe pas".format(p[4], p[5].value))
         else:
             raise YaccError("Le registre R{}{} n'existe pas".format(p[6], p[7].value))
+    elif len(p) == 11:
+        raise YaccError("TEST")
 
 
 def p_datainsttest(p):
@@ -235,8 +237,12 @@ def p_op2(p):
         p[0] |= plist[3]
 
 def p_op2_error(p):
-    """op2 : error"""
-    print("BOUM")
+    """op2 : REG shift"""
+    if len(p) == 3:
+        raise YaccError("Le registre R{}{} n'existe pas".format(p[1], p[2].value))
+    else:
+        raise YaccError("Une virgule est requise avant l'opération de décalage")
+
 
 def p_shift(p):
     """shift : INNERSHIFT
