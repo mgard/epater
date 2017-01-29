@@ -11,6 +11,7 @@ var mem_breakpoints_e = [];
 var mem_breakpoints_instr = [];
 var current_debugline = -1;
 var next_debugline = -1;
+var codeerrors = [];
 var debug_marker = null;
 var next_debug_marker = null;
 
@@ -60,7 +61,8 @@ ws.onmessage = function (event) {
             $("[name='" + obj[1] + "']").prop("disabled", true);
         } else if (obj[0] == 'codeerror') {
             // row indices are 0-indexed
-            editor.session.setAnnotations([{row: obj[1], text: obj[2], type: "error"}]);
+            codeerrors.push({row: obj[1], text: obj[2], type: "error"})
+            editor.session.setAnnotations(codeerrors);
         } else if (obj[0] == 'asm_breakpoints') {
             editor.session.clearBreakpoints();
             for (var i = 0; i < obj[1].length; i++) {
@@ -162,7 +164,8 @@ function removeCodeErrors() {
 
 function resetView() {
     // Remove code errors tooltips
-    codeerrors = {};
+    codeerrors.length = 0;
+    removeCodeErrors();
 
     asm_breakpoints.length = 0;
     editor.session.clearBreakpoints();
