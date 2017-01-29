@@ -332,7 +332,7 @@ def BytecodeToInstrInfos(bc):
                     'setflags': flags,
                     'rd': rd,
                     'operandsmul': (rm, rs),
-                    'operandadd': rd}
+                    'operandadd': rn}
 
     elif checkMask(instrInt, (7, 4, 24), (27, 26, 25, 23, 21, 20, 11, 10, 9, 8, 6, 5)): # Swap
         category = InstrType.swap

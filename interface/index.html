@@ -22,7 +22,7 @@
                     % if page == "tp":
                         <ul>
                         % for tp, link in sections.items():
-                            <li><a href="?page={{ page }}&sim={{ link }}"><h2>{{ tp }}</h2></a>
+                            <li><a class="tplink" href="?page={{ page }}&sim={{ link }}">{{ tp }}</a>
                         % end
                         </ul>
                     % else:

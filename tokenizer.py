@@ -306,7 +306,7 @@ def t_multiplememopcode_SPACEORTAB(t):
 # A branch operation
 # We do not use the keys from exportInstrInfo, because the order is important: the longest mnemonics must
 # be at the beginning, or else the previous (shorter) ones would match them!
-@lex.TOKEN(r'(' + r'(?=[A-Z\t ])|'.join(("BLX", "BL", "BX", "B"))+r'(?=[A-Z\t ]))')
+@lex.TOKEN(r'B(LX|L(?![EST])|X)?')
 def t_OPBRANCH(t):
     t.lexer.begin('branchopcode')
     t.lexer.currentMnemonic = t.value
