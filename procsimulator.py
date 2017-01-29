@@ -330,6 +330,13 @@ class Memory:
         sec, offset = resolvedAddr
         val &= 0xFFFFFFFF if size == 4 else 0xFF
         valBytes = struct.pack("<I", val) if size == 4 else struct.pack("<B", val)
+        histidx = -1
+        while -histidx <= len(self.history) and self.history[histidx][0] == self.sys.countCycles:
+            prevhist = self.history[histidx]
+            if prevhist[3] == addr and prevhist[4] == size:
+                # We modified the same memory address twice in the same cycle, we only keep the last one
+                self.history.pop(histidx)
+            histidx -= 1
         self.history.append((self.sys.countCycles, sec, offset, addr, size, val, self.data[sec][offset:offset+size], valBytes))
         self.data[sec][offset:offset+size] = valBytes
 
