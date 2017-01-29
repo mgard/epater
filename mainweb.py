@@ -511,8 +511,6 @@ SECTION DATA
 """
 
 
-<<<<<<< Updated upstream
-=======
 def decodeWSGI(data):
     return "".join(chr((0xdc00 if x > 127 else 0) + x) for x in data)
 
@@ -520,10 +518,10 @@ def decodeWSGI(data):
 def encodeWSGI(data):
     return bytes([(ord(x) % 0xdc00) for x in data]).decode('utf-8')
 
+
 def encodeWSGIb(data):
     return bytes([(x % 0xdc00) for x in data]).decode('utf-8')
 
->>>>>>> Stashed changes
 index_template = open('./interface/index.html', 'r').read()
 simulator_template = open('./interface/simulateur.html', 'r').read()
 @get('/')
