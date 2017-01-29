@@ -511,6 +511,13 @@ SECTION DATA
 """
 
 
+def decodeWSGI(data):
+    return "".join(chr((0xdc00 if x > 127 else 0) + x) for x in data)
+
+
+def encodeWSGI(data):
+    return bytes([(ord(x) % 0xdc00) for x in data]).decode('utf-8')
+
 index_template = open('./interface/index.html', 'r').read()
 simulator_template = open('./interface/simulateur.html', 'r').read()
 @get('/')
@@ -535,12 +542,14 @@ def index():
                 # YAHOG -- When in WSGI, we must add 0xdc00 to every extended (e.g. accentuated) character in order for the 
                 # open() call to understand correctly the path
                 if locale.getdefaultlocale() == (None, None):
-                    request.query["sim"] = "".join(chr((0xdc00 if x > 127 else 0) + x) for x in request.query["sim"])
+                    request.query["sim"] = decodeWSGI(request.query["sim"])
                 else:
                     request.query["sim"] = request.query["sim"].decode("utf-8")
 
                 with open(os.path.join("exercices", request.query["sim"]), 'r') as fhdl:
                     exercice_html = fhdl.read()
+                    if locale.getdefaultlocale() == (None, None):
+                        exercice_html = encodeWSGI(exercice_html)
                 soup = BeautifulSoup(exercice_html, "html.parser")
                 enonce = soup.find("div", {"id": "enonce"})
                 code = soup.find("div", {"id": "code"}).text
@@ -565,7 +574,7 @@ def index():
             # YAHOG -- When in WSGI, Python adds 0xdc00 to every extended (e.g. accentuated) character, leading to 
             # errors in utf-8 re-interpretation.
             if locale.getdefaultlocale() == (None, None):
-                f = bytes([(ord(x) % 0xdc00) for x in f]).decode('utf-8')
+                f = encodeWSGI(f)
 
             fs = f.split(os.sep)
             if page == "tp":
