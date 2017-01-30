@@ -211,6 +211,9 @@ class BankedRegisters:
             raise IndexError
         return self.banks[self.currentBank][0][item]
 
+    def getRegisterFromBank(self, bank, item):
+        return self.banks[bank][0][item]
+
     def getCPSR(self):
         return self.banks[self.currentBank][1][0]
 
@@ -578,6 +581,7 @@ class Simulator:
         :return:
         """
         t, regs, cond, misc = self.decodedInstr
+        print("???", self.decodedInstr)
 
         pcchanged = False
         highlightread = []
@@ -1012,11 +1016,11 @@ class Simulator:
         description += "</ol>"
 
         dis = '<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">{}</div>\n'.format(disassembly, description)
-        if t == InstrType.branch or instrWillExecute:
-            if nextline != -1:
-                self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["nextline", nextline], ["disassembly", dis]
-            else:
-                self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["disassembly", dis]
+        #if t == InstrType.branch or instrWillExecute:
+        if nextline != -1:
+            self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["nextline", nextline], ["disassembly", dis]
+        else:
+            self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["disassembly", dis]
 
 
     def execInstr(self):
