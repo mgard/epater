@@ -94,6 +94,62 @@ function changeMemoryViewPage() {
   editableGrid.setPageIndex(page);
 }
 
+function resetMemoryViewer() {
+
+  // Memory viewer
+  var metadata = [];
+  metadata.push({ name: "ch",  label: "addr",  datatype: "string",  editable: false});
+  metadata.push({ name: "c0",  label: "00",  datatype: "string",  editable: true});
+  metadata.push({ name: "c1",  label: "01",  datatype: "string",  editable: true});
+  metadata.push({ name: "c2",  label: "02",  datatype: "string",  editable: true});
+  metadata.push({ name: "c3",  label: "03",  datatype: "string",  editable: true});
+  metadata.push({ name: "c4",  label: "04",  datatype: "string",  editable: true});
+  metadata.push({ name: "c5",  label: "05",  datatype: "string",  editable: true});
+  metadata.push({ name: "c6",  label: "06",  datatype: "string",  editable: true});
+  metadata.push({ name: "c7",  label: "07",  datatype: "string",  editable: true});
+  metadata.push({ name: "c8",  label: "08",  datatype: "string",  editable: true});
+  metadata.push({ name: "c9",  label: "09",  datatype: "string",  editable: true});
+  metadata.push({ name: "c10",  label: "0A",  datatype: "string",  editable: true});
+  metadata.push({ name: "c11",  label: "0B",  datatype: "string",  editable: true});
+  metadata.push({ name: "c12",  label: "0C",  datatype: "string",  editable: true});
+  metadata.push({ name: "c13",  label: "0D",  datatype: "string",  editable: true});
+  metadata.push({ name: "c14",  label: "0E",  datatype: "string",  editable: true});
+  metadata.push({ name: "c15",  label: "0F",  datatype: "string",  editable: true});
+
+  // Not necessary?
+  var data = [];
+  for (var i = 0; i < 20; i++) {
+    data.push({id: i,  values: {"c0": "--",  "c1": "--",  "c2": "--",  "c3": "--",  "c4": "--",  "c5": "--",  "c6": "--",  "c7": "--",  "c8": "--",  "c9": "--",  "c10": "--",  "c11": "--",  "c12": "--",  "c13": "--",  "c14": "--",  "c15": "--"}});
+    data[i]["values"]["ch"] = formatHexUnsigned32Bits(i*16)
+  }
+
+  editableGrid = new EditableGrid("DemoGridJsData",  {
+    modelChanged: function(row, col, oldValue, newValue, rowref) { 
+      if (oldValue !== "--") {
+        if (newValue.length > 2) {
+          newValue = newValue.slice(0, 2);
+          editableGrid.setValueAt(row, col, newValue, true);
+        }
+        var addr = parseInt($("td:first", rowref).text(), 16) + (col - 1)
+        sendCmd(['memchange', addr, newValue]);
+      } else {
+        editableGrid.setValueAt(row, col, "--", true);
+      }
+    }, 
+    enableSort: false, 
+    pageSize: 20, 
+    tableRendered: function() {
+      this.updatePaginator();
+      updateMemoryBreakpointsView();
+    }
+  });
+  editableGrid.load({"metadata": metadata,  "data": data});
+  editableGrid.renderGrid("memoryview",  "testgrid");
+
+  updateMemoryBreakpointsView();
+
+}
+
 $(document).ready(function() {
   EditableGrid.prototype.updatePaginator = function()
   {
@@ -147,54 +203,6 @@ $(document).ready(function() {
       });
     };
 
-  // Memory viewer
-  var metadata = [];
-  metadata.push({ name: "ch",  label: "addr",  datatype: "string",  editable: false});
-  metadata.push({ name: "c0",  label: "00",  datatype: "string",  editable: true});
-  metadata.push({ name: "c1",  label: "01",  datatype: "string",  editable: true});
-  metadata.push({ name: "c2",  label: "02",  datatype: "string",  editable: true});
-  metadata.push({ name: "c3",  label: "03",  datatype: "string",  editable: true});
-  metadata.push({ name: "c4",  label: "04",  datatype: "string",  editable: true});
-  metadata.push({ name: "c5",  label: "05",  datatype: "string",  editable: true});
-  metadata.push({ name: "c6",  label: "06",  datatype: "string",  editable: true});
-  metadata.push({ name: "c7",  label: "07",  datatype: "string",  editable: true});
-  metadata.push({ name: "c8",  label: "08",  datatype: "string",  editable: true});
-  metadata.push({ name: "c9",  label: "09",  datatype: "string",  editable: true});
-  metadata.push({ name: "c10",  label: "0A",  datatype: "string",  editable: true});
-  metadata.push({ name: "c11",  label: "0B",  datatype: "string",  editable: true});
-  metadata.push({ name: "c12",  label: "0C",  datatype: "string",  editable: true});
-  metadata.push({ name: "c13",  label: "0D",  datatype: "string",  editable: true});
-  metadata.push({ name: "c14",  label: "0E",  datatype: "string",  editable: true});
-  metadata.push({ name: "c15",  label: "0F",  datatype: "string",  editable: true});
-
-  // Not necessary?
-  var data = [];
-  for (var i = 0; i < 20; i++) {
-    data.push({id: i,  values: {"c0": "--",  "c1": "--",  "c2": "--",  "c3": "--",  "c4": "--",  "c5": "--",  "c6": "--",  "c7": "--",  "c8": "--",  "c9": "--",  "c10": "--",  "c11": "--",  "c12": "--",  "c13": "--",  "c14": "--",  "c15": "--"}});
-    data[i]["values"]["ch"] = formatHexUnsigned32Bits(i*16)
-  }
-
-  editableGrid = new EditableGrid("DemoGridJsData",  {
-    modelChanged: function(row, col, oldValue, newValue, rowref) { 
-      if (oldValue !== "--") {
-        if (newValue.length > 2) {
-          newValue = newValue.slice(0, 2);
-          editableGrid.setValueAt(row, col, newValue, true);
-        }
-        var addr = parseInt($("td:first", rowref).text(), 16) + (col - 1)
-        sendCmd(['memchange', addr, newValue]);
-      } else {
-        editableGrid.setValueAt(row, col, "--", true);
-      }
-    }, 
-    enableSort: false, 
-    pageSize: 20, 
-    tableRendered: function() {
-      this.updatePaginator();
-      updateMemoryBreakpointsView();
-    }
-  });
-  editableGrid.load({"metadata": metadata,  "data": data});
-  editableGrid.renderGrid("memoryview",  "testgrid");
+  resetMemoryViewer();
 
 });

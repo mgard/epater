@@ -88,7 +88,6 @@ ws.onmessage = function (event) {
                     editor.scrollToLine(obj[1], true, true, function () {});
                 }
                 current_debugline = obj[1];
-                // TODO: Ajouter une annotation? Gutter decoration?
             } else {
                 debug_marker = null;
             }
@@ -178,6 +177,13 @@ function resetView() {
     disableSim();
     $("#assemble").text("Démarrer");
     $(".assemble_edit").removeClass("assemble_edit");
+
+    $(".regVal").val("");
+    $(".statusVal").val("");
+    if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
+    if (next_debug_marker !== null) { editor.session.removeMarker(next_debug_marker); }
+
+    resetMemoryViewer();
 }
 
 function disableSim() {
@@ -197,7 +203,7 @@ function assemble() {
         $("#stepin").prop('disabled', false);
         $("#stepout").prop('disabled', false);
         $("#stepforward").prop('disabled', false);
-        $("#assemble").text("Éditer").addClass("assemble_edit");
+        $("#assemble").text("Arrêter").addClass("assemble_edit");
         sendData(JSON.stringify(['assemble', editor.getValue()]));
     } else {
         $("#assemble").text("Démarrer");
