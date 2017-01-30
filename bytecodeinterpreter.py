@@ -63,10 +63,11 @@ class BCInterpreter:
         modeOctal = 4*('r' in mode) + 2*('w' in mode) + 1*('e' in mode)
         self.sim.mem.toggleBreakpoint(addr, modeOctal)
 
-    def setBreakpointRegister(self, reg, mode):
+    def setBreakpointRegister(self, bank, reg, mode):
         # Mode = 'r' | 'w' | 'rw' | '' (passing an empty string removes the breakpoint)
         modeOctal = 4*('r' in mode) + 2*('w' in mode)
-        self.sim.regs[reg].breakpoint = modeOctal
+        bank = "User" if bank == "user" else bank.upper()
+        self.sim.regs.getRegisterFromBank(bank, reg).breakpoint = modeOctal
 
     def setBreakpointFlag(self, flag, mode):
         # Mode = 'r' | 'w' | 'rw' | '' (passing an empty string removes the breakpoint)
