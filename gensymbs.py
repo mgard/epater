@@ -5,8 +5,9 @@ import instruction
 PREFIX = list(instruction.exportInstrInfo.keys())
 SUFFIX = [""] + list(instruction.conditionMapping.keys())
 
-PREFIX.extend("".join(x) for x in product("LDM", instruction.updateModeLDMMapping.keys()))
-PREFIX.extend("".join(x) for x in product("STM", instruction.updateModeSTMMapping.keys()))
+PREFIX.extend("".join(x) for x in product(["LDM",], instruction.updateModeLDMMapping.keys()))
+PREFIX.extend("".join(x) for x in product(["STM",], instruction.updateModeSTMMapping.keys()))
+print(sorted(PREFIX))
 
 PREFIX.extend(["STRB", "LDRB"])
 PREFIX.extend([
@@ -30,5 +31,4 @@ PREFIX.extend([
 
 
 mnemonics = list(product(PREFIX, SUFFIX))
-
 print("|".join(list("".join(x).lower() for x in mnemonics)))
