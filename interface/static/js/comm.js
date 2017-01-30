@@ -242,6 +242,7 @@ function sendData(data) {
         setTimeout(function () {sendData(data)}, 500);
     } else if (ws.readyState > 1) {
         displayErrorMsg("Perte de la connexion au simulateur.");
+        resetView();
         $("input").prop("disabled", true);
     } else {
         ws.send(data);

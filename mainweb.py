@@ -377,34 +377,49 @@ def process(ws, msg_in):
             elif data[0] == 'breakpointsinstr':
                 interpreters[ws].setBreakpointInstr(data[1])
             elif data[0] == 'breakpointsmem':
-                interpreters[ws].toggleBreakpointMem(int(data[1], 16), data[2])
-                bpm = interpreters[ws].getBreakpointsMem()
-                retval.extend([["membp_r", ["0x{:08x}".format(x) for x in bpm['r']]],
-                               ["membp_w", ["0x{:08x}".format(x) for x in bpm['w']]],
-                               ["membp_rw", ["0x{:08x}".format(x) for x in bpm['rw']]],
-                               ["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]]])
+                try:
+                    interpreters[ws].toggleBreakpointMem(int(data[1], 16), data[2])
+                except ValueError:
+                    retval.append(["error", "Adresse mémoire invalide"])
+                else:
+                    bpm = interpreters[ws].getBreakpointsMem()
+                    retval.extend([["membp_r", ["0x{:08x}".format(x) for x in bpm['r']]],
+                                   ["membp_w", ["0x{:08x}".format(x) for x in bpm['w']]],
+                                   ["membp_rw", ["0x{:08x}".format(x) for x in bpm['rw']]],
+                                   ["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]]])
             elif data[0] == 'update':
                 if data[1][0].upper() == 'R':
                     reg_id = int(data[1][1:])
-                    interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
+                    try:
+                        interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
+                    except (ValueError, TypeError):
+                        retval.append(["error", "Valeur invalide: {}".format(repr(data[2]))])
                 elif data[1].upper() in ('N', 'Z', 'C', 'V', 'I', 'F', 'SN', 'SZ', 'SC', 'SV', 'SI', 'SF'):
                     flag_id = data[1].upper()
                     try:
                         val = not interpreters[ws].getFlags()[flag_id]
                     except KeyError:
                         pass
-                    interpreters[ws].setFlags({flag_id: val})
+                    else:
+                        interpreters[ws].setFlags({flag_id: val})
                 elif data[1][:2].upper() == 'BP':
                     _, mode, bank, reg_id = data[1].split('_')
-                    reg_id = int(reg_id[1:])
+                    try:
+                        reg_id = int(reg_id[1:])
+                    except (ValueError, TypeError):
+                        retval.append(["error", "Registre invalide: {}".format(repr(reg_id[1:]))])
                     # bank, reg name, mode [r,w,rw]
                     interpreters[ws].setBreakpointRegister(bank.lower(), reg_id, mode)
             elif data[0] == "interrupt":
                 mode = data[2] # FIQ/IRQ
                 interpreters[ws].setInterrupt(mode, not data[1], data[4], data[3], 0)
             elif data[0] == 'memchange':
-                val = bytearray([int(data[2], 16)])
-                interpreters[ws].setMemory(data[1], val)
+                try:
+                    val = bytearray([int(data[2], 16)])
+                except (ValueError, TypeError):
+                    retval.append(["error", "Valeur invalide: {}".format(repr(data[2]))])
+                else:
+                    interpreters[ws].setMemory(data[1], val)
             else:
                 print("<{}> Unknown message: {}".format(ws, data))
     except Exception as e:

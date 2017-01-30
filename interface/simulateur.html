@@ -598,6 +598,11 @@
                     }
                 }
 
+                if (isNaN(target_val)) {
+                    $(this).val("0");
+                    target_val = "0";
+                }
+
                 sendCmd(["update", $(this).attr("id"), target_val]);
             });
 
