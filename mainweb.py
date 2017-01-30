@@ -634,6 +634,7 @@ def static_serve(filename):
 def download():
     filename = request.forms.get('filename')
     data = request.forms.get('data')
+    data = encodeWSGI(data)
     response.headers['Content-Type'] = 'text/plain; charset=UTF-8'
     response.headers['Content-Disposition'] = 'attachment; filename="source.txt"'
     return data
