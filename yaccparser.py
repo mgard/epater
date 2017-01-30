@@ -31,6 +31,9 @@ def p_line(p):
             | lineassertion ENDLINESPACES"""
     p[0] = p[1] if isinstance(p[1], dict) else {}
 
+def p_line_error(p):
+    """line : CONST error ENDLINESPACES"""
+    raise YaccError("Une étiquette doit commencer par une lettre majuscule ou minuscule (et non pas un chiffre)")
 
 def p_linelabel(p):
     """linelabel : LABEL
@@ -480,6 +483,10 @@ def p_branchinstruction(p):
         # This instruction cannot be assembled yet: we need to know the label's address
         p[0] = (struct.pack("<I", p[0]), ("addrbranch", p[4]))
 
+
+def p_branchinstruction_error(p):
+    """branchinstruction : OPBRANCH logmnemonic condandspace CONST error"""
+    raise YaccError("La cible d'un branchement doit être une étiquette (ou, pour BX, un registre). Une étiquette ne peut pas commencer par un chiffre.")
 
 
 def p_multiplememinstruction(p):
