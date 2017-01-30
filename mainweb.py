@@ -18,6 +18,10 @@ from multiprocessing import Process
 import smtplib
 from email.mime.text import MIMEText
 
+try:
+    import uvloop
+except ImportError:
+    pass
 import websockets
 from gevent import monkey; monkey.patch_all()
 import bottle
@@ -364,6 +368,9 @@ def process(ws, msg_in):
                     interpreters[ws].step('run')
                     interpreters[ws].last_step__ = time.time()
                     interpreters[ws].animate_speed__ = int(data[1]) / 1000
+            elif data[0] == 'stop':
+                #interpreters[ws].user_asked_stop__ = True
+                del interpreters[ws]
             elif data[0] == 'reset':
                 interpreters[ws].reset()
             elif data[0] == 'breakpointsinstr':
@@ -638,6 +645,9 @@ if __name__ == '__main__':
 
     # Websocket Server
     start_server = websockets.serve(handler, '0.0.0.0', 31415)
+    if "uvloop" in globals():
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        print("Using uvloop")
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
 
