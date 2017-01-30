@@ -403,7 +403,7 @@ def BytecodeToInstrInfos(bc):
                 'op2': op2}
 
     else:
-        assert False, "Unknown instruction!"
+        category = InstrType.undefined
 
     return category, affectedRegs, condition, miscInfo
 

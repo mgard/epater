@@ -13,7 +13,7 @@ class BCInterpreter:
             for line in lines:
                 self.line2addr[line] = addr
         self.lineBreakpoints = []
-        self.sim = Simulator(bytecode, self.assertInfo)
+        self.sim = Simulator(bytecode, self.assertInfo, self.addr2line)
         self.reset()
 
     def reset(self):
