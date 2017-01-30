@@ -30,7 +30,6 @@ ws.onmessage = function (event) {
 
     for (var idx in obj_list) {
         var obj = obj_list[idx];
-        console.log("reception: ", obj)
 
         var element = document.getElementById(obj[0]);
         if (obj[0] == "disassembly") {
