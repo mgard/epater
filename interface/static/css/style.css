@@ -141,16 +141,28 @@ select:disabled, button:disabled, input[type=submit]:disabled {
 }
 
 /* Current operation highlights */
-.highlightread {
+.registers .highlightread {
     border: 2px solid #4D878F !important;
 }
 
-.highlightwrite {
+.registers .highlightwrite {
     border: 2px solid #9A2D54 !important;
 }
 
-.highlightread.highlightwrite {
+.registers .highlightread.highlightwrite {
     border: 2px solid #6E569B !important;
+}
+
+#memoryview .highlightread {
+    color: hsl(187,30%,65%) !important;
+}
+
+#memoryview .highlightwrite {
+    color: hsl(338.5,54.8%,65%) !important;
+}
+
+#memoryview .highlightread.highlightwrite {
+    color: hsl(260.9,28.6%,65%) !important;
 }
 
 .smaller_font {
@@ -273,14 +285,14 @@ img {
 
 .debug_line.ace_start {
     position: absolute;
-    background: rgba(100,200,100,0.5);
+    background: rgba(0,0,0,0.5);
     z-index: 20;
     width: 100% !important;
 }
 
 .next_debug_line.ace_start {
     position: absolute;
-    background: rgba(200,100,100,0.5);
+    background: rgba(135,35,35,0.5);
     z-index: 20;
     width: 100% !important;
 }
@@ -313,15 +325,15 @@ img {
 .mem_rw {
     background-color: #6E569B;
 }
-.mem_e.help {
+/*.mem_e.help {
     border: 2px solid red !important;
-}
+}*/
 .mem_e {
     border: 1px solid red !important;
 }
-.mem_instr.help {
+/*.mem_instr.help {
     border: 2px solid green !important;
-}
+}*/
 .mem_instr {
     border: 1px solid green !important;
 }
