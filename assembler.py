@@ -169,6 +169,9 @@ def parse(code):
                     # We will need to add a constant with this label address at the end of the section
                     requiredLabelsPtr.append((dep[1], i))
             # We add the size of the object to the current address (so this always points to the address of the next element)
+            tmpAddr = currentAddr
+            for tmpAddr in range(max(currentAddr, 0), max(currentAddr, 0) + len(parsedLine["BYTECODE"][0]), 4):
+                addrToLine[tmpAddr].append(i)
             currentAddr += len(parsedLine["BYTECODE"][0])
             lastLineType = "BYTECODE"
 

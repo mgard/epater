@@ -581,7 +581,6 @@ class Simulator:
         :return:
         """
         t, regs, cond, misc = self.decodedInstr
-        print("???", self.decodedInstr)
 
         pcchanged = False
         highlightread = []
