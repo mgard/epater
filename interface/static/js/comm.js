@@ -182,6 +182,9 @@ function resetView() {
     if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
     if (next_debug_marker !== null) { editor.session.removeMarker(next_debug_marker); }
 
+    $(".reg_bkp_w").removeClass("reg_bkp_w");
+    $(".reg_bkp_r").removeClass("reg_bkp_r");
+
     resetMemoryViewer();
 }
 
