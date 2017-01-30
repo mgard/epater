@@ -26,11 +26,9 @@ function displayErrorMsg(msg) {
 
 ws.onmessage = function (event) {
 	obj_list = JSON.parse(event.data);
-    //console.log("reception: ", +new Date()/1000, obj_list);
 
     for (var idx in obj_list) {
         var obj = obj_list[idx];
-        console.log(obj);
 
         var element = document.getElementById(obj[0]);
         if (obj[0] == "disassembly") {
@@ -155,7 +153,6 @@ ws.onmessage = function (event) {
             console.log(obj);
         }
     }
-    //console.log("End!", +new Date()/1000);
 };
 
 
@@ -241,7 +238,6 @@ function sendCmd(cmd) {
 }
 
 function sendData(data) {
-    //console.log("envoi: ", +new Date()/1000);
     if (ws.readyState === 0) {
         setTimeout(function () {sendData(data)}, 500);
     } else if (ws.readyState > 1) {

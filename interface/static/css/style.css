@@ -127,8 +127,9 @@ select:disabled, button:disabled, input[type=submit]:disabled {
 
 #disassembly {
     height: 130px;
-    width: 445px;
+    width: 430px;
     overflow-y: auto;
+    padding: 10px;
 }
 
 #disassembly ol {
@@ -326,7 +327,9 @@ img {
 }
 
 #memoryview th {
-    width: 16px;
+    width: 17px;
+    font-size: 14px;
+    padding: 0;
 }
 
 #memoryview td {
@@ -336,7 +339,7 @@ img {
 }
 
 .testgrid {
-    width: 445px;
+    width: 450px;
 }
 .testgrid td {
     border: 1px solid transparent;
