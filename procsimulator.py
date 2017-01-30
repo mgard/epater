@@ -424,13 +424,15 @@ class SimState(Enum):
 
 class Simulator:
 
-    def __init__(self, memorycontent, assertionTriggers):
+    def __init__(self, memorycontent, assertionTriggers, addr2line):
         self.state = SimState.uninitialized
         self.sysHandle = SystemHandler()
         self.mem = Memory(memorycontent, self.sysHandle)
         self.assertionCkpts = set(assertionTriggers.keys())
         self.assertionData = assertionTriggers
         self.pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
+
+        self.addr2line = addr2line
 
         self.interruptActive = False
         self.interruptParams = {'b': 0, 'a': 0, 't0': 0, 'type': "FIQ"}       # Interrupt trigged at each a*(t-t0) + b cycles
@@ -677,6 +679,10 @@ class Simulator:
         elif t == InstrType.nopop:
             disassembly = "NOP"
             description += "<li>Ne rien faire</li><li>Nonon, vraiment, juste rien</li>"
+
+        elif t == InstrType.undefined:
+            disassembly = "INDÉFINI"
+            description = "Instruction indéfinie pour le jeu d'instruction ARM."
 
         elif t == InstrType.branch:
             disassembly = "B"
@@ -1012,7 +1018,8 @@ class Simulator:
                 description += "<li>Écrit le résultat dans R{}</li>".format(destrd)
                 highlightwrite.append("r{}".format(destrd))
 
-        description += "</ol>"
+        if t != InstrType.undefined:
+            description += "</ol>"
 
         dis = '<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">{}</div>\n'.format(disassembly, description)
         #if t == InstrType.branch or instrWillExecute:
@@ -1035,6 +1042,12 @@ class Simulator:
         t, regs, cond, misc = self.decodedInstr
         workingFlags = {}
         pcchanged = False
+
+        if t == InstrType.undefined:
+            # Invalid instruction, we report it
+            self.sysHandle.throw(BkptInfo("assert", None, (self.addr2line[self.regs[15].get()-self.pcoffset][-1]-1,
+                                                           "Erreur : le bytecode ne correspond à aucune instruction valide!")))
+
 
         # Check condition
         # Warning : here we check if the condition is NOT met, hence we use the
