@@ -401,6 +401,12 @@ img {
 .tab-main.active { background: #383737; position: relative; top: 3px; border-top: solid 4px #1476BD; border-bottom: none; height: 21px; }
 .tab-main a.active { font-weight: bold; }
 
+/* IE 10... */
+#tabsmain-simulation { min-height: 600px; }
+.ace_editor  {
+    min-height: 600px;
+}
+
 .etabs-reg { margin: 0; padding: 0; }
 .tab-reg { display: inline-block; zoom:1; *display:inline; background: #383737; border: solid 1px #95989A; border-bottom: none; text-align: center; margin: 0 -5px 0 0; }
 .tab-reg a { line-height: 0.7em; display: block; padding: 8px 10px 0; outline: none; text-decoration: none; font-size: 12px; }

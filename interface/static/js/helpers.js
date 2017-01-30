@@ -30,6 +30,11 @@ function image(relativePath) {
 
 // ///
 // I/O
+function destroyClickedElement(event)
+{
+    document.body.removeChild(event.target);
+}
+
 function saveTextAsFile() {
     var textToWrite = editor.getValue();
     var textFileAsBlob = new Blob([textToWrite],  {type: 'text/plain'});
@@ -37,11 +42,11 @@ function saveTextAsFile() {
     var downloadLink = document.createElement("a");
     downloadLink.download = fileNameToSaveAs;
     downloadLink.innerHTML = "Download File";
-    if (window.webkitURL !== null) {
+    try {
         // Chrome allows the link to be clicked
         // without actually adding it to the DOM.
         downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
-    } else {
+    } catch(e) {
         // Firefox requires the link to be added to the DOM
         // before it can be clicked.
         downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
