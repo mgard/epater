@@ -325,9 +325,6 @@ img {
     width: 100% !important;
 }
 
-#memoryview {
-    height: 390px;
-}
 #memoryview th {
     width: 16px;
 }
