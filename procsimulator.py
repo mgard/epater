@@ -330,6 +330,13 @@ class Memory:
         sec, offset = resolvedAddr
         val &= 0xFFFFFFFF if size == 4 else 0xFF
         valBytes = struct.pack("<I", val) if size == 4 else struct.pack("<B", val)
+        histidx = -1
+        while -histidx <= len(self.history) and self.history[histidx][0] == self.sys.countCycles:
+            prevhist = self.history[histidx]
+            if prevhist[3] == addr and prevhist[4] == size:
+                # We modified the same memory address twice in the same cycle, we only keep the last one
+                self.history.pop(histidx)
+            histidx -= 1
         self.history.append((self.sys.countCycles, sec, offset, addr, size, val, self.data[sec][offset:offset+size], valBytes))
         self.data[sec][offset:offset+size] = valBytes
 
@@ -529,7 +536,10 @@ class Simulator:
 
     def _checkOverflow(self, op1, op2, res):
         if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
-            return not bool((op1 & 0x80000000) ^ (res & 0x80000000))
+            op1 = op1-2**32 if op1 & 0x80000000 else op1
+            op2 = op2-2**32 if op2 & 0x80000000 else op2
+            res = op1 + op2
+            return -2**31 > res or res > 2**31
         return False
 
     def execAssert(self, assertionInfo):
