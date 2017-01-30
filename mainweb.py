@@ -336,6 +336,7 @@ def process(ws, msg_in):
                 bytecode, bcinfos, assertions, errors = ASMparser(code.splitlines())
                 if errors:
                     retval.extend(errors)
+                    retval.append(["edit_mode"])
                 else:
                     interpreters[ws] = BCInterpreter(bytecode, bcinfos, assertions)
                     force_update_all = True

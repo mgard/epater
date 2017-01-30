@@ -60,6 +60,9 @@ ws.onmessage = function (event) {
             $(element).prop("disabled", false);
         } else if (obj[0] == 'disable') {
             $("[name='" + obj[1] + "']").prop("disabled", true);
+        } else if (obj[0] == 'edit_mode') {
+            disableSim();
+            $("#assemble").text("Démarrer");
         } else if (obj[0] == 'codeerror') {
             // row indices are 0-indexed
             codeerrors.push({row: obj[1], text: obj[2], type: "error"})
