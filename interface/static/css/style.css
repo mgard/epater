@@ -99,6 +99,11 @@ select, button, input[type=submit] {
     font-size: 1.1em;
 }
 
+select:disabled, button:disabled, input[type=submit]:disabled {
+    background-color: #383737;
+    border: 1px solid #7E8082;
+}
+
 #disassembly {
     height: 9em;
     width: 430px;
@@ -135,19 +140,18 @@ select, button, input[type=submit] {
     font-family: monospace;
 }
 
-/* Current operation highlighrs */
+/* Current operation highlights */
 .highlightread {
-    border: 2px solid red !important;
+    border: 2px solid #4D878F !important;
 }
 
 .highlightwrite {
-    border: 2px solid green !important;
+    border: 2px solid #9A2D54 !important;
 }
 
 .highlightread.highlightwrite {
-    border: 2px solid yellow !important;
+    border: 2px solid #6E569B !important;
 }
-/* */
 
 .smaller_font {
     font-size: 0.8em;
