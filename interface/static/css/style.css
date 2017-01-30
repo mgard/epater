@@ -164,6 +164,8 @@ select:disabled, button:disabled, input[type=submit]:disabled {
 .regVal {
     width: 100px;
     font-family: monospace;
+    height: 16px;
+    border: 2px solid #383737;
 }
 
 /* Current operation highlights */
