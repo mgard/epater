@@ -542,7 +542,7 @@ def index():
     page = request.query.get("page", "demo")
 
     code = default_code
-    enonce = "<h4>Pas d'&eacute;nonc&eacute;</h4>"
+    enonce = ""
     solution = ""
     title = ""
     sections = {}
