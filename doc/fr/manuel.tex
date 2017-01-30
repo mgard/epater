@@ -2,9 +2,10 @@
 \usepackage[utf8]{inputenc}
 \usepackage[francais]{babel}
 
-\title{Manuel d'utilisation du simulateur ARM}
+\title{Manuel d'utilisation du simulateur ARM\\Révision 1}
 
-\author{Marc-André Gardner\\Yannick Hold-Geoffroy\\Jean-François Lalonde}
+
+\author{Jessica Déziel\\Marc-André Gardner\\Yannick Hold-Geoffroy\\Jean-François Lalonde}
 
 %\date{28 March 2010} % without \date command, current date is supplied
 
@@ -32,6 +33,10 @@
 \newenvironment{docspec}{\begin{quote}\noindent}{\end{quote}}% command specification environment
 \usepackage{hyperref}
 
+
+\usepackage{color}
+
+
 \begin{document}
 
 \maketitle% this prints the handout title, author, and date
@@ -45,36 +50,40 @@ Ce manuel présente l'utilisation du simulateur d'un processus à architecture A
 
 \subsection{Accès au simulateur}
 
-Le simulateur est disponible en ligne, à l'adresse \url{http://gif1001-sim.gel.ulaval.ca/}. Aucune installation n'est nécessaire. Le simulateur est disponible 24 heures sur 24, sans interruption. Le simulateur a été testé avec les navigateurs suivants :
+Le simulateur est disponible en ligne, à l'adresse \url{http://gif1001-sim.gel.ulaval.ca/}. Aucune installation n'est nécessaire et l'accès ne requiert pas d'authentification. Le simulateur est disponible 24 heures sur 24, sans interruption. Le simulateur a été testé avec les navigateurs suivants :
 \begin{itemize}
 	\item Google Chrome version 50 et plus, sur Windows, MacOS et Linux
 	\item Mozilla Firefox version 44 et plus, sur Windows, MacOS et Linux
-	\item Microsoft Edge, sur Windows 10
+	\item Microsoft Edge et Microsoft Internet Explorer 11, sur Windows 10
 	\item Apple Safari, sur MacOS
 \end{itemize}
 
 D'autres navigateurs peuvent également être compatibles avec l'interface du simulateur, mais cette compatibilité n'est pas garantie. Si vous rencontrez des problèmes avec un navigateur alternatif, installez un des navigateurs énumérés plus haut.
 
-L'accès au simulateur peut se faire sur le campus ou en dehors de celui-ci et ne requiert pas d'authentification.
+\subsection{Enregistrement et chargement}
+
+\paragraph{\textbf{\color{red}{Note importante :}}} \textbf{\color{red}{Le serveur ne réalise \emph{aucune} sauvegarde de votre code ou de vos données. Il est de \emph{votre} responsabilité de télécharger le fichier contenant votre code à chaque fois que vous quittez la session de simulation ou fermez votre navigateur.}}
 
 \section{Utilisation du simulateur}
 
-La page d'accueil du simulateur est présentée à la figure \ref{f:accueil}. Elle contient, sur la gauche, un menu permettant de choisir le type d'activité (démonstrations en cours, exercices, travaux pratiques ou codage libre) et, dans sa section principale, une liste des programmes disponibles.
+La page d'accueil du simulateur est présentée à la figure \ref{f:accueil}. Elle contient, sur la gauche, un menu permettant de choisir le type d'activité (démonstrations, exercices, travaux pratiques ou codage libre) et, dans sa section principale, une liste des programmes disponibles.
 
 \begin{figure}
 \raggedleft
-\includegraphics[width=0.8\linewidth]{pics/accueil.png}
+\includegraphics[width=0.7\linewidth]{pics/accueil.png}
 \label{f:accueil}
 \caption{Page d'accueil du simulateur}
 \end{figure}
 
 Cliquer sur l'un de ces programmes ouvre l'interface de simulation à proprement parler. La figure \ref{f:global} présente un exemple typique de cette interface, annotée. Les sous-sections suivantes présentent chaque zone de l'interface.
 
-\begin{figure}
-\includegraphics[width=\linewidth]{pics/main_labeled.png}
+\begin{figure*}[h!]
+\includegraphics[width=0.86\linewidth]{pics/main_labeled.png}
 \label{f:global}
-\caption{Vue d'ensemble de l'interface du simulateur. La section centrale constitue l'éditeur de code. La section de droite présente l'instruction courante et une vue de la mémoire. La section de gauche indique les valeurs présentes dans les registres et les drapeaux de l'ALU. Au-dessus de l'éditeur de code, on retrouve les boutons permettant de contrôler l'avancement de la simulation. Finalement, en bas de la colonne de droite se trouve les boutons permettant de charger ou d'enregistrer le code de l'éditeur sur votre ordinateur.}
-\end{figure}
+\caption{Vue d'ensemble de l'interface du simulateur.}
+\end{figure*}
+
+\clearpage
 
 \subsection{Éditeur de code}
 
@@ -129,24 +138,35 @@ De même, lorsque l'instruction courante est un branchement ou un appel de fonct
 \caption{La prochaine instruction à être exécutée après un branchement est surlignée en noir profond. Si le branchement est conditionnel, cet affichage en tient compte et affiche la prochaine instruction correspondant à la branche prise.}
 \end{figure}
 
+\clearpage
+
 \subsection{Contrôles du simulateur}
 
 Les boutons de contrôle du simulateur permettent d'agir sur la simulation. 
-\begin{marginfigure}
-\includegraphics[width=\linewidth]{pics/controles_1.png}
-\includegraphics[width=\linewidth]{pics/controles_2.png}
-\label{f:controles}
-\caption{Les deux modes de la barre de contrôle.}
-\end{marginfigure}
-Cette interface diffère selon le mode actuel. Dans le mode \emph{d'édition} (image du haut de la figure \ref{f:controles}), seul le bouton \textit{Démarrer} est actif. Dans le mode \emph{d'exécution}, tous les boutons sont actifs, et le bouton \textit{Démarrer} devient \textit{Arrêter}.
+Cette interface diffère selon le mode actuel. Dans le mode \emph{d'édition} (figure\ref{f:controles1}), seul le bouton \textit{Démarrer} est actif. Dans le mode \emph{d'exécution}, tous les boutons sont actifs, et le bouton \textit{Démarrer} devient \textit{Arrêter}. 
+\begin{figure}[h!]
+\raggedleft
+\includegraphics[width=0.8\linewidth]{pics/controles_1b.png}
+\label{f:controles1}
+\caption{Barre de contrôle en mode \emph{édition}}
+\end{figure}
+\begin{figure}[h!]
+\raggedleft
+\includegraphics[width=0.8\linewidth]{pics/controles_2b.png}
+\label{f:controles2}
+\caption{Barre de contrôle en mode \emph{exécution}}
+\end{figure}
 
-En mode édition, le bouton \textit{Démarrer} lance l'assemblage du code présent dans l'éditeur. Si aucune erreur n'est détectée, le simulateur passe alors en mode d'exécution. Dans ce mode, le bouton \textit{Arrêter} stoppe la simulation et revient en mode édition. Notez qu'une modification à l'éditeur a le même effet. Les quatre autres boutons sont, respectivement, de gauche à droite :
+En mode édition, le bouton \textit{Démarrer} lance l'assemblage du code présent dans l'éditeur. Si aucune erreur n'est détectée, le simulateur passe alors en mode d'exécution. Dans ce mode, le bouton \textit{Arrêter} stoppe la simulation et revient en mode édition. Notez qu'une modification à l'éditeur a le même effet. Les cinq autres boutons sont, respectivement, de gauche à droite :
 \begin{enumerate}
+	\item \textbf{Réinitialiser} : effectue l'équivalent d'une interruption \emph{reset} sur le microprocesseur. La valeur de PC est mise à 0. Notez que cela n'affecte \emph{pas} la valeur des autres registres et des drapeaux.
 	\item \textbf{Exécution en continu} : le simulateur exécute les instructions suivantes sans arrêt, jusqu'à ce qu'il rencontre une erreur ou un point d'arrêt. Notez que le simulateur est volontairement limité quant au nombre d'instructions qu'il peut exécuter. Lorsque ce nombre est atteint, le simulateur arrête comme s'il avait rencontré un point d'arrêt.
 	\item \textbf{Exécuter instruction courante} : exécute l'instruction courante (celle qui est surlignée dans l'éditeur) et passe à la suivante puis arrête.
 	\item \textbf{Exécuter ligne courante} : dans le cas où la ligne courante est une instruction autre que BL, cette action a le même effet que la précédente. Toutefois, dans le cas d'un appel de fonction (BL), cette action exécute l'entièreté de la fonction jusqu'à son retour.
 	\item \textbf{Exécuter jusqu'à la sortie} : dans le cas où la ligne courante est dans une fonction, cette action exécute sans arrêt les instructions jusqu'à sortir de la fonction (BX). Si la ligne courante n'est pas dans une fonction, cette action a le même ffet qu'une exécution en continu.
 \end{enumerate}
+
+\clearpage
 
 \subsection{Vue des registres}
 
@@ -158,41 +178,39 @@ En mode édition, le bouton \textit{Démarrer} lance l'assemblage du code prése
 La section de gauche présente les valeurs contenues dans les registres du processeur.
 Les 16 registres que contient un processeur ARM (R0 à R15) sont affichés. 
 
-Par défaut, leur valeur est présentée en hexadécimal, mais il est possible de choisir différents modes d'affichage en cliquant sur le mode actuel pour faire apparaître le menu de sélection. Le mode décimal signé correspond à une interprétation complément-2 de la valeur du registre, alors que le mode non-signé correspond à une simple conversion vers le système décimal. Le mode binaire permet de voir chacun des 32 zéros et uns composant la valeur contenue dans le registre.
-\begin{figure}[h!]
-\raggedleft
-\includegraphics[width=0.4\linewidth]{pics/registres_format.png}
+Par défaut, leur valeur est présentée en hexadécimal, mais il est possible de choisir différents modes d'affichage en cliquant sur le mode actuel pour faire apparaître le menu de sélection. Le mode décimal signé correspond à une interprétation complément-2 de la valeur du registre, alors que le mode non-signé correspond à une simple conversion vers le système décimal.
+\begin{marginfigure}
+\includegraphics[width=0.8\linewidth]{pics/registres_format.png}
 \label{f:regformat}
 \caption{Menu de sélection du mode d'affichage}
-\end{figure}
+\end{marginfigure}
 
 Les onglets au-dessus des registres permettent de choisir la \textit{banque} de registre à visualiser. La plupart des banques de registre d'un processeur ARM sont présentes, incluant la banque IRQ (interruption), FIQ (interruption rapide) et SVC (interruption logicielle).
-\begin{figure}[h!]
-\raggedleft
-\includegraphics[width=0.6\linewidth]{pics/registres_banques.png}
+\begin{marginfigure}
+\includegraphics[width=\linewidth]{pics/registres_banques.png}
 \label{f:regbank}
 \caption{Onglets de sélection de la banque de registres à visualiser}
-\end{figure}
+\end{marginfigure}
 
 La valeur d'un registre peut être modifiée en changeant sa valeur dans l'interface. Attention toutefois à respecter le type d'affichage sélectionné (par exemple, il est illégal d'écrire autre chose que 0 ou 1 en mode binaire).
 
 Il est possible d'affecter un point d'arrêt à un registre, en mode lecture ou écriture. Un point d'arrêt lié à un registre met la simulation en pause lorsque le registre est écrit ou lu. Par exemple, dans la figure suivante, les registres R3 et R5 ont un point d'arrêt en écriture et le registre R2 un point d'arrêt en lecture :
-\begin{figure}[h!]
-\raggedleft
-\includegraphics[width=0.45\linewidth]{pics/registres_bkpt.png}
+\begin{marginfigure}
+\includegraphics[width=0.8\linewidth]{pics/registres_bkpt.png}
 \label{f:regbkpt}
 \caption{Points d'arrêt sur les registres R2, R3 et R5.}
-\end{figure}
+\end{marginfigure}
 
 Un point d'arrêt en lecture peut être ajouté en cliquant sur le nom du registre tout en tenant la touche Control (Ctrl) enfoncée. De même, un point d'arrêt en écriture peut être ajouté en cliquant tout en tenant la touche Maj (Shift) enfoncée. Un point d'arrêt précédemment créé peut être retiré en répétant la même opération. Il est possible de mettre à la fois un point d'arrêt en lecture et en écriture sur le même registre.
 
-Lorsque l'instruction courante lit ou écrit un registre, sa valeur est entourée d'un rectangle turquoise (dans le cas d'une lecture) ou rouge (dans le cas d'une écriture). Par exemple, dans l'image suivante, l'instruction courante lit les valeurs de R0 et R5 et écrit dans R2 :
+Lorsque l'instruction courante lit ou écrit un registre, sa valeur est entourée d'un rectangle turquoise (lecture) ou rouge (écriture). Par exemple, dans l'image suivante, l'instruction courante lit les valeurs de R0 et R5 et écrit dans R2 :
 \begin{figure}[h!]
-\raggedleft
-\includegraphics[width=0.45\linewidth]{pics/registres_statuts.png}
+\raggedright
+\includegraphics[width=0.38\linewidth]{pics/registres_statuts.png}
 \label{f:regstatut}
-\caption{Utilisation des registres par l'instruction courante.}
 \end{figure}
+
+\clearpage
 
 \subsection{Vue des drapeaux}
 
@@ -205,6 +223,8 @@ Les drapeaux de l'ALU sont présentés juste en dessous de la vue des registres.
 Un drapeau ne peut prendre que deux valeurs : vrai ou faux (0 ou 1 en binaire). Il est possible de changer la valeur d'un drapeau en cliquant sur sa valeur. L'interface présente à la fois la vue pour le registre de statut courant (CPSR) et le registre de statut sauvegardé (SPSR), si applicable.
 
 Tout comme pour les registres, les drapeaux lus ou écrits par une instructions voient leur contour coloré de manière différente.
+
+\clearpage
 
 \subsection{Vue de la mémoire}
  
@@ -258,20 +278,66 @@ Finalement, en bas du visualisateur, on retrouve une interface permettant de nav
 
  Les flèches permettent d'aller vers des adresses mémoire plus hautes ou plus basses. Le champ de texte central permet de spécifier directement une adresse, à laquelle on peut par la suite se rendre en pressant le bouton \textit{Go}.
 
+\clearpage
 
 \subsection{Description de l'instruction courante}
 
+Cette section présente des informations textuelles sur l'instruction courante. La première ligne présente l'instruction \emph{désassemblée} : elle provient non pas de l'éditeur, mais du \textit{bytecode} lui-même. Cela lui permet d'apporter de l'information supplémentaire dans deux circonstances :
+\begin{enumerate}
+	\item Les étiquettes y sont remplacées par les décalages effectifs requis pour atteindre la case mémoire demandée
+	\item Dans le cas où l'on exécute des données présentes en mémoire, auxquelles aucun code assembleur n'est lié, cet affichage reste fonctionnel puisqu'il ne se base que sur la représentation binaire des instructions.
+\end{enumerate}
+\begin{figure}[h!]
+\raggedleft
+\includegraphics[width=0.6\linewidth]{pics/disassembly.png}
+\label{f:disassembly}
+\caption{Affichage de l'instruction désassemblée et de sa description. En fonction de l'instruction, la description peut être plus ou moins longue.}
+\end{figure}
+
+Les lignes suivantes sont une description textuelle de l'instruction, générée automatiquement. Elles indiquent, dans l'ordre, les opérations effectuées pour obtenir le résultat final et leurs effets de bord s'il y a lieu. Dans le cas d'une instruction indéfinie, cette zone reste vide.
+
+
+\clearpage
 \subsection{Contrôles d'enregistrement et de chargement}
 
+Ces contrôles, situés au bas de l'écran, vous permettent de télécharger le code présent dans l'éditeur et de charger un code présent sur votre ordinateur. Ces deux actions sont analogues à l'ouverture et l'enregistrement dans une application traditionnelle.
+
+\begin{figure}[h!]
+\raggedleft
+\includegraphics[width=0.9\linewidth]{pics/opensave.png}
+\label{f:opensave}
+\caption{Interface d'ouverture et d'enregistrement}
+\end{figure}
+
+N'importe quel type de fichier texte brut peut être lu par le simulateur. Nous vous recommandons toutefois d'utiliser l'extension ``txt'' afin d'éviter la confusion avec d'autres formats de fichier. C'est d'ailleurs cette extension que comportent les fichiers téléchargés depuis le simulateur.
+
+\paragraph{\textbf{Note importante :}} ces contrôles constituent la \emph{seule} manière de sauvegarder et réouvrir votre code. Il n'y a \emph{aucun} système de sauvegarde automatique et le serveur ne conserve \emph{aucune} trace du code exécuté. \textbf{Si vous ne téléchargez pas votre code avant de fermer votre navigateur ou de changer de page, les modifications que vous y avez apportées seront perdues et irrécupérables.} Un message d'avertissement vous est présenté lorsque vous tentez de fermer la fenêtre afin de vous rappelez de télécharger le fichier.
+
+\clearpage
 \subsection{Configuration}
 
+La fenêtre de configuration peut être ouverte en pressant le bouton \textit{Configurations} situé sous la vue des drapeaux. Une fois ouverte, la fenêtre ressemble à celle-ci :
+\begin{figure}[h!]
+\raggedleft
+\includegraphics[width=0.9\linewidth]{pics/configurations.png}
+\label{f:config}
+\caption{Interface de configuration des interruptions et du simulateur}
+\end{figure}
+
+Deux éléments principaux peuvent être configurés dans cette interface :
+\begin{enumerate}
+	\item Une interruption temporelle peut être activée, en mode FIQ ou IRQ. Le nombre de cycles avant la première interruption, de même que le délai de répétition (encore là en nombre de cycles processeur) peuvent être configurés.
+	\item La vitesse d'exécution, qui correspond au délai minimum entre l'exécution de deux instructions consécutives. Normalement, un délai de 100ms est suffisant pour exécuter les différents travaux pratiques et exercices du cours. Toutefois, dans certains cas spécifiques, une vitesse plus rapide peut être bénéfique. Dans tous les cas, n'oubliez pas que le simulateur ne peut exécuter plus qu'un certain nombre d'instructions à la suite, avant de se mettre en pause et d'attendre une nouvelle commande.
+\end{enumerate}
+
+\clearpage
 \section{Instructions ARM supportées}
 
 Le simulateur supporte les instructions suivantes. La syntaxe à utiliser est celle présentée dans les spécifications et documentations techniques d'ARM, sauf pour les spécificités suivantes :
 \begin{enumerate}
 	\item Toutes les mnémoniques (MOV, LDR, BL, etc.) doivent être écrites en \textbf{majuscules}
 	\item Tous les noms de registres doivent être écrits en \textbf{majuscules}
-	\item Les étiquettes peuvent être indifféremment en majuscules ou minuscules, mais ne peuvent être directement une mnémonique
+	\item Les étiquettes peuvent être indifféremment en majuscules ou minuscules, mais ne peuvent être directement une mnémonique. Elles peuvent également contenir des chiffres, mais ne peuvent pas \textit{commencer} par un chiffre.
 	\item L'indentation n'a pas d'importance. De même, l'espacement entre les différents composants d'une instruction n'est pas pris en compte, hormis pour l'espace ou la tabulation après la mnémonique, qui est obligatoire.
 	\item Une \emph{section} se déclare uniquement par son nom. Les attributs de section (par exemple \textit{.noinit}) ne sont pas supportés.
 
