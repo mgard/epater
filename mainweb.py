@@ -532,10 +532,6 @@ def encodeWSGIb(data):
     return bytes([(x % 0xdc00) for x in data]).decode('utf-8')
 
 
-def encodeWSGIb(data):
-    return bytes([(x % 0xdc00) for x in data]).decode('utf-8')
-
-
 if locale.getdefaultlocale() == (None, None):
     index_template = open('./interface/index.html', 'rb').read()
     simulator_template = open('./interface/simulateur.html', 'rb').read()
