@@ -632,6 +632,11 @@ def index():
 def static_serve(filename):
     return static_file(filename, root='./interface/static/')
 
+@route('/download/<filename>')
+def download(filename):
+    response.headers['Content-Type'] = 'application/pdf; charset=UTF-8'
+    response.headers['Content-Disposition'] = 'attachment; filename="test.pdf"'
+
 
 def http_server():
     bottle.run(host='0.0.0.0', port=8000, server="gevent")

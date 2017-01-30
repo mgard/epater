@@ -216,6 +216,10 @@ function assemble() {
     }
 }
 
+function reset() {
+    sendCmd(['reset']);
+}
+
 function simulate(type) {
     var animate_speed = $('#animate_speed').val();
     sendData(JSON.stringify([type, animate_speed]));
