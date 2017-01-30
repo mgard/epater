@@ -208,9 +208,10 @@ function assemble() {
         $("#stepout").prop('disabled', false);
         $("#stepforward").prop('disabled', false);
         $("#assemble").text("Arrêter").addClass("assemble_edit");
-        sendData(JSON.stringify(['assemble', editor.getValue()]));
+        sendCmd(['assemble', editor.getValue()]);
     } else {
         $("#assemble").text("Démarrer");
+        sendCmd(['stop']);
     }
 }
 
