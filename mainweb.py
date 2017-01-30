@@ -255,7 +255,7 @@ def updateDisplay(interp, force_all=False):
         #retval.append(["highlightread", []])
         #retval.append(["highlightwrite", []])
         retval.append(["nextline", -1])
-        retval.append(["disassembly", "No info"])
+        retval.append(["disassembly", "Information indisponible"])
 
     try:
         instr_addr = interp.getCurrentInstructionAddress()
@@ -387,10 +387,10 @@ def process(ws, msg_in):
                         pass
                     interpreters[ws].setFlags({flag_id: val})
                 elif data[1][:2].upper() == 'BP':
-                    _, mode, reg_id = data[1].split('_')
+                    _, mode, bank, reg_id = data[1].split('_')
                     reg_id = int(reg_id[1:])
-                    # reg name, mode [r,w,rw]
-                    interpreters[ws].setBreakpointRegister(reg_id, mode)
+                    # bank, reg name, mode [r,w,rw]
+                    interpreters[ws].setBreakpointRegister(bank.lower(), reg_id, mode)
             elif data[0] == "interrupt":
                 mode = data[2] # FIQ/IRQ
                 interpreters[ws].setInterrupt(mode, not data[1], data[4], data[3], 0)

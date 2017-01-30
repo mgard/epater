@@ -30,6 +30,7 @@ ws.onmessage = function (event) {
 
     for (var idx in obj_list) {
         var obj = obj_list[idx];
+        console.log("reception: ", obj)
 
         var element = document.getElementById(obj[0]);
         if (obj[0] == "disassembly") {
@@ -100,10 +101,8 @@ ws.onmessage = function (event) {
                         var addr = element.slice(4);
                         if (type == "read") {
                             mem_highlights_r.push(addr);
-                            console.log("Read:", addr);
                         } else {
                             mem_highlights_w.push(addr);
-                            console.log("Write:", addr);
                         }
                     } else {
                         $(document.getElementById(element)).addClass("highlight" + type);
