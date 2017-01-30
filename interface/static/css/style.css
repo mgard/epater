@@ -126,9 +126,14 @@ select:disabled, button:disabled, input[type=submit]:disabled {
 }
 
 #disassembly {
-    height: 9em;
-    width: 430px;
-    overflow-y: scroll;
+    height: 130px;
+    width: 445px;
+    overflow-y: auto;
+}
+
+#disassembly ol {
+    font-size: 0.9em;
+    margin-bottom: 0;
 }
 
 #regView {
