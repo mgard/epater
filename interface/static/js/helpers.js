@@ -57,32 +57,27 @@ function destroyClickedElement(event)
 
 function saveTextAsFile() {
     var textToWrite = editor.getValue();
-    var textFileAsBlob = new Blob([textToWrite],  {type: 'text/plain'});
-    var fileNameToSaveAs = "source.txt";
-    var downloadLink = document.createElement("a");
-    var is_safari = navigator.userAgent.indexOf("Safari") > -1;
-    var is_chrome = navigator.userAgent.indexOf('Chrome') > -1;
-    if ((is_chrome)&&(is_safari)) {is_safari=false;}
-    downloadLink.download = fileNameToSaveAs;
-    downloadLink.innerHTML = "Download File";
-    try {
-        // Chrome allows the link to be clicked
-        // without actually adding it to the DOM.
-        downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
-        if (is_safari) {
-            downloadLink.target = '_blank';
-            downloadLink.download = fileNameToSaveAs;
-            //$(downloadLink).attr('download', fileNameToSaveAs);
-        }
-    } catch(e) {
-        // Firefox requires the link to be added to the DOM
-        // before it can be clicked.
-        downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
-        downloadLink.onclick = destroyClickedElement;
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
+
+    var form = document.createElement("form");
+    form.setAttribute("method", "post");
+    form.setAttribute("action", "/download/");
+    form.setAttribute("target", "_blank");
+
+    params = {filename:"source.txt", data:textToWrite};
+
+    for(var key in params) {
+        if(params.hasOwnProperty(key)) {
+            var hiddenField = document.createElement("input");
+            hiddenField.setAttribute("type", "hidden");
+            hiddenField.setAttribute("name", key);
+            hiddenField.setAttribute("value", params[key]);
+
+            form.appendChild(hiddenField);
+         }
     }
-    downloadLink.click();
+
+    document.body.appendChild(form);
+    form.submit();
 }
 
 $(window).bind('keydown', function(event) {

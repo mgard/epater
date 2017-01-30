@@ -13,6 +13,7 @@ body {
     background-color: #28648F;
     width: 100px;
     float: left;
+    display: table;
 }
 
 .left_item {
