@@ -61,6 +61,7 @@ function saveTextAsFile() {
     var fileNameToSaveAs = "source.txt";
     var downloadLink = document.createElement("a");
     var is_safari = navigator.userAgent.indexOf("Safari") > -1;
+    var is_chrome = navigator.userAgent.indexOf('Chrome') > -1;
     if ((is_chrome)&&(is_safari)) {is_safari=false;}
     downloadLink.download = fileNameToSaveAs;
     downloadLink.innerHTML = "Download File";
