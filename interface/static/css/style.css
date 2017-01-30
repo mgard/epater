@@ -460,3 +460,14 @@ img {
   color: #FFF;
   font-size: 1.1em;
 }
+
+#enonce {
+    max-width: 700px;
+}
+
+.pre {
+    white-space: pre;
+    font-family: monospace;
+    margin: 1em 0 1em;
+    color: #A477FF;
+}
