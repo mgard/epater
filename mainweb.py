@@ -528,8 +528,15 @@ def encodeWSGIb(data):
     return bytes([(x % 0xdc00) for x in data]).decode('utf-8')
 
 
-index_template = open('./interface/index.html', 'r').read()
-simulator_template = open('./interface/simulateur.html', 'r').read()
+if locale.getdefaultlocale() == (None, None):
+    index_template = open('./interface/index.html', 'rb').read()
+    simulator_template = open('./interface/simulateur.html', 'rb').read()
+    index_template = encodeWSGIb(index_template)
+    simulator_template = encodeWSGIb(simulator_template)
+else:
+    index_template = open('./interface/index.html', 'r').read()
+    simulator_template = open('./interface/simulateur.html', 'r').read()
+
 @get('/')
 def index():
     page = request.query.get("page", "demo")
