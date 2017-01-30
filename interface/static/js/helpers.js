@@ -101,8 +101,7 @@ function loadFileAsText(){
     fileReader.readAsText(fileToLoad, "UTF-8");
 }
 
-var confirmOnPageExit = function (e)
-{
+window.onbeforeunload = function (e) {
     // If we haven't been passed the event get the window.event
     e = e || window.event;
 
@@ -114,4 +113,3 @@ var confirmOnPageExit = function (e)
     // For Chrome, Safari, IE8+ and Opera 12+
     return message;
 };
-window.onbeforeunload = confirmOnPageExit;
