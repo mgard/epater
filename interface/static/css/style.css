@@ -348,6 +348,8 @@ img {
 
 #jump_memory {
     margin: 0 0 0 10px;
+    height: calc(1.6em + 4px);
+    border: 1px solid #28648F;
 }
 
 #debugger_buttons {

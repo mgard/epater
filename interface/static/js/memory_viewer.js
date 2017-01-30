@@ -90,6 +90,7 @@ function updateMemoryBreakpointsView() {
 
 function changeMemoryViewPage() {
   var target = $("#jump_memory").val();
+  target_memaddr = target;
   var page = Math.floor(parseInt(target) / (16*20));
   editableGrid.setPageIndex(page);
 }
@@ -150,38 +151,40 @@ function resetMemoryViewer() {
 
 }
 
+var target_memaddr = null;
 $(document).ready(function() {
-  EditableGrid.prototype.updatePaginator = function()
-  {
+  EditableGrid.prototype.updatePaginator = function() {
     var paginator = $("#paginator").empty();
     var nbPages = this.getPageCount();
 
       // "first" link
-      var link = $("<a>").html("<img src='" + image("gofirst.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
+      var link = $("<a>").html("<img src='static/image/mem_first.png' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
       else link.css("cursor",  "pointer").click(function(event) { editableGrid.firstPage(); });
       paginator.append(link);
 
       // "prev" link
-      link = $("<a>").html("<img src='" + image("prev.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
+      link = $("<a>").html("<img src='static/image/mem_prev.png' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
       else link.css("cursor",  "pointer").click(function(event) { editableGrid.prevPage(); });
       paginator.append(link);
 
       var mem_begin = $(".editablegrid-ch:eq(1)").text();
+      if (target_memaddr !== null) { mem_begin = target_memaddr; }
       paginator.append('<input id="jump_memory" type="text" value="' + mem_begin + '"/><input id="jump_memory_go" type="submit" value="Go">');
+      target_memaddr = null;
 
       $("#jump_memory").keyup(function(e){ if (e.keyCode == 13) { changeMemoryViewPage(); } });
       $("#jump_memory_go").click(changeMemoryViewPage);
 
       // "next" link
-      link = $("<a>").html("<img src='" + image("next.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
+      link = $("<a>").html("<img src='static/image/mem_next.png' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
       else link.css("cursor",  "pointer").click(function(event) { editableGrid.nextPage(); });
       paginator.append(link);
 
       // "last" link
-      link = $("<a>").html("<img src='" + image("golast.png") + "' style='height: 15px; vertical-align: middle;'/>&nbsp;");
+      link = $("<a>").html("<img src='static/image/mem_last.png' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
       else link.css("cursor",  "pointer").click(function(event) { editableGrid.lastPage(); });
       paginator.append(link);
@@ -204,5 +207,4 @@ $(document).ready(function() {
     };
 
   resetMemoryViewer();
-
 });
