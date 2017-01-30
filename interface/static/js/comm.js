@@ -184,6 +184,8 @@ function resetView() {
 
     $(".reg_bkp_w").removeClass("reg_bkp_w");
     $(".reg_bkp_r").removeClass("reg_bkp_r");
+    $(".highlightread").removeClass("highlightread");
+    $(".highlightwrite").removeClass("highlightwrite");
 
     resetMemoryViewer();
 }
