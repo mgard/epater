@@ -13,6 +13,7 @@ body {
     background-color: #28648F;
     width: 100px;
     float: left;
+    display: table;
 }
 
 .left_item {
@@ -97,6 +98,26 @@ select, button, input[type=submit] {
     color: #FFF;
     height: 1.6em;
     font-size: 1.1em;
+}
+
+.top_buttons img {
+    vertical-align: middle;
+}
+
+#run:disabled img {
+    content:url("/static/image/run_disabled.png");
+}
+
+#stepin:disabled img {
+    content:url("/static/image/into_disabled.png");
+}
+
+#stepforward:disabled img {
+    content:url("/static/image/over_disabled.png");
+}
+
+#stepout:disabled img {
+    content:url("/static/image/out_disabled.png");
 }
 
 select:disabled, button:disabled, input[type=submit]:disabled {

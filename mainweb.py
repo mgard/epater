@@ -25,7 +25,7 @@ except ImportError:
 import websockets
 from gevent import monkey; monkey.patch_all()
 import bottle
-from bottle import route, static_file, get, request, template
+from bottle import route, static_file, get, post, request, template, response
 from bs4 import BeautifulSoup
 
 from assembler import parse as ASMparser
@@ -336,6 +336,7 @@ def process(ws, msg_in):
                 bytecode, bcinfos, assertions, errors = ASMparser(code.splitlines())
                 if errors:
                     retval.extend(errors)
+                    retval.append(["edit_mode"])
                 else:
                     interpreters[ws] = BCInterpreter(bytecode, bcinfos, assertions)
                     force_update_all = True
@@ -631,6 +632,15 @@ def index():
 @route('/static/<filename:path>')
 def static_serve(filename):
     return static_file(filename, root='./interface/static/')
+
+
+@post('/download/')
+def download():
+    filename = request.forms.get('filename')
+    data = request.forms.get('data')
+    response.headers['Content-Type'] = 'text/plain; charset=UTF-8'
+    response.headers['Content-Disposition'] = 'attachment; filename="source.txt"'
+    return data
 
 
 def http_server():

@@ -25,7 +25,7 @@
         <tr>
             <td id="left_menu">
                 <a href="?page=demo"><div class="left_item{{!' current_page' if page == "demo" else ""}}"><div class="left_item_inner">D&eacute;mo</div></div></a>
-                <a href="?page=exo"><div class="left_item{{!' current_page' if page == "exo" else ""}}"><div class="left_item_inner">Exercices facultatifs</div></div></a>
+                <a href="#" style="color: #AAA"><div class="left_item{{!' current_page' if page == "exo" else ""}}"><div class="left_item_inner">Exercices facultatifs</div></div></a>
                 <a href="?page=tp"><div class="left_item{{!' current_page' if page == "tp" else ""}}"><div class="left_item_inner">Travaux pratiques</div></div></a>
                 <a href="?sim=nouveau&r={{ rand }}#tabsmain-simulation"><div class="left_item"><div class="left_item_inner">Nouvelle session</div></div></a>
             </td>
@@ -427,6 +427,7 @@
                                 <td id="editorPanel">
                                     <div id="debugger_buttons">
                                         <button onclick="assemble()" id="assemble" class="top_buttons">D&eacute;marrer</button>
+                                        <button onclick="reset()" id="reset" class="top_buttons">R&eacute;initialiser</button>
                                         <button id="run" onclick="simulate('run')" disable="disabled" class="top_buttons"><img src="static/image/run.png" alt="run"/></button>
                                         <button id="stepin" onclick="simulate('stepinto')" disable="disabled" class="top_buttons"><img src="static/image/into.png" alt="step into"/></button>
                                         <button id="stepforward" onclick="simulate('stepforward')" disable="disabled" class="top_buttons"><img src="static/image/over.png" alt="step forward"/></button>
