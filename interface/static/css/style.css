@@ -126,9 +126,14 @@ select:disabled, button:disabled, input[type=submit]:disabled {
 }
 
 #disassembly {
-    height: 9em;
-    width: 430px;
-    overflow-y: scroll;
+    height: 130px;
+    width: 445px;
+    overflow-y: auto;
+}
+
+#disassembly ol {
+    font-size: 0.9em;
+    margin-bottom: 0;
 }
 
 #regView {
@@ -159,6 +164,8 @@ select:disabled, button:disabled, input[type=submit]:disabled {
 .regVal {
     width: 100px;
     font-family: monospace;
+    height: 16px;
+    border: 2px solid #383737;
 }
 
 /* Current operation highlights */
@@ -318,9 +325,6 @@ img {
     width: 100% !important;
 }
 
-#memoryview {
-    height: 390px;
-}
 #memoryview th {
     width: 16px;
 }
