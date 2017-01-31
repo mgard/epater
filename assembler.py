@@ -189,10 +189,13 @@ def parse(code):
 
     if "SNIPPET_DUMMY_SECTION" not in bytecode:
         if "INTVEC" not in bytecode:
-            listErrors.append(("codeerror", 0, "La section INTVEC n'est déclarée nulle part!"))
+            listErrors.append(("codeerror", 0, "La section INTVEC n'est déclarée nulle part (utilisez 'SECTION INTVEC' au début du code)!"))
             return None, None, None, listErrors
         if "CODE" not in bytecode:
-            listErrors.append(("codeerror", 0, "La section CODE n'est déclarée nulle part!"))
+            listErrors.append(("codeerror", 0, "La section CODE n'est déclarée nulle part (utilisez 'SECTION CODE')!"))
+            return None, None, None, listErrors
+        if "DATA" not in bytecode:
+            listErrors.append(("codeerror", 0, "La section DATA n'est déclarée nulle part (utilisez 'SECTION DATA' à la fin de votre code)!"))
             return None, None, None, listErrors
 
     # We resolve the pointer dependencies (that is, the instructions using =label)
