@@ -78,6 +78,7 @@ def parse(code):
     unresolvedDepencencies = {}
     assertions = {}
     lastLineType = None
+    totalMemAllocated = 0
     for i,line in enumerate(code):
         line = line.strip()
         if ';' in line:
@@ -174,6 +175,10 @@ def parse(code):
                 addrToLine[tmpAddr].append(i)
             currentAddr += len(parsedLine["BYTECODE"][0])
             lastLineType = "BYTECODE"
+            totalMemAllocated += len(parsedLine["BYTECODE"][0])
+
+        if totalMemAllocated > getSetting("maxtotalmem"):
+            return None, None, None, [("error", "Le code demande une allocation totale de plus de {} octets de mémoire, ce qui est invalide.".format(getSetting("maxtotalmem")))]
 
     maxAddrBySection[currentSection] = currentAddr
     bytecode['__MEMINFOEND'][currentSection] = currentAddr
