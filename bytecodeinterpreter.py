@@ -33,7 +33,7 @@ class BCInterpreter:
 
     def setBreakpointInstr(self, listLineNumbers):
         # First, we remove all execution breakpoints
-        self.sim.mem.removeExecuteBreakpoints([self.line2addr[b] for b in self.lineBreakpoints])
+        self.sim.mem.removeExecuteBreakpoints(removeList=[self.line2addr[b] for b in self.lineBreakpoints])
 
         # Now we add all breakpoint
         # The easy case is when the line is directly mapped to a memory address (e.g. it is an instruction)
