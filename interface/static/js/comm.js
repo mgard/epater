@@ -66,9 +66,11 @@ ws.onmessage = function (event) {
             codeerrors.push({row: obj[1], text: obj[2], type: "error"})
             editor.session.setAnnotations(codeerrors);
         } else if (obj[0] == 'asm_breakpoints') {
+            asm_breakpoints.length = 0;
             editor.session.clearBreakpoints();
             for (var i = 0; i < obj[1].length; i++) {
                 editor.session.setBreakpoint(obj[1][i]);
+                asm_breakpoints[i] = obj[1][i];
             }
         } else if (obj[0] == 'nextline') {
             if (next_debug_marker !== null) { editor.session.removeMarker(next_debug_marker); }
@@ -110,17 +112,18 @@ ws.onmessage = function (event) {
                     }
                 } catch(e) {}
             }
-        } else if (obj[0] == 'highlightwrite') {
         } else if (obj[0] == 'debuginstrmem') {
-            mem_breakpoints_instr = obj[1];
-            if ($("#follow_pc").is(":checked")) {
-                var target = obj[1][0];
-                var page = Math.floor(parseInt(target) / (16*20));
-                if ( editableGrid.getCurrentPageIndex() != page ) {
-                    editableGrid.setPageIndex(page);
+            if ($("#assemble").text() !== "Démarrer") {
+                mem_breakpoints_instr = obj[1];
+                if ($("#follow_pc").is(":checked")) {
+                    var target = obj[1][0];
+                    var page = Math.floor(parseInt(target) / (16*20));
+                    if ( editableGrid.getCurrentPageIndex() != page ) {
+                        editableGrid.setPageIndex(page);
+                    }
                 }
+                editableGrid.refreshGrid();
             }
-            editableGrid.refreshGrid();
         } else if (obj[0] == 'mempartial') {
             for (var i = 0; i < obj[1].length; i++) {
                 var row = Math.floor(obj[1][i][0] / 16);
@@ -212,6 +215,8 @@ function assemble() {
         sendCmd(['assemble', editor.getValue()]);
     } else {
         $("#assemble").text("Démarrer");
+        asm_breakpoints.length = 0;
+        sendBreakpointsInstr();
         sendCmd(['stop']);
     }
 }
@@ -222,7 +227,7 @@ function reset() {
 
 function simulate(type) {
     var animate_speed = $('#animate_speed').val();
-    sendData(JSON.stringify([type, animate_speed]));
+    sendCmd([type, animate_speed]);
 }
 
 function sendBreakpointsInstr() {
