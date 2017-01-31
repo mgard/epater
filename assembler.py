@@ -100,6 +100,7 @@ def parse(code):
             continue
         except Exception as e:
             listErrors.append(("codeerror", i, "Impossible d'interpréter l'instruction"))
+            raise e
             print(str(e))
             continue
         else:

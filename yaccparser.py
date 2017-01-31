@@ -80,7 +80,8 @@ def p_instruction(p):
                    | shiftinstruction
                    | psrinstruction
                    | svcinstruction
-                   | multiplyinstruction"""
+                   | multiplyinstruction
+                   | nopinstruction"""
     # We just shift the instruction bytecode and dependencies to the next level
     p[0] = p[1]
 
@@ -654,6 +655,16 @@ def p_multiplyinstruction(p):
     p[0] |= p[3]
 
     # A multiply instruction is always complete (e.g. it never depends on the location of a label),
+    # so we just pack it in a bytes object
+    p[0] = (struct.pack("<I", p[0]), None)
+
+
+def p_nopinstruction(p):
+    """nopinstruction : OPNOP logmnemonic
+                      | OPSVC logmnemonic CONDITION"""
+    p[0] = 0x320F000
+    p[0] |= instruction.conditionMapping['AL' if len(p) == 3 else p[3]] << 28
+    # A NOP instruction is always complete (e.g. it never depends on the location of a label),
     # so we just pack it in a bytes object
     p[0] = (struct.pack("<I", p[0]), None)
 

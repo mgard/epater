@@ -34,6 +34,7 @@ states = (
     ('psropcode', 'exclusive'),
     ('mulopcode', 'exclusive'),
     ('svcopcode', 'exclusive'),
+    ('nopopcode', 'exclusive'),
     ('generalopcode', 'exclusive'),
 
     ('datainstr', 'exclusive'),
@@ -45,6 +46,7 @@ states = (
     ('psrinstr', 'exclusive'),
     ('mulinstr', 'exclusive'),
     ('svcinstr', 'exclusive'),
+    ('nopinstr', 'exclusive'),
     ('generalinstr', 'exclusive'),
 
     ('decwithsize', 'exclusive'),
@@ -95,6 +97,7 @@ tokens = (
    'OPPSR',
    'OPSVC',
    'OPMUL',
+   'OPNOP',
    'LABEL',
    'EQUALS',
    'RANGE',
@@ -377,10 +380,27 @@ def t_svcopcode_SPACEORTAB(t):
     return t
 
 
+# NOP
+@lex.TOKEN(r'(' + r'(?=[A-Z\t ])|'.join([k for k,v in instrInfos.exportInstrInfo.items() if v == instrInfos.InstrType.nopop])+r')')
+def t_OPNOP(t):
+    t.lexer.begin('nopopcode')
+    t.lexer.currentMnemonic = t.value
+    t.lexer.countArgs = 0
+    t.lexer.instrType = instrInfos.InstrType.nopop
+    t.lexer.expectedArgs = 0
+    t.lexer.suffixesSeen = set()
+    return t
+
+# We transition into the instruction arguments
+def t_nopopcode_SPACEORTAB(t):
+    r'[ \t]+'
+    t.lexer.begin('nopinstr')
+    return t
+
 
 # An instruction can be conditionnal
 @lex.TOKEN(r'(' + "|".join(instrInfos.conditionMapping.keys())+')')
-def t_dataopcode_shiftopcode_cmpopcode_memopcode_multiplememopcode_branchopcode_psropcode_mulopcode_svcopcode_generalopcode_CONDITION(t):
+def t_dataopcode_shiftopcode_cmpopcode_memopcode_multiplememopcode_branchopcode_psropcode_mulopcode_svcopcode_nopopcode_generalopcode_CONDITION(t):
     for elem in t.lexer.suffixesSeen:
         if elem in instrInfos.conditionMapping.keys():
             assert False, "Only one condition!"
@@ -528,6 +548,9 @@ def t_mulopcode_error(t):
 def t_svcopcode_error(t):
     print("(12) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
 
+def t_nopopcode_error(t):
+    print("(12b) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
+
 def t_generalopcode_error(t):
     print("(13) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
 
@@ -560,8 +583,11 @@ def t_mulinstr_error(t):
 def t_svcinstr_error(t):
     print("(22) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
 
-def t_generalinstr_error(t):
+def t_nopinstr_error(t):
     print("(23) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
+
+def t_generalinstr_error(t):
+    print("(24) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
 
 # General handler
 def t_error(t):
