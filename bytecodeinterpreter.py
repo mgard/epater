@@ -1,5 +1,8 @@
+from struct import unpack
+
 from settings import getSetting
 from procsimulator import Simulator, Memory, Register
+
 
 class BCInterpreter:
 
@@ -119,7 +122,7 @@ class BCInterpreter:
     def getMemory(self, addr, returnHexaStr=True):
         val = self.sim.mem.get(addr, 1, mayTriggerBkpt=False)
         if returnHexaStr:
-            return "{:X}".format(val)
+            return "{:02X}".format(unpack("B", val)[0])
         else:
             return val
 
