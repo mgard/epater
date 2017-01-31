@@ -397,6 +397,7 @@ class Memory:
         else:
             # Toggle the value
             self.breakpoints[addr] ^= modeOctal
+        return self.breakpoints[addr]
 
     def removeBreakpoint(self, addr):
         self.breakpoints[addr] = 0

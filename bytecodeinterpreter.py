@@ -61,10 +61,15 @@ class BCInterpreter:
         modeOctal = 4*('r' in mode) + 2*('w' in mode) + 1*('e' in mode)
         self.sim.mem.setBreakpoint(addr, modeOctal)
 
+
     def toggleBreakpointMem(self, addr, mode):
         # Mode = 'r' | 'w' | 'rw' | 'e' | '' (passing an empty string removes the breakpoint)
         modeOctal = 4*('r' in mode) + 2*('w' in mode) + 1*('e' in mode)
-        self.sim.mem.toggleBreakpoint(addr, modeOctal)
+        bkptInfo = self.sim.mem.toggleBreakpoint(addr, modeOctal)
+        if bkptInfo & 1 and 'e' in mode:
+            addrprod4 = (addr // 4) * 4
+            if addrprod4 in self.addr2line:
+                self.lineBreakpoints.append(self.addr2line[addrprod4][-1])
 
     def setBreakpointRegister(self, bank, reg, mode):
         # Mode = 'r' | 'w' | 'rw' | '' (passing an empty string removes the breakpoint)
