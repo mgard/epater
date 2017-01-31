@@ -178,6 +178,14 @@ def parse(code):
     maxAddrBySection[currentSection] = currentAddr
     bytecode['__MEMINFOEND'][currentSection] = currentAddr
 
+    if "SNIPPET_DUMMY_SECTION" not in bytecode:
+        if "INTVEC" not in bytecode:
+            listErrors.append(("codeerror", 0, "La section INTVEC n'est déclarée nulle part!"))
+            return None, None, None, listErrors
+        if "CODE" not in bytecode:
+            listErrors.append(("codeerror", 0, "La section CODE n'est déclarée nulle part!"))
+            return None, None, None, listErrors
+
     # We resolve the pointer dependencies (that is, the instructions using =label)
     labelsPtrAddr = {}
     sectionToUse = "CODE" if "CODE" in bytecode['__MEMINFOSTART'] else "SNIPPET_DUMMY_SECTION"

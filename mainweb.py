@@ -418,6 +418,8 @@ def process(ws, msg_in):
                     val = bytearray([int(data[2], 16)])
                 except (ValueError, TypeError):
                     retval.append(["error", "Valeur invalide: {}".format(repr(data[2]))])
+                    val = interpreters[ws].getMemory(data[1])
+                    retval.append(["mempartial", [[data[1], val]]])
                 else:
                     interpreters[ws].setMemory(data[1], val)
             else:
