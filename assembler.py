@@ -154,6 +154,10 @@ def parse(code):
             bytecode[currentSection] = bytearray()
 
         if "LABEL" in parsedLine:
+            if parsedLine["LABEL"] in labelsAddr:
+                # This label was already defined
+                firstaddr = addrToLine[labelsAddr[parsedLine["LABEL"]]][0]
+                listErrors.append(("codeerror", i, "L'étiquette '{}' est définie deux fois (première définition à la ligne {})".format(parsedLine["LABEL"], firstaddr+1)))
             labelsAddr[parsedLine["LABEL"]] = currentAddr
             lastLineType = "LABEL"
 
