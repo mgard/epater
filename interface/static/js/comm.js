@@ -226,7 +226,7 @@ function simulate(type) {
 }
 
 function sendBreakpointsInstr() {
-    sendData(JSON.stringify(['breakpointsinstr', asm_breakpoints]));
+    sendCmd(['breakpointsinstr', asm_breakpoints]);
 }
 
 function sendMsg(msg) {

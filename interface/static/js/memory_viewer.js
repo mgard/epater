@@ -147,6 +147,12 @@ function resetMemoryViewer() {
   editableGrid.load({"metadata": metadata,  "data": data});
   editableGrid.renderGrid("memoryview",  "testgrid");
 
+  $(".mem_r").removeClass("mem_r");
+  $(".mem_w").removeClass("mem_w");
+  $(".mem_rw").removeClass("mem_rw");
+  $(".mem_e").removeClass("mem_e");
+  $(".mem_instr").removeClass("mem_instr");
+
   updateMemoryBreakpointsView();
 
 }
