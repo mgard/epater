@@ -238,6 +238,7 @@ function sendCmd(cmd) {
 }
 
 function sendData(data) {
+    console.log("Send: ", data);
     if (ws.readyState === 0) {
         setTimeout(function () {sendData(data)}, 500);
     } else if (ws.readyState > 1) {
