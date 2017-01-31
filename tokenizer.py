@@ -459,12 +459,13 @@ def t_ANY_REG(t):
 
 # The constant declaration (DC) is the only case where we may have multiple constants on the same line
 def t_decwithvalues_LISTINIT(t):
-    r'([+-]?(\s*0x[0-9a-fA-F]+|[0-9]+),?)+'
+    r'([ \t]*[+-]?(0x[0-9a-fA-F]+|[0-9]+),?)+'
     valsStr = t.value.split(",")
     valsInt = []
     for v in valsStr:
         v = v.strip().lower()
-        valsInt.append(int(v, 16) if '0x' in v else int(v))
+        val = int(v, 16) if '0x' in v else int(v)
+        valsInt.append(val)
     t.value = valsInt
     return t
 
@@ -519,7 +520,7 @@ def t_decwithsize_error(t):
     print("(02) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
 
 def t_decwithvalues_error(t):
-    print("(03) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
+    print("(03) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, ord(t.value[0])))
 
 def t_dataopcode_error(t):
     print("(04) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
