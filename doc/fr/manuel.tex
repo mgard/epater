@@ -2,7 +2,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[francais]{babel}
 
-\title{Manuel d'utilisation du simulateur ARM\\Révision 1}
+\title{Manuel d'utilisation du simulateur ARM epater\\Révision 1}
 
 
 \author{Marc-André Gardner\\Yannick Hold-Geoffroy\\Jean-François Lalonde}
@@ -44,17 +44,17 @@
 
 \section{Introduction}
 
-Ce manuel présente l'utilisation du simulateur d'un processus à architecture ARM, tel qu'étudié dans le cours \textit{GIF-1001 Ordinateurs: Structure et Applications}. Ce manuel se concentre uniquement sur l'utilisation du simulateur à proprement parler. Les informations concernant l'architecture ARM et la programmation en langage assembleur peuvent être trouvées dans les notes de cours ou dans les manuels de référence cités dans le plan de cours.
+Ce manuel présente l'utilisation du simulateur \textbf{épater}, qui émule un processeur à architecture ARMv7, tel qu'étudié dans le cours \textit{GIF-1001 Ordinateurs: Structure et Applications}. Ce manuel se concentre uniquement sur l'utilisation du simulateur à proprement parler. Les informations concernant l'architecture ARM et la programmation en langage assembleur peuvent être obtenues dans les notes de cours ou dans les manuels de référence cités dans le plan de cours.
 
 \section{Prise en main}
 
 \subsection{Accès au simulateur}
 
-Le simulateur est disponible en ligne, à l'adresse \url{http://gif1001-sim.gel.ulaval.ca/}. Aucune installation n'est nécessaire et l'accès ne requiert pas d'authentification. Le simulateur est disponible 24 heures sur 24, sans interruption. Le simulateur a été testé avec les navigateurs suivants :
+Le simulateur est disponible en ligne, à l'adresse \url{http://gif1001-sim.gel.ulaval.ca/}. Aucune installation n'est nécessaire et l'accès ne requiert pas d'authentification. Le simulateur a été testé avec les navigateurs suivants :
 \begin{itemize}
 	\item Google Chrome version 50 et plus, sur Windows, MacOS et Linux
 	\item Mozilla Firefox version 44 et plus, sur Windows, MacOS et Linux
-	\item Microsoft Edge et Microsoft Internet Explorer 11, sur Windows 10
+	\item Microsoft Edge, sur Windows 10
 	\item Apple Safari, sur MacOS
 \end{itemize}
 
@@ -143,7 +143,7 @@ De même, lorsque l'instruction courante est un branchement ou un appel de fonct
 \subsection{Contrôles du simulateur}
 
 Les boutons de contrôle du simulateur permettent d'agir sur la simulation. 
-Cette interface diffère selon le mode actuel. Dans le mode \emph{d'édition} (figure\ref{f:controles1}), seul le bouton \textit{Démarrer} est actif. Dans le mode \emph{d'exécution}, tous les boutons sont actifs, et le bouton \textit{Démarrer} devient \textit{Arrêter}. 
+Cette interface diffère selon le mode actuel. Dans le mode \emph{édition} (figure~\ref{f:controles1}), seul le bouton \textit{Démarrer} est actif. Dans le mode \emph{exécution}, que l'on peut accéder en pressant sur \textit{Démarrer}, tous les boutons sont actifs, et le bouton \textit{Démarrer} devient \textit{Arrêter}. 
 \begin{figure}[h!]
 \raggedleft
 \includegraphics[width=0.8\linewidth]{pics/controles_1b.png}
@@ -157,10 +157,11 @@ Cette interface diffère selon le mode actuel. Dans le mode \emph{d'édition} (f
 \caption{Barre de contrôle en mode \emph{exécution}}
 \end{figure}
 
-En mode édition, le bouton \textit{Démarrer} lance l'assemblage du code présent dans l'éditeur. Si aucune erreur n'est détectée, le simulateur passe alors en mode d'exécution. Dans ce mode, le bouton \textit{Arrêter} stoppe la simulation et revient en mode édition. Notez qu'une modification à l'éditeur a le même effet. Les cinq autres boutons sont, respectivement, de gauche à droite :
+Lorsque le bouton \textit{Démarrer} est pressé, le simulateur tente d'abord d'assembler le code. Si aucune erreur n'est détectée, il passe alors en mode exécution. Dans ce mode, tous les boutons sont actifs et sont, respectivement, de gauche à droite :
 \begin{enumerate}
-	\item \textbf{Réinitialiser} : effectue l'équivalent d'une interruption \emph{reset} sur le microprocesseur. La valeur de PC est mise à 0. Notez que cela n'affecte \emph{pas} la valeur des autres registres et des drapeaux.
-	\item \textbf{Exécution en continu} : le simulateur exécute les instructions suivantes sans arrêt, jusqu'à ce qu'il rencontre une erreur ou un point d'arrêt. Notez que le simulateur est volontairement limité quant au nombre d'instructions qu'il peut exécuter. Lorsque ce nombre est atteint, le simulateur arrête comme s'il avait rencontré un point d'arrêt.
+	\item \textit{Arrêt} : interrompt la simulation et revient en mode édition.
+	\item \textbf{Réinitialisation} : effectue l'équivalent d'une interruption \emph{reset} sur le microprocesseur. La valeur de PC est mise à 0. Notez que cela n'affecte \emph{pas} la valeur des autres registres et des drapeaux.
+	\item \textbf{Exécution en continu} : le simulateur exécute les instructions suivantes sans arrêt, jusqu'à ce qu'il rencontre une erreur ou un point d'arrêt. Notez que le simulateur est volontairement limité quant au nombre d'instructions qu'il peut exécuter d'un seul coup. Lorsque ce nombre est atteint, le simulateur arrête comme s'il avait rencontré un point d'arrêt. Il suffit d'appuyer à nouveau sur le bouton d'exécution en continu pour poursuivre.
 	\item \textbf{Exécuter instruction courante} : exécute l'instruction courante (celle qui est surlignée dans l'éditeur) et passe à la suivante puis arrête.
 	\item \textbf{Exécuter ligne courante} : dans le cas où la ligne courante est une instruction autre que BL, cette action a le même effet que la précédente. Toutefois, dans le cas d'un appel de fonction (BL), cette action exécute l'entièreté de la fonction jusqu'à son retour.
 	\item \textbf{Exécuter jusqu'à la sortie} : dans le cas où la ligne courante est dans une fonction, cette action exécute sans arrêt les instructions jusqu'à sortir de la fonction (BX). Si la ligne courante n'est pas dans une fonction, cette action a le même ffet qu'une exécution en continu.
@@ -201,7 +202,7 @@ Il est possible d'affecter un point d'arrêt à un registre, en mode lecture ou 
 \caption{Points d'arrêt sur les registres R2, R3 et R5.}
 \end{marginfigure}
 
-Un point d'arrêt en lecture peut être ajouté en cliquant sur le nom du registre tout en tenant la touche Control (Ctrl) enfoncée. De même, un point d'arrêt en écriture peut être ajouté en cliquant tout en tenant la touche Maj (Shift) enfoncée. Un point d'arrêt précédemment créé peut être retiré en répétant la même opération. Il est possible de mettre à la fois un point d'arrêt en lecture et en écriture sur le même registre.
+Un point d'arrêt en écriture peut être ajouté en cliquant sur le nom du registre tout en tenant la touche Ctrl ou Cmd enfoncée, respectivement sur Windows et MacOS. De même, un point d'arrêt en lecture peut être ajouté en cliquant tout en tenant la touche Maj (Shift) enfoncée. Un point d'arrêt précédemment créé peut être retiré en répétant la même opération. Il est possible de mettre à la fois un point d'arrêt en lecture et en écriture sur le même registre.
 
 Lorsque l'instruction courante lit ou écrit un registre, sa valeur est entourée d'un rectangle turquoise (lecture) ou rouge (écriture). Par exemple, dans l'image suivante, l'instruction courante lit les valeurs de R0 et R5 et écrit dans R2 :
 \begin{figure}[h!]
@@ -222,6 +223,8 @@ Les drapeaux de l'ALU sont présentés juste en dessous de la vue des registres.
 \end{marginfigure} 
 Un drapeau ne peut prendre que deux valeurs : vrai ou faux (0 ou 1 en binaire). Il est possible de changer la valeur d'un drapeau en cliquant sur sa valeur. L'interface présente à la fois la vue pour le registre de statut courant (CPSR) et le registre de statut sauvegardé (SPSR), si applicable.
 
+Le registre de statut sauvegardé (SPSR) est propre à chaque banque de registres, hormis la banque \textit{User} qui n'en possède pas. Il permet de conserver le registre de statut du programme principal pendant une interruption. Dans la majorité des cas (exécution en mode \textit{User}), les valeurs du SPSR ne sont pas définies ou modifiables.
+
 Tout comme pour les registres, les drapeaux lus ou écrits par une instructions voient leur contour coloré de manière différente.
 
 \clearpage
@@ -229,14 +232,14 @@ Tout comme pour les registres, les drapeaux lus ou écrits par une instructions 
 \subsection{Vue de la mémoire}
  
 La vue de la mémoire présente le contenu de la mémoire d'instructions et de données. Cette vue est arrangée en tableau, où chaque ligne fait 16 octets de largeur.
-Par exemple, pour retrouver la valeur à l'adresse 0x9A, il suffit d'aller au croisement de la ligne 0x90 et de la colonne 0xA.
+Par exemple, pour retrouver la valeur à l'adresse $0$x9A, il suffit d'aller au croisement de la ligne $0$x90 et de la colonne $0$xA.
 Les espaces mémoire non déclarés (qui ne se rapportent ni à une instruction, ni à une variable) sont indiqués par des tirets. L'affichage du contenu de la mémoire se fait en hexadécimal.
 \begin{marginfigure}
 \includegraphics[width=0.9\linewidth]{pics/memoire.png}
 \label{f:memoire}
 \caption{Vue de la mémoire}
 \end{marginfigure}
-Tout comme pour les registres et les drapeaux, il est possible de modifier une valeur initialisée de la mémoire en cliquant. La valeur doit être écrite en hexadécimal et ne peut excéder 0xFF (255).
+Tout comme pour les registres et les drapeaux, il est possible de modifier une valeur initialisée de la mémoire en cliquant. Les zones non déclarées (dont la valeur est identifiée par des tirets) ne peuvent être modifiées. La valeur doit être écrite en hexadécimal et ne peut excéder la capacité d'un octet (255, soit $0$xFF).
 
 Lors de l'exécution, les octets composant l'instruction courante (celle surlignée en rouge dans l'éditeur) sont entourés de vert, comme dans l'exemple suivant :
 \begin{figure}[h!]
@@ -246,7 +249,7 @@ Lors de l'exécution, les octets composant l'instruction courante (celle surlign
 \caption{Affichage des octets composant l'instruction courante}
 \end{figure}
 
-Lorsque l'instruction est une opération agissant en mémoire, les cases mémoires lues ou écrites voient leurs valeurs colorées de manière différente (vert dans le cas d'une lecture, rouge dans le cas d'une écriture). Par exemple, dans l'image suivante, l'instruction courante lit les valeurs 0x10 à 0x13 inclusivement :
+Lorsque l'instruction est une opération agissant en mémoire, les cases mémoires lues ou écrites voient leurs valeurs colorées de manière différente (vert dans le cas d'une lecture, rouge dans le cas d'une écriture). Par exemple, dans l'image suivante, l'instruction courante lit les valeurs $0$x10 à $0$x13 inclusivement :
 \begin{figure}[h!]
 \raggedleft
 \includegraphics[width=0.8\linewidth]{pics/memoire_acces.png}
@@ -260,12 +263,20 @@ Il est possible de placer des points d'arrêt en mémoire. Ceux-ci peuvent être
 	\item \textbf{Écriture} : le simulateur s'arrête lorsqu'un accès en écriture (par exemple via l'instruction STR) est effectué sur cette case mémoire
 	\item \textbf{Exécution} : le simulateur s'arrête lorsque le \textit{Program Counter} (PC) atteint cette valeur
 \end{itemize}
-Notons que ces trois types de points d'arrêt peuvent être combinés. Par exemple, dans l'image suivante, un point d'arrêt en lecture est présent pour les adresses 0x04 à 0x07, un point d'arrêt en écriture est actif aux adresses 0x0C à 0x0F et un point d'arrêt en exécution est présent à l'adresse 0x8C :
+Notons que ces trois types de points d'arrêt peuvent être combinés. Par exemple, dans l'image suivante, un point d'arrêt en lecture est présent pour les adresses $0$x04 à $0$x07, un point d'arrêt en écriture est actif aux adresses $0$x0C à $0$x0F et un point d'arrêt en exécution est présent à l'adresse $0$x8C :
 \begin{figure}[h!]
 \raggedleft
 \includegraphics[width=0.8\linewidth]{pics/memoire_bkpt.png}
 \label{f:memoirebkpt}
 \caption{Exemple de points d'arrêt en mémoire. Un point d'arrêt en lecture peut être ajouté en cliquant sur une case mémoire tout en pressant la touche Control (Ctrl). Un point d'arrêt en écriture peut être ajouté en cliquant et pressant la touche Maj (Shift). Un point d'arrêt en écriture peut être ajouté en cliquant et pressant la touche Alt.}
+\end{figure}
+
+Afin de faciliter l'utilisation du simulateur, un aide-mémoire succinct reprenant les informations présentées ici est disponible en bas de la vue mémoire :
+\begin{figure}[h!]
+\raggedleft
+\includegraphics[width=0.8\linewidth]{pics/memoire_reminder.png}
+\label{f:memoirerem}
+\caption{Description des différents types de points d'arrêt en mémoire dans l'interface du simulateur}
 \end{figure}
 
 Finalement, en bas du visualisateur, on retrouve une interface permettant de naviguer dans la mémoire :
@@ -344,6 +355,26 @@ Le simulateur supporte les instructions suivantes. La syntaxe à utiliser est ce
 \end{enumerate}
 
 Référez-vous aux notes de cours ou à la documentation d'ARM pour plus de détails sur chacune de celles-ci.
+
+\subsection{Suffixes conditionnels}
+Toutes les instructions listées ci-dessous peuvent être exécutées \emph{conditionnellement}, en utilisant un des codes à 2 lettres suivants :
+\begin{itemize}
+	\item \textbf{EQ} teste l'égalité ($A == B$)
+	\item \textbf{NE} teste l'inégalité ($A != B$)
+	\item \textbf{CS} teste si un premier nombre non-signé est plus grand ou égal à un second ($A >= B$)
+	\item \textbf{CC} teste si un premier nombre non-signé est strictement plus petit qu'un second ($A < B$)
+	\item \textbf{MI} teste si le résultat est négatif ($A < 0$)
+	\item \textbf{PL} teste si le résultat est positif ($A >= 0$)
+	\item \textbf{VS} teste si la précédente opération a généré un \textit{débordement}
+	\item \textbf{VC} teste si la précédente opération n'a PAS généré un \textit{débordement}
+	\item \textbf{HI} teste si un premier nombre non-signé est plus grand à un second ($A > B$)
+	\item \textbf{LS} teste si un premier nombre non-signé est plus petit ou égal à un second ($A <= B$)
+	\item \textbf{GE} teste si un premier nombre est plus grand ou égal à un second ($A >= B$)
+	\item \textbf{LT} teste si un premier nombre est strictement plus petit qu'un second ($A < B$)
+	\item \textbf{GT} teste si un premier nombre est strictement plus grand qu'un second ($A > B$)
+	\item \textbf{LE} teste si un premier nombre est plus petit ou égal à un second ($A > B$)
+	\item \textbf{AL} exécute systématiquement l'instruction
+\end{itemize}
 
 \subsection{Instructions de manipulation de données}
 \begin{itemize}
