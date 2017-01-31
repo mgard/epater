@@ -116,8 +116,12 @@ class BCInterpreter:
         # step back 'count' times
         self.sim.stepBack(count)
 
-    def getMemory(self):
-        return self.sim.mem.serialize()
+    def getMemory(self, addr, returnHexaStr=True):
+        val = self.sim.mem.get(addr, 1, mayTriggerBkpt=False)
+        if returnHexaStr:
+            return "{:X}".format(val)
+        else:
+            return val
 
     def getMemoryFormatted(self):
         return self.sim.mem.serializeFormatted()
