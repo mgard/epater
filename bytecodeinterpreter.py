@@ -33,7 +33,7 @@ class BCInterpreter:
 
     def setBreakpointInstr(self, listLineNumbers):
         # First, we remove all execution breakpoints
-        self.sim.mem.removeExecuteBreakpoints([self.line2addr[b] for b in self.lineBreakpoints])
+        self.sim.mem.removeExecuteBreakpoints(removeList=[self.line2addr[b] for b in self.lineBreakpoints])
 
         # Now we add all breakpoint
         # The easy case is when the line is directly mapped to a memory address (e.g. it is an instruction)
@@ -61,10 +61,15 @@ class BCInterpreter:
         modeOctal = 4*('r' in mode) + 2*('w' in mode) + 1*('e' in mode)
         self.sim.mem.setBreakpoint(addr, modeOctal)
 
+
     def toggleBreakpointMem(self, addr, mode):
         # Mode = 'r' | 'w' | 'rw' | 'e' | '' (passing an empty string removes the breakpoint)
         modeOctal = 4*('r' in mode) + 2*('w' in mode) + 1*('e' in mode)
-        self.sim.mem.toggleBreakpoint(addr, modeOctal)
+        bkptInfo = self.sim.mem.toggleBreakpoint(addr, modeOctal)
+        if bkptInfo & 1 and 'e' in mode:
+            addrprod4 = (addr // 4) * 4
+            if addrprod4 in self.addr2line:
+                self.lineBreakpoints.append(self.addr2line[addrprod4][-1])
 
     def setBreakpointRegister(self, bank, reg, mode):
         # Mode = 'r' | 'w' | 'rw' | '' (passing an empty string removes the breakpoint)
