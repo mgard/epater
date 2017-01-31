@@ -492,6 +492,8 @@
     <script src="static/js/comm.js" type="text/javascript" charset="utf-8"></script>
 
     <script type="text/javascript">
+        var blockSelect = 0;
+
         $('#tabmain-container').easytabs({
             "animate": false
         });
@@ -541,6 +543,8 @@
                 $("#config_diag").dialog("open");
             });
 
+            editor.setHighlightGutterLine(false);
+
 			editor.on("guttermousedown",  function(e) {
 				var target = e.domEvent.target;
 				if (target.className.indexOf("ace_gutter-cell") == -1)
@@ -554,10 +558,26 @@
                     asm_breakpoints.push(row);
                 }
                 sendBreakpointsInstr();
+
+                blockSelect = blockSelect + 1;
+                setTimeout(function() {
+                    blockSelect = blockSelect - 1;
+                }, 500);
 			});
 
-            editor.on("guttermouseup",  function(e) {
-                clearSelection();
+            editor.on('changeSelection', function(e) {
+                if (blockSelect > 0) {
+                    editor.selection.setSelectionRange({
+                        start: {
+                            row: 0,
+                            column: 0
+                        },
+                        end: {
+                            row: 0,
+                            column: 0
+                        }
+                    });
+                }
             });
 
             editor.on("change",  function() {
