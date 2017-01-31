@@ -120,7 +120,7 @@ Une fois le programme \emph{assemblé} (le bouton ``Démarré'' pressé et le co
 \caption{Un point d'arrêt (\textit{breakpoint}) peut être mis en place en cliquant sur le numéro de ligne, une fois le programme assemblé.}
 \end{figure}
 
-\paragraph{\textbf{Note importante :}}un point d'arrêt ne peut être placé que sur une ligne \emph{contenant une instruction}. Si l'utilisateur clique sur une ligne ne contenant pas d'instructions, le point d'arrêt sera placé sur la prochaine ligne contenant une instruction. Par exemple, dans la figure \ref{f:editeurbkpt}, cliquer sur la ligne 17 placera un point d'arrêt à la ligne \emph{18}.
+\paragraph{\textbf{Note importante :}}un point d'arrêt ne peut être placé que sur une ligne \emph{contenant une instruction}. Si l'utilisateur clique sur une ligne ne contenant pas d'instructions, le point d'arrêt sera placé sur la prochaine ligne contenant une instruction. Par exemple, à la figure \ref{f:editeurbkpt}, cliquer sur la ligne 17 placera un point d'arrêt à la ligne \emph{18}.
 
 Lors de l'exécution, l'éditeur passe en mode lecture seule. Il affiche cependant certaines informations. La ligne en cours d'exécution est surlignée en rouge bourgogne :
 \begin{figure}[h!]
@@ -159,12 +159,12 @@ Cette interface diffère selon le mode actuel. Dans le mode \emph{édition} (fig
 
 Lorsque le bouton \textit{Démarrer} est pressé, le simulateur tente d'abord d'assembler le code. Si aucune erreur n'est détectée, il passe alors en mode exécution. Dans ce mode, tous les boutons sont actifs et sont, respectivement, de gauche à droite :
 \begin{enumerate}
-	\item \textit{Arrêt} : interrompt la simulation et revient en mode édition.
-	\item \textbf{Réinitialisation} : effectue l'équivalent d'une interruption \emph{reset} sur le microprocesseur. La valeur de PC est mise à 0. Notez que cela n'affecte \emph{pas} la valeur des autres registres et des drapeaux.
+	\item \textbf{Arrêt} : interrompt la simulation et revient en mode édition.
+	\item \textbf{Réinitialisation} : effectue l'équivalent d'une interruption \emph{reset} sur le microprocesseur. La valeur de PC est mise à $0$. Notez que cela n'affecte \emph{pas} la valeur des autres registres et des drapeaux.
 	\item \textbf{Exécution en continu} : le simulateur exécute les instructions suivantes sans arrêt, jusqu'à ce qu'il rencontre une erreur ou un point d'arrêt. Notez que le simulateur est volontairement limité quant au nombre d'instructions qu'il peut exécuter d'un seul coup. Lorsque ce nombre est atteint, le simulateur arrête comme s'il avait rencontré un point d'arrêt. Il suffit d'appuyer à nouveau sur le bouton d'exécution en continu pour poursuivre.
 	\item \textbf{Exécuter instruction courante} : exécute l'instruction courante (celle qui est surlignée dans l'éditeur) et passe à la suivante puis arrête.
 	\item \textbf{Exécuter ligne courante} : dans le cas où la ligne courante est une instruction autre que BL, cette action a le même effet que la précédente. Toutefois, dans le cas d'un appel de fonction (BL), cette action exécute l'entièreté de la fonction jusqu'à son retour.
-	\item \textbf{Exécuter jusqu'à la sortie} : dans le cas où la ligne courante est dans une fonction, cette action exécute sans arrêt les instructions jusqu'à sortir de la fonction (BX). Si la ligne courante n'est pas dans une fonction, cette action a le même ffet qu'une exécution en continu.
+	\item \textbf{Exécuter jusqu'à la sortie} : dans le cas où la ligne courante est dans une fonction, cette action exécute sans arrêt les instructions jusqu'à sortir de la fonction (appel de BX). Si la ligne courante n'est pas dans une fonction, cette action a le même effet qu'une exécution en continu.
 \end{enumerate}
 
 \clearpage
@@ -176,7 +176,7 @@ Lorsque le bouton \textit{Démarrer} est pressé, le simulateur tente d'abord d'
 \label{f:registres}
 \caption{Vue des registres généraux}
 \end{marginfigure}
-La section de gauche présente les valeurs contenues dans les registres du processeur.
+La section de gauche de l'interface présente les valeurs contenues dans les registres du processeur.
 Les 16 registres que contient un processeur ARM (R0 à R15) sont affichés. 
 
 Par défaut, leur valeur est présentée en hexadécimal, mais il est possible de choisir différents modes d'affichage en cliquant sur le mode actuel pour faire apparaître le menu de sélection. Le mode décimal signé correspond à une interprétation complément-2 de la valeur du registre, alors que le mode non-signé correspond à une simple conversion vers le système décimal.
