@@ -77,23 +77,25 @@ ws.onmessage = function (event) {
             next_debug_marker = editor.session.addMarker(new aceRange(obj[1], 0, obj[1] + 1, 0), "next_debug_line", "text");
             next_debugline = obj[1];
         } else if (obj[0] == 'debugline') {
-            $(".highlightread").removeClass("highlightread");
-            $(".highlightwrite").removeClass("highlightwrite");
+            if ($("#assemble").text() !== "Démarrer") {
+                $(".highlightread").removeClass("highlightread");
+                $(".highlightwrite").removeClass("highlightwrite");
 
-            mem_highlights_r.length = 0;
-            mem_highlights_w.length = 0;
+                mem_highlights_r.length = 0;
+                mem_highlights_w.length = 0;
 
-            if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
-            if (next_debug_marker !== null) { editor.session.removeMarker(next_debug_marker); }
-            if (obj[1] >= 0) {
-                aceRange = ace.require('ace/range').Range;
-                debug_marker = editor.session.addMarker(new aceRange(obj[1], 0, obj[1] + 1, 0), "debug_line", "text");
-                if (current_debugline != obj[1]) {
-                    editor.scrollToLine(obj[1], true, true, function () {});
+                if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
+                if (next_debug_marker !== null) { editor.session.removeMarker(next_debug_marker); }
+                if (obj[1] >= 0) {
+                    aceRange = ace.require('ace/range').Range;
+                    debug_marker = editor.session.addMarker(new aceRange(obj[1], 0, obj[1] + 1, 0), "debug_line", "text");
+                    if (current_debugline != obj[1]) {
+                        editor.scrollToLine(obj[1], true, true, function () {});
+                    }
+                    current_debugline = obj[1];
+                } else {
+                    debug_marker = null;
                 }
-                current_debugline = obj[1];
-            } else {
-                debug_marker = null;
             }
         } else if (obj[0].slice(0, 9) == 'highlight') {
             type = obj[0].slice(9);
@@ -171,6 +173,7 @@ function resetView() {
     removeCodeErrors();
 
     asm_breakpoints.length = 0;
+    current_debugline = -1;
     editor.session.clearBreakpoints();
     editor.session.clearAnnotations();
 
