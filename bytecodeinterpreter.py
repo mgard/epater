@@ -66,10 +66,18 @@ class BCInterpreter:
         # Mode = 'r' | 'w' | 'rw' | 'e' | '' (passing an empty string removes the breakpoint)
         modeOctal = 4*('r' in mode) + 2*('w' in mode) + 1*('e' in mode)
         bkptInfo = self.sim.mem.toggleBreakpoint(addr, modeOctal)
-        if bkptInfo & 1 and 'e' in mode:
+        if 'e' in mode:
             addrprod4 = (addr // 4) * 4
             if addrprod4 in self.addr2line:
-                self.lineBreakpoints.append(self.addr2line[addrprod4][-1])
+                if bkptInfo & 1:        # Add line breakpoint
+                    self.lineBreakpoints.append(self.addr2line[addrprod4][-1])
+                else:                   # Remove line breakpoint
+                    try:
+                        self.lineBreakpoints.remove(self.addr2line[addrprod4][-1])
+                    except ValueError:
+                        # Not sure how we can reach this, but just in case, it is not a huge problem so we do not want to crash
+                        pass
+
 
     def setBreakpointRegister(self, bank, reg, mode):
         # Mode = 'r' | 'w' | 'rw' | '' (passing an empty string removes the breakpoint)
