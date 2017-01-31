@@ -141,7 +141,9 @@ ws.onmessage = function (event) {
         } else if (obj[0] == 'membp_rw') {
             mem_breakpoints_rw = obj[1];
         } else if (obj[0] == 'membp_e') {
-            mem_breakpoints_e = obj[1];
+            if ($("#assemble").text() !== "Démarrer") {
+                mem_breakpoints_e = obj[1];
+            }
         } else if (obj[0] == 'banking') {
             $("#tab-container").easytabs('select', '#tabs1-' + obj[1]);
             if (obj[1] == "User") {
@@ -190,6 +192,14 @@ function resetView() {
     $(".highlightread").removeClass("highlightread");
     $(".highlightwrite").removeClass("highlightwrite");
     $("#disassembly").html("");
+
+    mem_highlights_r.length = 0;
+    mem_highlights_w.length = 0;
+    mem_breakpoints_r.length = 0;
+    mem_breakpoints_w.length = 0;
+    mem_breakpoints_rw.length = 0;
+    mem_breakpoints_e.length = 0;
+    mem_breakpoints_instr.length = 0;
 
     resetMemoryViewer();
 }

@@ -256,8 +256,6 @@ def updateDisplay(interp, force_all=False):
         retval.extend(interp.getCurrentInfos())
     except AssertionError:
         retval.append(["debugline", -1])
-        #retval.append(["highlightread", []])
-        #retval.append(["highlightwrite", []])
         retval.append(["nextline", -1])
         retval.append(["disassembly", "Information indisponible"])
 
