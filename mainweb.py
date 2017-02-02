@@ -663,6 +663,7 @@ def http_server():
 def display_amount_users(signum, stack):
     print("Number of clients:", len(interpreters))
     print(interpreters)
+    sys.stdout.flush()
 
 
 if hasattr(signal, 'SIGUSR1'):
