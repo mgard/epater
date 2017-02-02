@@ -10,6 +10,7 @@ import os
 import sys
 import re
 import binascii
+import signal
 import base64
 from urllib.parse import quote, unquote
 from copy import copy
@@ -659,8 +660,16 @@ def http_server():
     bottle.run(host='0.0.0.0', port=8000, server="gevent")
 
 
-if __name__ == '__main__':
+def display_amount_users(signum, stack):
+    print("Number of clients:", len(interpreters))
+    print(interpreters)
 
+
+if hasattr(signal, 'SIGUSR1'):
+    signal.signal(signal.SIGUSR1, display_amount_users)
+
+
+if __name__ == '__main__':
     if DEBUG:
         p = Process(target=http_server)
         p.start()
