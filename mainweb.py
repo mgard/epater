@@ -661,7 +661,9 @@ def http_server():
 
 
 def display_amount_users(signum, stack):
-    print("Number of clients:", len(interpreters))
+    print("Number of clients:", len(connected))
+    print(connected)
+    print("Number of interpreters:", len(interpreters))
     print(interpreters)
     sys.stdout.flush()
 
