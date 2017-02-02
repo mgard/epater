@@ -548,6 +548,17 @@ def encodeWSGIb(data):
     return bytes([(x % 0xdc00) for x in data]).decode('utf-8')
 
 
+def readFileBrokenEncoding(filename):
+    if locale.getdefaultlocale() == (None, None):
+        with open(filename, 'rb') as fhdl:
+            data = fhdl.read()
+        data = encodeWSGIb(data)
+    else:
+        with open(filename, 'r') as fhdl:
+            data = fhdl.read()
+    return data
+
+
 if locale.getdefaultlocale() == (None, None):
     index_template = open('./interface/index.html', 'rb').read()
     simulator_template = open('./interface/simulateur.html', 'rb').read()
@@ -610,6 +621,7 @@ def index():
             files = glob.glob(tomatch.format(page), recursive=True)
             files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
         sections = OrderedDict()
+        sections_names = {}
         for f in sorted(files):
             # YAHOG -- When in WSGI, Python adds 0xdc00 to every extended (e.g. accentuated) character, leading to 
             # errors in utf-8 re-interpretation.
@@ -617,14 +629,37 @@ def index():
                 f = encodeWSGI(f)
 
             fs = f.split(os.sep)
+            soup = BeautifulSoup(readFileBrokenEncoding(os.path.join("exercices", f)), "html.parser")
+            title = soup.find("h1")
+            if title:
+                title = title.text
+
             if page == "tp":
-                k1 = fs[1].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')
+                if title:
+                    k1 = title
+                else:
+                    k1 = fs[1].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')
                 sections[k1] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
             else:
-                k1 = fs[1].replace("_", " ").encode('utf-8', 'replace')
-                if k1 not in sections:
-                    sections[k1] = OrderedDict()
-                sections[k1][fs[2].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
+                k1r = fs[1].replace("_", " ").encode('utf-8', 'replace')
+                if k1r not in sections_names:
+                    try:
+                        print(os.path.join("exercices", fs[1], 'nom.txt'))
+                        k1 = readFileBrokenEncoding(os.path.join("exercices", page, fs[1], 'nom.txt'))
+                        print(k1)
+                    except FileNotFoundError:
+                        k1 = fs[1].replace("_", " ").encode('utf-8', 'replace')
+                    sections_names[k1r] = k1
+
+                if sections_names[k1r] not in sections:
+                    sections[sections_names[k1r]] = OrderedDict()
+
+                if title:
+                    k2 = title
+                else:
+                    k2 = fs[2].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')
+
+                sections[sections_names[k1r]][k2] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
 
         if len(sections) == 0:
             sections = {"Aucune section n'est disponible en ce moment.": {}}

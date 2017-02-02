@@ -26,14 +26,17 @@
                         % end
                         </ul>
                     % else:
+                        <ol>
                         % for section_name, items in sections.items():
-                            <h2>{{ section_name }}</h2>
-                            <ul>
-                            % for item, link in items.items():
-                                <li><a href="?page={{ page }}&sim={{ link }}">{{ item }}</a></li>
-                            % end
-                            </ul>
+                                <h2><li>{{ section_name }}</h2>
+                                <ol>
+                                % for item, link in items.items():
+                                    <li><a href="?page={{ page }}&sim={{ link }}">{{ item }}</a></li>
+                                % end
+                                </ol>
+                            </li>
                         %end
+                        </ol>
                     % end
                 </td>
             </tr>
