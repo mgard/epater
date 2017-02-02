@@ -44,7 +44,6 @@
                         <div id="tabsmain-enonce">{{ !enonce }}</div>
                     % end
                     % if solution:
-
                         <div id="tabsmain-solution">{{ !solution }}</div>
                     % end
                     <div id="tabsmain-simulation">
@@ -416,10 +415,12 @@
                                                 <option value="FIQ">FIQ</option>
                                                 <option value="IRQ">IRQ</option>
                                             </select><br/>
-                                            <input class="config_input" id="interrupt_cycles" type="text" value="500" name="interrupt_cycles"/>&nbsp;cycles<br/>
-                                            <input class="config_input" id="interrupt_cycles_first" type="text" value="500" name="interrupt_cycles_first"/>&nbsp;cycles (premier)
+                                            <input class="config_input" id="interrupt_cycles" type="text" value="50" name="interrupt_cycles"/>&nbsp;cycles<br/>
+                                            <input class="config_input" id="interrupt_cycles_first" type="text" value="50" name="interrupt_cycles_first"/>&nbsp;cycles (premier)
                                             <hr/>
                                             Vitesse d'ex&eacute;cution : &nbsp;<input class="config_input" id="animate_speed" type="text" value="100"/>ms<br/>
+                                            <hr/>
+                                            <button id="lightmode">Toggle Light Mode</button>
                                             <div style="height: 3em;"></div>
                                         </div>
                                     </div>
@@ -687,6 +688,10 @@
         });
 
         disableSim();
+    });
+
+    $("#lightmode").click(function () {
+        $(".ace_content").toggleClass("lightmode");
     });
     </script>
     <script src="static/js/memory_viewer.js" type="text/javascript" charset="utf-8"></script>

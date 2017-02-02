@@ -499,3 +499,43 @@ img {
     margin: 1em 0 1em;
     color: #A477FF;
 }
+
+/* Light mode */
+.lightmode {
+    background-color: #FFF;
+    color: #000;
+    font-weight: bold;
+}
+
+.lightmode .ace-tm {
+    color: #000 !important;
+}
+.lightmode .ace_keyword {
+    color: #0000FF !important;
+}
+.lightmode .ace_asmcomment {
+    color: #000;
+}
+.lightmode .ace_sectiontitle {
+    color: #FB2472;
+}
+.lightmode .ace_memdeclare {
+    color: #63D8E8;
+}
+.lightmode .ace_label {
+    color: #A477FF;
+}
+
+.lightmode .debug_line.ace_start {
+    position: absolute;
+    background: rgba(135,35,35,0.5);
+    z-index: 20;
+    width: 100% !important;
+}
+
+.lightmode .next_debug_line.ace_start {
+    position: absolute;
+    background: rgba(0,0,0,0.5);
+    z-index: 20;
+    width: 100% !important;
+}
