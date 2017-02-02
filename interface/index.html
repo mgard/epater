@@ -28,7 +28,7 @@
                     % else:
                         <ol>
                         % for section_name, items in sections.items():
-                                <h2><li>{{ section_name }}</h2>
+                                <h2 style="margin: 10px 0 5px;"><li style="padding: 0;">{{ section_name }}</h2>
                                 <ol>
                                 % for item, link in items.items():
                                     <li><a href="?page={{ page }}&sim={{ link }}">{{ item }}</a></li>
