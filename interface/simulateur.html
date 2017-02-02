@@ -494,6 +494,7 @@
 
     <script type="text/javascript">
         var blockSelect = 0;
+        var selectLine = -1;
 
         $('#tabmain-container').easytabs({
             "animate": false
@@ -561,6 +562,7 @@
                 sendBreakpointsInstr();
 
                 blockSelect = blockSelect + 1;
+                selectLine = row;
                 setTimeout(function() {
                     blockSelect = blockSelect - 1;
                 }, 500);
@@ -570,12 +572,12 @@
                 if (blockSelect > 0) {
                     editor.selection.setSelectionRange({
                         start: {
-                            row: 0,
-                            column: 0
+                            row: selectLine,
+                            column: selectLine
                         },
                         end: {
-                            row: 0,
-                            column: 0
+                            row: selectLine,
+                            column: selectLine
                         }
                     });
                 }
