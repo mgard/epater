@@ -101,6 +101,10 @@ async def handler(websocket, path):
                 [listener_task, producer_task, to_run_task, update_ui_task],
                 return_when=asyncio.FIRST_COMPLETED)
 
+            if websocket not in interpreters:
+                await asyncio.sleep(0.05)
+                continue
+
             if listener_task in done:
                 try:
                     message = listener_task.result()
