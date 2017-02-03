@@ -667,7 +667,8 @@ class Simulator:
                                 "LE": ['v', 'n', 'z'],
                                 "AL": [],
                                 }
-        highlightread.extend(mappingFlagsCond[cond])
+        if t != InstrType.undefined:
+            highlightread.extend(mappingFlagsCond[cond])
 
         if t == InstrType.softinterrupt:
             # We enter a software interrupt
