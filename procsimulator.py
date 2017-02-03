@@ -1109,7 +1109,7 @@ class Simulator:
                 m = self.mem.get(realAddr, size=1 if misc['byte'] else 4)
                 if m is None:       # No such address in the mapped memory, we cannot continue
                     return False
-                res = struct.unpack("<I", m)[0]
+                res = struct.unpack("<B" if misc['byte'] else "<I", m)[0]
                 self.regs[misc['rd']].set(res)
             else:       # STR
                 valWrite = self.regs[misc['rd']].get()
