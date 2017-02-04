@@ -514,9 +514,6 @@
 
             if (localStorage.getItem("lightmode") === "1") {
                 $(".ace_content").addClass("lightmode");
-                editor.setOptions({
-                  fontSize: "12pt"
-                });
             }
 
             $(".register_row").click(function(e) {
@@ -702,9 +699,7 @@
 
     $("#lightmode").click(function () {
         $(".ace_content").toggleClass("lightmode");
-        var fontsize = "10pt";
         if ($(".ace_content").hasClass("lightmode")) {
-            fontsize = "12pt";
             if (typeof(Storage) !== "undefined") {
                 localStorage.setItem("lightmode", "1");
             }
@@ -713,9 +708,6 @@
                 localStorage.setItem("lightmode", "0");
             }
         }
-        editor.setOptions({
-          fontSize: fontsize
-        });
     });
     </script>
     <script src="static/js/memory_viewer.js" type="text/javascript" charset="utf-8"></script>
