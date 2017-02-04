@@ -234,6 +234,9 @@ def BytecodeToInstrInfos(bc):
     instrInt = struct.unpack("<I", bc)[0]      # It's easier to work with integer objects when it comes to bit manipulation
 
     affectedRegs = ()
+    if instrInt >> 28 == 15:
+        return InstrType.undefined, affectedRegs, None, {}
+
     condition = conditionMappingR[instrInt >> 28]
     miscInfo = None
 
