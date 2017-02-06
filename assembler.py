@@ -79,6 +79,7 @@ def parse(code):
     assertions = {}
     lastLineType = None
     totalMemAllocated = 0
+    emptyLines = set()
     for i,line in enumerate(code):
         line = line.strip()
         if ';' in line:
@@ -86,6 +87,7 @@ def parse(code):
             line = line[:line.find(';')]
         if len(line) == 0:
             # Empty line
+            emptyLines.add(i)
             continue
 
         line += "\n"
@@ -272,6 +274,7 @@ def parse(code):
     lineToAddr = {}
     for addr, lines in addrToLine.items():
         for line in lines:
-            lineToAddr[line] = addr
+            if line not in emptyLines:
+                lineToAddr[line] = [addr]
     return bytecode, addrToLine, lineToAddr, assertions, []
 
