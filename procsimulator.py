@@ -1310,7 +1310,6 @@ class Simulator:
         self.sysHandle.countCycles += 1
 
         if self.decodedInstr is None:
-            print("DECODED IS NONE")
             # The current instruction has not be retrieved or decoded (because it was an illegal access)
             return
 

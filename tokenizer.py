@@ -458,14 +458,19 @@ def t_ANY_REG(t):
 
 
 # The constant declaration (DC) is the only case where we may have multiple constants on the same line
+# We may also receive strings, which we should convert in ASCII mode
 def t_decwithvalues_LISTINIT(t):
-    r'([ \t]*[+-]?(0x[0-9a-fA-F]+|[0-9]+),?)+'
+    r"([ \t]*(\"([^\"\\]|\\.)*\"|'([^'\\]|\\.)*'|[+-]?(0x[0-9a-fA-F]+|[0-9]+)),?)+"
     valsStr = t.value.split(",")
     valsInt = []
     for v in valsStr:
-        v = v.strip().lower()
-        val = int(v, 16) if '0x' in v else int(v)
-        valsInt.append(val)
+        v = v.strip()
+        if v[0] in ("'", '"'):
+            valsInt.extend([ord(char) for char in v[1:-1]])
+        else:
+            v = v.lower()
+            val = int(v, 16) if '0x' in v else int(v)
+            valsInt.append(val)
     t.value = valsInt
     return t
 
