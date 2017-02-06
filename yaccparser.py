@@ -661,7 +661,7 @@ def p_multiplyinstruction(p):
 
 def p_nopinstruction(p):
     """nopinstruction : OPNOP logmnemonic
-                      | OPSVC logmnemonic CONDITION"""
+                      | OPNOP logmnemonic CONDITION"""
     p[0] = 0x320F000
     p[0] |= instruction.conditionMapping['AL' if len(p) == 3 else p[3]] << 28
     # A NOP instruction is always complete (e.g. it never depends on the location of a label),
