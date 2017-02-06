@@ -115,14 +115,14 @@ async def handler(websocket, path):
 
                 listener_task = asyncio.ensure_future(websocket.recv())
 
-            if websocket not in interpreters:
-                await asyncio.sleep(0.05)
-                continue
-
             if producer_task in done:
                 message = producer_task.result()
                 await websocket.send(message)
                 producer_task = asyncio.ensure_future(producer(websocket, to_send))
+
+            if websocket not in interpreters:
+                await asyncio.sleep(0.05)
+                continue
 
             # Continue executions of "run", "step out" and "step forward"
             if to_run_task in done:
