@@ -208,7 +208,6 @@ def parse(code):
             listErrors.append(("codeerror", lineNo, "Cette ligne demande l'adresse de l'étiquette {}, mais celle-ci n'est déclarée nulle part".format(labelPtr)))
             continue
 
-        assert labelPtr in labelsAddr, "{} not in the label dict!".format(labelPtr)
         if labelPtr in labelsPtrAddr:
             # Already added (it's just referenced at two different places)
             continue
@@ -237,6 +236,10 @@ def parse(code):
                 continue
 
             diff = addrToReach - (addr + pcoffset)
+            if abs(diff) > 2**12-1:
+                # Offset too big to be encoded as immediate
+                listErrors.append(("codeerror", line, "Accès à l'adresse identifiée par l'étiquette {} trop éloigné ({} octets d'écart) pour pouvoir être encodé".format(depInfo[1], diff)))
+                continue
             if diff >= 0:
                 instrInt |= 1 << 23
             instrInt |= abs(diff)

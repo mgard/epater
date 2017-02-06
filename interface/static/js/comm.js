@@ -259,8 +259,8 @@ function sendData(data) {
     if (ws.readyState === 0) {
         setTimeout(function () {sendData(data)}, 500);
     } else if (ws.readyState > 1) {
-        displayErrorMsg("Perte de la connexion au simulateur.");
         resetView();
+        displayErrorMsg("Perte de la connexion au simulateur. Veuillez enregistrer votre travail et rafraîchir la page.");
         $("input").prop("disabled", true);
     } else {
         ws.send(data);

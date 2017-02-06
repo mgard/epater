@@ -449,15 +449,22 @@ class Simulator:
 
         self.fetchedInstr = None
         self.decodedInstr = None
+        self.disassemblyInfo = ""
 
     def reset(self):
         self.state = SimState.ready
         self.sysHandle.countCycle = 0
         self.regs[15].set(self.pcoffset)
         # We fetch the first instruction
-        self.fetchedInstr = bytes(self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True))
-        self.decodedInstr = BytecodeToInstrInfos(self.fetchedInstr)
-        self.decodeInstr()
+        self.fetchedInstr = self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True)
+        if self.fetchedInstr is not None:
+            self.fetchedInstr = bytes(self.fetchedInstr)
+            self.decodedInstr = BytecodeToInstrInfos(self.fetchedInstr)
+            self.decodeInstr()
+        # Did we hit a breakpoint?
+        # A breakpoint always stop the simulator
+        if self.sysHandle.breakpointTrigged:
+            self.stepMode = None
 
 
     def _printState(self):
@@ -1302,6 +1309,11 @@ class Simulator:
         # One more cycle to do!
         self.sysHandle.countCycles += 1
 
+        if self.decodedInstr is None:
+            print("DECODED IS NONE")
+            # The current instruction has not be retrieved or decoded (because it was an illegal access)
+            return
+
         # We clear an eventual breakpoint
         self.sysHandle.clearBreakpoint()
 
@@ -1346,6 +1358,7 @@ class Simulator:
             self.fetchedInstr = bytes(nextInstrBytes)
 
         # Decode instruction
+        self.decodedInstr = None
         if nextInstrBytes is not None:
             self.decodedInstr = BytecodeToInstrInfos(self.fetchedInstr)
             self.decodeInstr()
