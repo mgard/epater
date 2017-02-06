@@ -350,6 +350,9 @@ img {
 .testgrid td {
     border: 1px solid transparent;
 }
+.mem_mousehighlight {
+    text-decoration: underline;
+}
 .mem_r {
     background-color: #4D878F;
 }

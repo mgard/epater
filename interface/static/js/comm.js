@@ -9,6 +9,7 @@ var mem_breakpoints_w = [];
 var mem_breakpoints_rw = [];
 var mem_breakpoints_e = [];
 var mem_breakpoints_instr = [];
+var line2addr = [];
 var current_debugline = -1;
 var next_debugline = -1;
 var codeerrors = [];
@@ -61,6 +62,8 @@ ws.onmessage = function (event) {
         } else if (obj[0] == 'edit_mode') {
             disableSim();
             $("#assemble").text("Démarrer").removeClass("assemble_edit");
+        } else if (obj[0] == 'line2addr') {
+            line2addr = obj[1];
         } else if (obj[0] == 'codeerror') {
             // row indices are 0-indexed
             codeerrors.push({row: obj[1], text: obj[2], type: "error"})

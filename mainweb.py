@@ -336,7 +336,7 @@ def process(ws, msg_in):
                 if ws in interpreters:
                     del interpreters[ws]
 
-                bytecode, bcinfos, assertions, errors = ASMparser(code.splitlines())
+                bytecode, bcinfos, line2addr, assertions, errors = ASMparser(code.splitlines())
                 if errors:
                     retval.extend(errors)
                     retval.append(["edit_mode"])
@@ -349,6 +349,7 @@ def process(ws, msg_in):
                     interpreters[ws].animate_speed__ = 0.1
                     interpreters[ws].num_exec__ = 0
                     interpreters[ws].user_asked_stop__ = False
+                    retval.append(["line2addr", line2addr])
             elif data[0] == 'stepback':
                 interpreters[ws].stepBack()
                 force_update_all = True

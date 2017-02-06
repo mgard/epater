@@ -1,5 +1,6 @@
 
 var editableGrid = null;
+var mouse_highlight_mem = [];
 
 
 function updateMemoryBreakpointsView() {
@@ -84,6 +85,17 @@ function updateMemoryBreakpointsView() {
     if (tableRow.length > 0) {
       col = mem_breakpoints_instr[i] % 16;
       $('.editablegrid-c'+col, tableRow).addClass('mem_instr');
+    }
+  }
+
+  for (var i = 0; i < mouse_highlight_mem.length; i++) {
+    tofind = formatHexUnsigned32Bits(mouse_highlight_mem[i]).slice(0, 9) + "0";
+    var tableRow = $("td", $("#memoryview")).filter(function() {
+      return $(this).text() == tofind;
+    }).closest("tr");
+    if (tableRow.length > 0) {
+      col = mouse_highlight_mem[i] % 16;
+      $('.editablegrid-c'+col, tableRow).addClass('mem_mousehighlight');
     }
   }
 }
