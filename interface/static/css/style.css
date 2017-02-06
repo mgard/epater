@@ -545,3 +545,8 @@ img {
     z-index: 20;
     width: 100% !important;
 }
+
+.lightmode #memoryview {
+    background-color: #FFF;
+    color: #000;
+}

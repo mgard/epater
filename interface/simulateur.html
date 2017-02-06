@@ -514,6 +514,7 @@
 
             if (localStorage.getItem("lightmode") === "1") {
                 $(".ace_content").addClass("lightmode");
+                $("#memoryview").addClass("lightmode");
             }
 
             $(".register_row").click(function(e) {
@@ -699,6 +700,7 @@
 
     $("#lightmode").click(function () {
         $(".ace_content").toggleClass("lightmode");
+        $("#memoryview").toggleClass("lightmode");
         if ($(".ace_content").hasClass("lightmode")) {
             if (typeof(Storage) !== "undefined") {
                 localStorage.setItem("lightmode", "1");
