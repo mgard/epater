@@ -148,6 +148,11 @@ class BCInterpreter:
         if self.sim.mem._getRelativeAddr(addr, 1) is None:
             return
         self.sim.mem.set(addr, val[0], 1)
+        pc = self.sim.regs[15].get(mayTriggerBkpt=False)
+        pc -= 8 if getSetting("PCbehavior") == "+8" else 0
+        if 0 <= addr - pc < 4:
+            # We decode the instruction again
+            self.sim.fetchAndDecode()
 
     def getCurrentInfos(self):
         # Return [["highlightread", ["r3", "SVC_r12", "z", "sz"]], ["highlightwrite", ["r1", "MEM_adresseHexa"]], ["nextline", 42], ["disassembly", ""]]

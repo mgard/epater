@@ -451,16 +451,24 @@ class Simulator:
         self.decodedInstr = None
         self.disassemblyInfo = ""
 
+    def fetchAndDecode(self):
+        # Retrieve instruction from memory
+        self.fetchedInstr = self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True)
+        if self.fetchedInstr is not None:          # We did not make an illegal memory access
+            self.fetchedInstr = bytes(self.fetchedInstr)
+
+        # Decode instruction
+        self.decodedInstr = None
+        if self.fetchedInstr is not None:
+            self.decodedInstr = BytecodeToInstrInfos(self.fetchedInstr)
+            self.decodeInstr()
+
     def reset(self):
         self.state = SimState.ready
         self.sysHandle.countCycle = 0
         self.regs[15].set(self.pcoffset)
         # We fetch the first instruction
-        self.fetchedInstr = self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True)
-        if self.fetchedInstr is not None:
-            self.fetchedInstr = bytes(self.fetchedInstr)
-            self.decodedInstr = BytecodeToInstrInfos(self.fetchedInstr)
-            self.decodeInstr()
+        self.fetchAndDecode()
         # Did we hit a breakpoint?
         # A breakpoint always stop the simulator
         if self.sysHandle.breakpointTrigged:
@@ -1351,16 +1359,8 @@ class Simulator:
                 self.regs[15].set(self.pcoffset + (0x18 if self.interruptParams['type'] == "IRQ" else 0x1C))      # Set PC to enter the interrupt
                 self.lastInterruptCycle = self.sysHandle.countCycles
 
-        # Retrieve instruction from memory
-        nextInstrBytes = self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True)
-        if nextInstrBytes is not None:          # We did not make an illegal memory access
-            self.fetchedInstr = bytes(nextInstrBytes)
-
-        # Decode instruction
-        self.decodedInstr = None
-        if nextInstrBytes is not None:
-            self.decodedInstr = BytecodeToInstrInfos(self.fetchedInstr)
-            self.decodeInstr()
+        # We fetch and decode the next instruction
+        self.fetchAndDecode()
 
         # Question : if we hit a breakpoint for the _next_ instruction, should we enter the interrupt anyway?
         # Did we hit a breakpoint?
