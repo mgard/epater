@@ -80,6 +80,7 @@ def parse(code):
     lastLineType = None
     totalMemAllocated = 0
     emptyLines = set()
+    lineToAddr = {}
     for i,line in enumerate(code):
         line = line.strip()
         if ';' in line:
@@ -162,6 +163,8 @@ def parse(code):
                 listErrors.append(("codeerror", i, "L'étiquette '{}' est définie deux fois (première définition à la ligne {})".format(parsedLine["LABEL"], firstaddr+1)))
             labelsAddr[parsedLine["LABEL"]] = currentAddr
             lastLineType = "LABEL"
+            if "BYTECODE" not in parsedLine:
+                lineToAddr[i] = [currentAddr]
 
         if "BYTECODE" in parsedLine:
             # The BYTECODE field contains a tuple
@@ -179,6 +182,7 @@ def parse(code):
             tmpAddr = currentAddr
             for tmpAddr in range(max(currentAddr, 0), max(currentAddr, 0) + len(parsedLine["BYTECODE"][0]), 4):
                 addrToLine[tmpAddr].append(i)
+            lineToAddr[i] = [currentAddr+li for li in range(len(parsedLine["BYTECODE"][0]))]
             currentAddr += len(parsedLine["BYTECODE"][0])
             lastLineType = "BYTECODE"
             totalMemAllocated += len(parsedLine["BYTECODE"][0])
@@ -271,10 +275,5 @@ def parse(code):
         return None, None, None, None, listErrors
 
     # No errors
-    lineToAddr = {}
-    for addr, lines in addrToLine.items():
-        for line in lines:
-            if line not in emptyLines:
-                lineToAddr[line] = [addr]
     return bytecode, addrToLine, lineToAddr, assertions, []
 
