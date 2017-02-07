@@ -79,6 +79,8 @@ def parse(code):
     assertions = {}
     lastLineType = None
     totalMemAllocated = 0
+    emptyLines = set()
+    lineToAddr = {}
     for i,line in enumerate(code):
         line = line.strip()
         if ';' in line:
@@ -86,6 +88,7 @@ def parse(code):
             line = line[:line.find(';')]
         if len(line) == 0:
             # Empty line
+            emptyLines.add(i)
             continue
 
         line += "\n"
@@ -160,6 +163,8 @@ def parse(code):
                 listErrors.append(("codeerror", i, "L'étiquette '{}' est définie deux fois (première définition à la ligne {})".format(parsedLine["LABEL"], firstaddr+1)))
             labelsAddr[parsedLine["LABEL"]] = currentAddr
             lastLineType = "LABEL"
+            if "BYTECODE" not in parsedLine:
+                lineToAddr[i] = [currentAddr]
 
         if "BYTECODE" in parsedLine:
             # The BYTECODE field contains a tuple
@@ -177,12 +182,13 @@ def parse(code):
             tmpAddr = currentAddr
             for tmpAddr in range(max(currentAddr, 0), max(currentAddr, 0) + len(parsedLine["BYTECODE"][0]), 4):
                 addrToLine[tmpAddr].append(i)
+            lineToAddr[i] = [currentAddr+li for li in range(len(parsedLine["BYTECODE"][0]))]
             currentAddr += len(parsedLine["BYTECODE"][0])
             lastLineType = "BYTECODE"
             totalMemAllocated += len(parsedLine["BYTECODE"][0])
 
         if totalMemAllocated > getSetting("maxtotalmem"):
-            return None, None, None, [("error", "Le code demande une allocation totale de plus de {} octets de mémoire, ce qui est invalide.".format(getSetting("maxtotalmem")))]
+            return None, None, None, None, [("error", "Le code demande une allocation totale de plus de {} octets de mémoire, ce qui est invalide.".format(getSetting("maxtotalmem")))]
 
     maxAddrBySection[currentSection] = currentAddr
     bytecode['__MEMINFOEND'][currentSection] = currentAddr
@@ -190,13 +196,13 @@ def parse(code):
     if "SNIPPET_DUMMY_SECTION" not in bytecode:
         if "INTVEC" not in bytecode:
             listErrors.append(("codeerror", 0, "La section INTVEC n'est déclarée nulle part (utilisez 'SECTION INTVEC' au début du code)!"))
-            return None, None, None, listErrors
+            return None, None, None, None, listErrors
         if "CODE" not in bytecode:
             listErrors.append(("codeerror", 0, "La section CODE n'est déclarée nulle part (utilisez 'SECTION CODE')!"))
-            return None, None, None, listErrors
+            return None, None, None, None, listErrors
         if "DATA" not in bytecode:
             listErrors.append(("codeerror", 0, "La section DATA n'est déclarée nulle part (utilisez 'SECTION DATA' à la fin de votre code)!"))
-            return None, None, None, listErrors
+            return None, None, None, None, listErrors
 
     # We resolve the pointer dependencies (that is, the instructions using =label)
     labelsPtrAddr = {}
@@ -218,7 +224,7 @@ def parse(code):
 
     if len(listErrors) > 0:
         # At least one line did not assemble, we cannot continue
-        return None, None, None, listErrors
+        return None, None, None, None, listErrors
 
     # At this point, all dependencies should have been resolved (e.g. all the labels should have been seen)
     # We fix the bytecode of the affected instructions
@@ -266,8 +272,8 @@ def parse(code):
 
     if len(listErrors) > 0:
         # At least one line did not assemble, we cannot continue
-        return None, None, None, listErrors
+        return None, None, None, None, listErrors
 
     # No errors
-    return bytecode, addrToLine, assertions, []
+    return bytecode, addrToLine, lineToAddr, assertions, []
 

@@ -26,7 +26,7 @@ var AssemblyARMHighlightRules = function() {
          { token: 'label.assembly',
            regex: '^[ \t]*[a-zA-Z0-9_]*' }
     ] }
-    
+
     this.normalizeRules();
 };
 

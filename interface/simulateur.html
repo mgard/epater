@@ -574,6 +574,13 @@
 			});
 
             editor.on('changeSelection', function(e) {
+                var cur_row = editor.getCursorPosition()['row'];
+                $(".mem_mousehighlight").removeClass("mem_mousehighlight");
+                if (cur_row in line2addr) {
+                    mouse_highlight_mem = line2addr[cur_row];
+                }
+                updateMemoryBreakpointsView();
+
                 if (blockSelect > 0) {
                     editor.selection.setSelectionRange({
                         start: {
