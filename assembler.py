@@ -186,7 +186,7 @@ def parse(code):
             currentAddr += len(parsedLine["BYTECODE"][0])
             lastLineType = "BYTECODE"
             totalMemAllocated += len(parsedLine["BYTECODE"][0])
-            if currentSection == "INTVEC" and currentAddr >= BASE_ADDR_CODE:
+            if currentSection == "INTVEC" and currentAddr > BASE_ADDR_CODE:
                 listErrors.append(("codeerror", i,
                                    "La déclaration située sur cette ligne fait déborder la section INTVEC dans la section CODE. Vérifiez que vous allouez le bon nombre d'octets (128 octets maximum pour la section INTVEC en entier)."))
 
