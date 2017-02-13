@@ -452,6 +452,9 @@ class Simulator:
         self.disassemblyInfo = ""
 
     def fetchAndDecode(self):
+        # Check if PC is valid (multiple of 4)
+        if (self.regs[15].get() - self.pcoffset) % 4 != 0:
+            self.sysHandle.throw(BkptInfo("pc", None, ("Erreur : la valeur de PC ({}) est invalide (ce doit être un multiple de 4)!".format(hex(self.regs[15].get())))))
         # Retrieve instruction from memory
         self.fetchedInstr = self.mem.get(self.regs[15].get() - self.pcoffset, execMode=True)
         if self.fetchedInstr is not None:          # We did not make an illegal memory access
@@ -1127,6 +1130,8 @@ class Simulator:
                     return False
                 res = struct.unpack("<B" if misc['byte'] else "<I", m)[0]
                 self.regs[misc['rd']].set(res)
+                if misc['rd'] == 15:
+                    pcchanged = True
             else:       # STR
                 valWrite = self.regs[misc['rd']].get()
                 if misc['rd'] == 15 and getSetting("PCspecialbehavior"):

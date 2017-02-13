@@ -113,7 +113,7 @@ class BCInterpreter:
     @property
     def currentBreakpoint(self):
         # Returns a namedTuple with the fields
-        # 'source' = 'register' | 'memory' | 'flag' | 'assert'
+        # 'source' = 'register' | 'memory' | 'flag' | 'assert' | 'pc'
         # 'mode' = integer (same interpretation as Unix permissions)
         #                   if source='memory' then mode can also be 8 : it means that we're trying to access an uninitialized memory address
         # 'infos' = supplemental information (register index if source='register', flag name if source='flag', address if source='memory')
