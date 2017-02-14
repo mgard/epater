@@ -790,14 +790,17 @@ class Simulator:
                 else:
                     disassembly += ", R{}".format(misc['offset'][0])
                     disassembly += _shiftToInstruction(misc['offset'][1]) + "]"
-            else:
-                # Post
+            elif misc['offset'] != 0:
+                # Post (a post-incrementation of 0 is useless)
                 disassembly += "]"
-                if misc['imm'] and misc['offset'] != 0:
+                if misc['imm']:
                     disassembly += " {}".format(hex(misc['sign'] * misc['offset']))
                 else:
                     disassembly += " R{}".format(misc['offset'][0])
                     disassembly += _shiftToInstruction(misc['offset'][1])
+            else:
+                # Weird case, would happen if we combine post-incrementation and immediate offset of 0
+                disassembly += "]"
 
             if misc['writeback']:
                 highlightwrite.append("r{}".format(misc['base']))
