@@ -81,6 +81,7 @@ def parse(code):
     totalMemAllocated = 0
     emptyLines = set()
     lineToAddr = {}
+    viewedSections = set()
     for i,line in enumerate(code):
         line = line.strip()
         if ';' in line:
@@ -138,6 +139,12 @@ def parse(code):
             elif parsedLine["SECTION"] == "DATA":
                 currentSection = "DATA"
                 currentAddr = max(BASE_ADDR_DATA, currentAddr)
+            
+            if currentSection in viewedSections:
+                listErrors.append(("codeerror", i, "La section '{}' est définie deux fois!".format(currentSection)))
+                continue
+            else:
+                viewedSections.add(currentSection)
 
             # Ensure word alignement
             currentAddr += 4 - currentAddr % 4 if currentAddr % 4 != 0 else 0
