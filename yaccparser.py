@@ -358,6 +358,11 @@ def p_meminstruction(p):
     # Add the condition and byte mode bits
     p[0] |= p[3]
 
+    if bool((p[0] >> 21) & 1) and ((p[0] >> 16) & 0xF) == 15:
+        raise YaccError("Il est interdit d'utiliser PC comme registre de base lorsque le writeback est activé.")
+    if ((p[0] >> 16) & 0xF) == ((p[0] >> 12) & 0xF) and (bool((p[0] >> 21) & 1) or not bool((p[0] >> 24) & 1)):
+        raise YaccError("En mode writeback, il est interdit d'utiliser le même registre comme destination et adresse de base.")
+
     # We return the bytecode, with the eventual dependencies
     p[0] = (struct.pack("<I", p[0]), memaccessinfo[1])
 
@@ -391,9 +396,11 @@ def p_memaccesspre(p):
             offset = abs(plist[5])
             if offset > 2**12-1:
                 # Cannot encode the offset
-                raise YaccError("Le décalage de {} demandé dans l'instruction est trop élevé pour pouvoir être encodé (il doit être inférieur à 4096)".format(offset))
+                raise YaccError("Le décalage de {} demandé dans l'instruction est trop grand pour pouvoir être encodé (il doit être inférieur à 4096)".format(offset))
             p[0] |= offset & 0xFFF
         else:                   # Register offset
+            if plist[4] == 15:
+                raise YaccError("PC ne peut pas être utilisé comme registre de décalage!")
             p[0] |= 1 << 25
             p[0] |= 1 << 23         # We always add the offset if it is a register
             p[0] |= plist[4]
@@ -424,15 +431,20 @@ def p_memacesspost(p):
     plist = list(p)
     p[0] = plist[2] << 16
 
+    if plist[2] == 15:
+        raise YaccError("Il est interdit d'utiliser PC comme registre de base en mode post-incrémentation!")
+
     if plist[5] == "#":     # Constant offset
         if plist[6] > 0:
             p[0] |= 1 << 23
         offset = abs(plist[6])
         if offset > 2**12-1:
             # Cannot encode the offset
-            raise YaccError("Le décalage de {} demandé dans l'instruction est trop élevé pour pouvoir être encodé (il doit être inférieur à 4096)".format(offset))
+            raise YaccError("Le décalage de {} demandé dans l'instruction est trop grand pour pouvoir être encodé (il doit être inférieur à 4096)".format(offset))
         p[0] |= offset & 0xFFF
     else:                   # Register offset
+        if plist[5] == 15:
+            raise YaccError("PC ne peut pas être utilisé comme registre de décalage!")
         p[0] |= 1 << 25
         p[0] |= 1 << 23  # We always add the offset if it is a register
         p[0] |= plist[5]
@@ -552,6 +564,8 @@ def p_stmldminstruction(p):
     p[0] = 1 << 27
     # Set base register and write-back
     p[0] |= plist[-3]
+    if plist[-3] == 15:
+        raise YaccError("Il est interdit d'utiliser PC comme registre de base dans une opération mémoire multiple!")
 
     if currentMnemonic == "LDM":
         p[0] |= 1 << 20     # Set load
