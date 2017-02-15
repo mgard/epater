@@ -221,12 +221,6 @@ select:disabled, button:disabled, input[type=submit]:disabled {
     vertical-align: top;
 }
 
-#editor {
-    width: 630px;
-    height: calc(100% - 70px);
-    border: 1px solid rgba(136,164,155, 0.7)
-}
-
 #dashboard {
     padding-left: 1em;
     vertical-align: top;
@@ -300,16 +294,13 @@ img {
     font-style: italic;
 }
 .ace_sectiontitle {
-    font-weight: bold;
     color: #FB2472;
 }
 .ace_memdeclare {
     color: #63D8E8;
-    font-weight: bold;
 }
 .ace_label {
     color: #A477FF;
-    font-weight: ;
 }
 
 .debug_line.ace_start {
@@ -463,7 +454,11 @@ img {
 /* IE 10... */
 #tabsmain-simulation { min-height: 600px; }
 .ace_editor  {
-    min-height: 600px;
+    min-height: calc(100vh - 115px);
+    height: calc(100vh - 115px);
+    width: 630px;
+    border: 1px solid rgba(136,164,155, 0.7)
+
 }
 
 .etabs-reg { margin: 0; padding: 0; }
@@ -513,7 +508,6 @@ img {
 .lightmode {
     background-color: #FFF;
     color: #000;
-    font-weight: bold;
 }
 
 .lightmode .ace-tm {
