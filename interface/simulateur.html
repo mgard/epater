@@ -482,6 +482,12 @@
         editor.getSession().setMode(new assembly_armMode());
         editor.$blockScrolling = Infinity;
         editor.setShowPrintMargin(false);
+
+        // Remove shortcuts used by the simulator
+        editor.commands.bindKey("Ctrl-Up", null); editor.commands.bindKey("Cmd-Up", null);
+        editor.commands.bindKey("Ctrl-Left", null); editor.commands.bindKey("Cmd-Left", null);
+        editor.commands.bindKey("Ctrl-Right", null); editor.commands.bindKey("Cmd-Right", null);
+        editor.commands.bindKey("Ctrl-Down", null); editor.commands.bindKey("Cmd-Down", null);
     </script>
 
     <script src="static/js/jquery-1.11.1.min.js" type="text/javascript" charset="utf-8"></script>

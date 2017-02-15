@@ -80,17 +80,34 @@ function saveTextAsFile() {
     form.submit();
 }
 
-$(window).bind('keydown', function(event) {
-    if (event.ctrlKey || event.metaKey) {
-        switch (String.fromCharCode(event.which).toLowerCase()) {
+$(window).bind('keydown', function(e) {
+    if (e.ctrlKey || e.metaKey) {
+        switch (String.fromCharCode(e.which).toLowerCase()) {
         case 's':
-            event.preventDefault();
+            e.preventDefault();
             saveTextAsFile();
             break;
         case 'o':
-            event.preventDefault();
+            e.preventDefault();
             $("#fileToLoad").trigger('click'); 
             break;
+        }
+        switch (e.which) {
+            case 37: // left
+                simulate('stepforward');
+                break;
+
+            case 38: // up
+                assemble();
+                break;
+
+            case 39: // right
+                simulate('stepout');
+                break;
+
+            case 40: // down
+                simulate('stepinto');
+                break;
         }
     }
 });
