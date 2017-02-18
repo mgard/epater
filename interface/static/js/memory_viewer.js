@@ -101,6 +101,7 @@ function updateMemoryBreakpointsView() {
 }
 
 function changeMemoryViewPage() {
+  refresh_mem_paginator = true;
   var target = $("#jump_memory").val();
   target_memaddr = target;
   var page = Math.floor(parseInt(target) / (16*20));
@@ -108,6 +109,7 @@ function changeMemoryViewPage() {
 }
 
 function resetMemoryViewer() {
+  refresh_mem_paginator = true;
 
   // Memory viewer
   var metadata = [];
@@ -149,8 +151,8 @@ function resetMemoryViewer() {
         editableGrid.setValueAt(row, col, "--", true);
       }
     }, 
-    enableSort: false, 
-    pageSize: 20, 
+    enableSort: false,
+    pageSize: 20,
     tableRendered: function() {
       this.updatePaginator();
       updateMemoryBreakpointsView();
@@ -168,22 +170,48 @@ function resetMemoryViewer() {
   updateMemoryBreakpointsView();
 }
 
+function cellClick(e) {
+  var suffix = null;
+  for (var i = 0; i < e.target.classList.length; i++) {
+    if (e.target.classList[i].slice(0, 14) == 'editablegrid-c') { suffix = e.target.classList[i].slice(-2); }
+  }
+  if (suffix == null) {
+    return;
+  }
+  if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
+  suffix = parseInt(suffix).toString(16);
+  var addr = $('td:first', $(e.target).closest('tr')).text().slice(0,9) + suffix;
+  if(e.shiftKey) {
+    sendCmd(['breakpointsmem', addr, 'r']);
+  }
+  if(e.ctrlKey || event.metaKey) {
+    sendCmd(['breakpointsmem', addr, 'w']);
+  }
+  if(e.altKey) {
+    sendCmd(['breakpointsmem', addr, 'e']);
+  }
+}
+
+var refresh_mem_paginator = true;
 var target_memaddr = null;
 $(document).ready(function() {
   EditableGrid.prototype.updatePaginator = function() {
-    var paginator = $("#paginator").empty();
-    var nbPages = this.getPageCount();
+    if (refresh_mem_paginator) {
+      refresh_mem_paginator = false;
+
+      var paginator = $("#paginator").empty();
+      var nbPages = this.getPageCount();
 
       // "first" link
       var link = $("<a>").html("<img src='static/image/mem_first.png' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-      else link.css("cursor",  "pointer").click(function(event) { editableGrid.firstPage(); });
+      else link.css("cursor",  "pointer").click(function(event) { refresh_mem_paginator = true; editableGrid.firstPage(); });
       paginator.append(link);
 
       // "prev" link
       link = $("<a>").html("<img src='static/image/mem_prev.png' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoBack()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-      else link.css("cursor",  "pointer").click(function(event) { editableGrid.prevPage(); });
+      else link.css("cursor",  "pointer").click(function(event) { refresh_mem_paginator = true; editableGrid.prevPage(); });
       paginator.append(link);
 
       var mem_begin = $(".editablegrid-ch:eq(1)").text();
@@ -197,31 +225,19 @@ $(document).ready(function() {
       // "next" link
       link = $("<a>").html("<img src='static/image/mem_next.png' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-      else link.css("cursor",  "pointer").click(function(event) { editableGrid.nextPage(); });
+      else link.css("cursor",  "pointer").click(function(event) { refresh_mem_paginator = true; editableGrid.nextPage(); });
       paginator.append(link);
 
       // "last" link
       link = $("<a>").html("<img src='static/image/mem_last.png' style='height: 15px; vertical-align: middle;'/>&nbsp;");
       if (!this.canGoForward()) link.css({ opacity : 0.4,  filter: "alpha(opacity=40)" });
-      else link.css("cursor",  "pointer").click(function(event) { editableGrid.lastPage(); });
+      else link.css("cursor",  "pointer").click(function(event) { refresh_mem_paginator = true; editableGrid.lastPage(); });
       paginator.append(link);
 
-      $(".editablegrid-c0, .editablegrid-c1, .editablegrid-c2, .editablegrid-c3, .editablegrid-c4, .editablegrid-c5, .editablegrid-c6, .editablegrid-c7, .editablegrid-c8, .editablegrid-c9, .editablegrid-c10, .editablegrid-c11, .editablegrid-c12, .editablegrid-c13, .editablegrid-c14, .editablegrid-c15").click(function(e) {
-        var suffix = this.classList[0].slice(-2);
-        if (suffix[0] == 'c') { suffix = suffix.slice(-1); }
-        suffix = parseInt(suffix).toString(16);
-        var addr = $('td:first', $(e.target).closest('tr')).text().slice(0,9) + suffix;
-        if(e.shiftKey) {
-          sendCmd(['breakpointsmem', addr, 'r']);
-        }
-        if(e.ctrlKey || event.metaKey) {
-          sendCmd(['breakpointsmem', addr, 'w']);
-        }
-        if(e.altKey) {
-          sendCmd(['breakpointsmem', addr, 'e']);
-        }
-      });
-    };
+    }
 
+  };
+
+  $("#memoryview").click(cellClick);
   resetMemoryViewer();
 });
