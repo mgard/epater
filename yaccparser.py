@@ -355,6 +355,10 @@ def p_meminstruction(p):
     memaccessinfo = p[6]
     p[0] |= memaccessinfo[0]
 
+    # Check if we ask for an address in combination with STR (forbidden)
+    if currentMnemonic == "STR" and memaccessinfo[1] is not None and memaccessinfo[1][0] == "addrptr":
+        raise YaccError("Il est interdit d'utiliser STR avec une adresse d'étiquette pour cible. Par exemple, 'STR R0, a' est valide, mais pas 'STR R0, =a'.")
+
     # Add the condition and byte mode bits
     p[0] |= p[3]
 
