@@ -985,6 +985,9 @@ class Simulator:
                 modifiedFlags.add('C')
                 modifiedFlags.add('V')
                 description += "<li>Effectue une soustraction (A-B) entre:\n"
+                if misc['opcode'] == "SUB" and destrd == 15:
+                    # We change PC, we show it in the editor
+                    nextline = self.regs[misc['rn']].get() - op2
             elif misc['opcode'] == "RSB":
                 modifiedFlags.add('C')
                 modifiedFlags.add('V')
@@ -993,6 +996,9 @@ class Simulator:
                 modifiedFlags.add('C')
                 modifiedFlags.add('V')
                 description += "<li>Effectue une addition (A+B) entre:\n"
+                if misc['opcode'] == "ADD" and destrd == 15:
+                    # We change PC, we show it in the editor
+                    nextline = self.regs[misc['rn']].get() + op2
             elif misc['opcode'] == "ADC":
                 modifiedFlags.add('C')
                 modifiedFlags.add('V')
@@ -1009,10 +1015,16 @@ class Simulator:
                 description += "<li>Effectue une opération OU entre:\n"
             elif misc['opcode'] == "MOV":
                 description += "<li>Lit la valeur de :\n"
+                if destrd == 15:
+                    # We change PC, we show it in the editor
+                    nextline = op2
             elif misc['opcode'] == "BIC":
                 description += "<li>Effectue une opération ET NON entre:\n"
             elif misc['opcode'] == "MVN":
                 description += "<li>Effectue une opération NOT sur :\n"
+                if destrd == 15:
+                    # We change PC, we show it in the editor
+                    nextline = ~op2
             else:
                 assert False, "Bad data opcode : " + misc['opcode']
 
