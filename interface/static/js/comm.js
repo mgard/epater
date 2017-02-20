@@ -124,6 +124,7 @@ ws.onmessage = function (event) {
                     var target = obj[1][0];
                     var page = Math.floor(parseInt(target) / (16*20));
                     if ( editableGrid.getCurrentPageIndex() != page ) {
+                        refresh_mem_paginator = true;
                         editableGrid.setPageIndex(page);
                     }
                 }
@@ -137,6 +138,7 @@ ws.onmessage = function (event) {
             }
             editableGrid.refreshGrid();
         } else if (obj[0] == 'mem') {
+            refresh_mem_paginator = true;
             editableGrid.load({"data": obj[1]});
             editableGrid.renderGrid("memoryview", "testgrid");
         } else if (obj[0] == 'membp_r') {

@@ -366,7 +366,8 @@ def BytecodeToInstrInfos(bc):
             shift = ("ROR", "imm", 0)       # No rotate with registers for these particular instructions
         op2 = (val, shift)
 
-        miscInfo = {'write': modeWrite,
+        miscInfo = {'opcode': "MSR" if modeWrite else "MRS",
+                    'write': modeWrite,
                     'usespsr': usespsr,
                     'flagsOnly': flagsOnly,
                     'imm': imm,
