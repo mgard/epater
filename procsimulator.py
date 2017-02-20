@@ -91,8 +91,9 @@ class ControlRegister:
     def setMode(self, mode):
         if mode not in self.mode2bits:
             raise KeyError
-        self.val |= self.mode2bits[mode]
-        self.val &= 0xFFFFFFE0 + self.mode2bits[mode]
+        self.val &= 0xFFFFFFE0                  # Reset the mode
+        self.val |= self.mode2bits[mode]        # Set the mode wanted
+        #self.val &= 0xFFFFFFE0 + self.mode2bits[mode]
         self.history.append((self.sys.countCycles, self.val))
 
     def getMode(self):
@@ -1208,6 +1209,10 @@ class Simulator:
                             _, valToSet = self._shiftVal(valToSet, misc['op2'][1])
                     else:
                         valToSet = self.regs[misc['op2'][0]].get() & 0xF0000000   # We only keep the condition flag bits
+                    if misc['usespsr']:
+                        valToSet |= self.regs.getSPSR().get() & 0x0FFFFFFF
+                    else:
+                        valToSet |= self.regs.getCPSR().get() & 0x0FFFFFFF
                 else:
                     valToSet = self.regs[misc['op2'][0]].get()
                 if misc['usespsr']:
