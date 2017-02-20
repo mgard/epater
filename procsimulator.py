@@ -1219,11 +1219,23 @@ class Simulator:
                 else:
                     valToSet = self.regs[misc['op2'][0]].get()
                 if misc['usespsr']:
-                    self.regs.getSPSR().set(valToSet)
+                    if self.regs.getSPSR() is None:
+                        # Check if SPSR exists (we are not in user mode)
+                        self.sysHandle.throw(
+                            BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
+                                                      "Erreur : écriture de SPSR en mode 'User' (ce mode ne possede pas de registre SPSR)")))
+                    else:
+                        self.regs.getSPSR().set(valToSet)
                 else:
                     self.regs.getCPSR().set(valToSet)
             else:       # Read
-                self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
+                if self.regs.getSPSR() is None:
+                    # Check if SPSR exists (we are not in user mode)
+                    self.sysHandle.throw(
+                        BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
+                                                  "Erreur : lecture de SPSR en mode 'User' (ce mode ne possede pas de registre SPSR)")))
+                else:
+                    self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
 
         elif t == InstrType.multiply:
             op1 = self.regs[misc['operandsmul'][0]].get()
