@@ -871,7 +871,6 @@ class Simulator:
 
 
         elif t == InstrType.psrtransfer:
-            # TODO
             disassembly = misc['opcode']
             if cond != 'AL':
                 disassembly += cond
@@ -881,16 +880,20 @@ class Simulator:
                         valToSet = misc['op2'][0]
                         if misc['op2'][1][2] != 0:
                             _, valToSet = self._shiftVal(valToSet, misc['op2'][1])
+                            description += "<li>Écrit la constante {} dans {}</li>\n".format(valToSet, "SPSR" if misc['usespsr'] else "CPSR")
                     else:
                         valToSet = self.regs[misc['op2'][0]].get() & 0xF0000000   # We only keep the condition flag bits
+                        description += "<li>Lit la valeur de R{}</li>\n".format(misc['op2'][0])
+                        description += "<li>Écrit les 4 bits les plus significatifs de cette valeur (qui correspondent aux drapeaux) dans {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                 else:
                     valToSet = self.regs[misc['op2'][0]].get()
+                    description += "<li>Lit la valeur de R{}</li>\n".format(misc['op2'][0])
+                    description += "<li>Écrit cette valeur dans {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                 if misc['usespsr']:
                     pass
             else:       # Read
                 description += "<li>Lit la valeur de {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                 description += "<li>Écrit le résultat dans R{}</li>\n".format(misc['rd'])
-                #self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
 
         elif t == InstrType.multiply:
             op1, op2 = misc['operandsmul']
