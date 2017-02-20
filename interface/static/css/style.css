@@ -509,7 +509,12 @@ img {
     background-color: #FFF;
     color: #000;
 }
-
+.ace_indent-guide {
+    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQI12MwNjb+z5SWlsYAAA5sAs38puDrAAAAAElFTkSuQmCC) right repeat-y !important;
+}
+.lightmode .ace_indent-guide {
+    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==) right repeat-y !important;
+}
 .lightmode .ace-tm {
     color: #000 !important;
 }
