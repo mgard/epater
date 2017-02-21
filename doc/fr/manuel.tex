@@ -44,7 +44,7 @@
 
 \section{Introduction}
 
-Ce manuel présente l'utilisation du simulateur \textbf{épater}, qui émule un processeur à architecture ARMv7, tel qu'étudié dans le cours \textit{GIF-1001 Ordinateurs: Structure et Applications}. Ce manuel se concentre uniquement sur l'utilisation du simulateur à proprement parler. Les informations concernant l'architecture ARM et la programmation en langage assembleur peuvent être obtenues dans les notes de cours ou dans les manuels de référence cités dans le plan de cours.
+Ce manuel présente l'utilisation du simulateur \textbf{épater}, qui émule un processeur à architecture ARMv4 (coeur ARM7), tel qu'étudié dans le cours \textit{GIF-1001 Ordinateurs: Structure et Applications}. Ce manuel se concentre uniquement sur l'utilisation du simulateur à proprement parler. Les informations concernant l'architecture ARM et la programmation en langage assembleur peuvent être obtenues dans les notes de cours ou dans les manuels de référence cités dans le plan de cours.
 
 \section{Prise en main}
 
@@ -274,7 +274,7 @@ Notons que ces trois types de points d'arrêt peuvent être combinés. Par exemp
 Afin de faciliter l'utilisation du simulateur, un aide-mémoire succinct reprenant les informations présentées ici est disponible en bas de la vue mémoire :
 \begin{figure}[h!]
 \raggedleft
-\includegraphics[width=0.8\linewidth]{pics/memoire_reminder.png}
+\includegraphics[width=0.6\linewidth]{pics/memoire_reminder.png}
 \label{f:memoirerem}
 \caption{Description des différents types de points d'arrêt en mémoire dans l'interface du simulateur}
 \end{figure}
@@ -288,6 +288,14 @@ Finalement, en bas du visualisateur, on retrouve une interface permettant de nav
 \end{figure}
 
  Les flèches permettent d'aller vers des adresses mémoire plus hautes ou plus basses. Le champ de texte central permet de spécifier directement une adresse, à laquelle on peut par la suite se rendre en pressant le bouton \textit{Go}.
+ 
+Finalement, notons que cette vue indique, par un soulignement blanc, la position en mémoire de la ligne couramment \textit{sélectionnée} dans l'éditeur (celle sur laquelle se trouve le curseur). Si cette ligne est une instruction, elle couvrira 4 cases (soit 4 octets). S'il s'agit plutôt d'une constante ou d'une variable, elle indiquera toutes les cases mémoire appartenant à de celle-ci. 
+ \begin{figure}[h!]
+\raggedleft
+\includegraphics[width=0.98\linewidth]{pics/memoire_courant.png}
+\label{f:memoirecurrent}
+\caption{Vue de la position de la ligne couramment sélectionnée. Dans ce cas-ci, la ligne 27 est sélectionnée; la vue mémoire souligne en blanc les cases mémoires qui y correspondent, soit les adresses 0x90 à 0x93 inclusivement. La ligne en cours d'exécution est quant à elle surlignée en rouge et sa position en mémoire indiquée par des carrés verts autour des cases concernées.}
+\end{figure}
 
 \clearpage
 
