@@ -207,6 +207,11 @@ class BankedRegisters:
             # logged and transfered to the UI
             self.history.append((self.sys.countCycles, bankname))
 
+    def setCurrentBankFromMode(self, modeInt, logToHistory=True):
+        self.currentBank = ControlRegister.bits2mode[modeInt]
+        if logToHistory:
+            self.history.append((self.sys.countCycles, self.currentBank))
+
     def __getitem__(self, item):
         if not isinstance(item, int) or item < 0 or item > 15:
             raise IndexError
@@ -1356,7 +1361,7 @@ class Simulator:
                                                   "L'utilisation de PC comme registre de destination en combinaison avec la mise a jour des drapeaux est interdite en mode User!"))
                         return pcchanged
                     self.regs.getCPSR().set(self.regs.getSPSR().get())          # Put back the saved SPSR in CPSR
-                    self.regs.setCurrentBank("User")
+                    self.regs.setCurrentBankFromMode(self.regs.getCPSR().get() & 0x1F)
                 else:
                     for flag in workingFlags:
                         self.flags[flag] = workingFlags[flag]
