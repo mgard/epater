@@ -76,7 +76,7 @@ def parse(code):
     bytecode = {'__MEMINFOSTART': {"SNIPPET_DUMMY_SECTION": 0},
                 '__MEMINFOEND': {"SNIPPET_DUMMY_SECTION": 0}}
     unresolvedDepencencies = {}
-    assertions = {}
+    assertions = defaultdict(list)
     lastLineType = None
     totalMemAllocated = 0
     emptyLines = set()
@@ -152,9 +152,9 @@ def parse(code):
 
         if "ASSERTION" in parsedLine:
             if lastLineType is None or lastLineType in ("LABEL", "SECTION"):
-                assertions[currentAddr] = ("BEFORE", i, parsedLine["ASSERTION"])
+                assertions[currentAddr].append(("BEFORE", i, parsedLine["ASSERTION"]))
             elif lastLineType == "BYTECODE":
-                assertions[currentAddr-4] = ("AFTER", i, parsedLine["ASSERTION"])
+                assertions[currentAddr-4].append(("AFTER", i, parsedLine["ASSERTION"]))
 
         if ("LABEL" in parsedLine or "BYTECODE" in parsedLine) and currentAddr == -1:
             # No section defined, but we have a label or an instruction; we switch to snippet mode

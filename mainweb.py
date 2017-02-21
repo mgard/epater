@@ -304,12 +304,13 @@ def updateDisplay(interp, force_all=False):
 
     # Check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
     if interp.currentBreakpoint:
-        if interp.currentBreakpoint.source == 'memory' and bool(interp.currentBreakpoint.mode & 8):
-            retval.append(["error", """Un accès à l'extérieur de la mémoire initialisée a été effectué ({}).""".format(interp.currentBreakpoint.infos)])
-        elif interp.currentBreakpoint.source == 'pc':
-            retval.append(["error", interp.currentBreakpoint.infos])
-        elif interp.currentBreakpoint.source == 'assert':
-            retval.append(["codeerror", interp.currentBreakpoint.infos[0] + 1, interp.currentBreakpoint.infos[1]])
+        for this_breakpoint in interp.currentBreakpoint:
+            if this_breakpoint.source == 'memory' and bool(this_breakpoint.mode & 8):
+                retval.append(["error", """Un accès à l'extérieur de la mémoire initialisée a été effectué ({}).""".format(this_breakpoint.infos)])
+            elif this_breakpoint.source == 'pc':
+                retval.append(["error", interp.currentBreakpoint.infos])
+            elif this_breakpoint.source == 'assert':
+                retval.append(["codeerror", this_breakpoint.infos[0] + 1, this_breakpoint.infos[1]])
     return retval
 
 
