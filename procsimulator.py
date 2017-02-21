@@ -1219,11 +1219,23 @@ class Simulator:
                 else:
                     valToSet = self.regs[misc['op2'][0]].get()
                 if misc['usespsr']:
-                    self.regs.getSPSR().set(valToSet)
+                    if self.regs.getSPSR() is None:
+                        # Check if SPSR exists (we are not in user mode)
+                        self.sysHandle.throw(
+                            BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
+                                                      "Erreur : écriture de SPSR en mode 'User' (ce mode ne possede pas de registre SPSR)")))
+                    else:
+                        self.regs.getSPSR().set(valToSet)
                 else:
                     self.regs.getCPSR().set(valToSet)
             else:       # Read
-                self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
+                if self.regs.getSPSR() is None:
+                    # Check if SPSR exists (we are not in user mode)
+                    self.sysHandle.throw(
+                        BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
+                                                  "Erreur : lecture de SPSR en mode 'User' (ce mode ne possede pas de registre SPSR)")))
+                else:
+                    self.regs[misc['rd']].set(self.regs.getSPSR().get() if misc['usespsr'] else self.regs.getCPSR().get())
 
         elif t == InstrType.multiply:
             op1 = self.regs[misc['operandsmul'][0]].get()
@@ -1309,7 +1321,9 @@ class Simulator:
             elif misc['opcode'] == "MVN":
                 res = ~op2
             else:
-                assert False, "Bad data opcode : " + misc['opcode']
+                BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
+                                          "Mnémonique invalide : {}".format(misc['opcode'])))
+                return pcchanged
 
             res &= 0xFFFFFFFF           # Get the result back to 32 bits, if applicable (else it's just a no-op)
 
@@ -1329,7 +1343,9 @@ class Simulator:
                     #
                     # Globally, it tells out to get out of an interrupt
                     if self.regs.getCPSR().getMode() == "User":
-                        assert False, "Error, using S flag and PC as destination register in user mode!"
+                        BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
+                                                  "L'utilisation de PC comme registre de destination en combinaison avec la mise a jour des drapeaux est interdite en mode User!"))
+                        return pcchanged
                     self.regs.getCPSR().set(self.regs.getSPSR().get())          # Put back the saved SPSR in CPSR
                     self.regs.setCurrentBank("User")
                 else:
