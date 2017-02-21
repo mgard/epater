@@ -24,11 +24,11 @@ class SystemHandler:
 
     def clearBreakpoint(self):
         self.breakpointTrigged = False
-        self.breakpointInfo = None
+        self.breakpointInfo = []
 
     def throw(self, infos):
         self.breakpointTrigged = True
-        self.breakpointInfo = infos
+        self.breakpointInfo.append(infos)
 
 
 class Register:
@@ -567,35 +567,44 @@ class Simulator:
             return -2**31 > res or res > 2**31
         return False
 
-    def execAssert(self, assertionInfo):
-        assertionLine = assertionInfo[0] - 1
-        assertionInfo = assertionInfo[1].split(",")
-        for info in assertionInfo:
-            info = info.strip()
-            target, value = info.split("=")
-            if target[0] == "R":
-                # Register
-                reg = int(target[1:])
-                val = int(value, base=0) & 0xFFFFFFFF
-                valreg = self.regs[reg].get()
-                if valreg != val:
-                    self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Erreur : {} devrait valoir {}, mais il vaut {}".format(target, val, valreg))))
-            elif target[:1] == "0x":
-                # Memory
-                addr = int(target, base=16)
-                val = int(value, base=0) & 0xFFFFFFFF
-                valmem = self.mem.get(addr, mayTriggerBkpt=False)
-                if valmem != val:
-                    self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Erreur : l'adresse mémoire {} devrait contenir {}, mais elle contient {}".format(target, val, valmem))))
-                assert self.mem.get(addr, mayTriggerBkpt=False) == val
-            elif len(target) == 1 and target in ('Z', 'V', 'N', 'C', 'I', 'F'):
-                # Flag
-                val = bool(value)
-                if self.flags[target] != val:
-                    self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Erreur : le drapeau {} devrait signaler {}, mais il signale {}".format(target, val, self.flags[target]))))
-            else:
-                # Assert type unknown
-                self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, "Assertion inconnue!")))
+    def execAssert(self, assertionsList, mode):
+        for assertionInfo in assertionsList:
+            assertionType = assertionInfo[0]
+            if assertionType != mode:
+                continue
+            assertionLine = assertionInfo[1] - 1
+            assertionInfo = assertionInfo[2].split(",")
+
+            strError = ""
+            for info in assertionInfo:
+                info = info.strip()
+                target, value = info.split("=")
+                if target[0] == "R":
+                    # Register
+                    reg = int(target[1:])
+                    val = int(value, base=0) & 0xFFFFFFFF
+                    valreg = self.regs[reg].get()
+                    if valreg != val:
+                        strError += "Erreur : {} devrait valoir {}, mais il vaut {}\n".format(target, val, valreg)
+                elif target[:1] == "0x":
+                    # Memory
+                    addr = int(target, base=16)
+                    val = int(value, base=0) & 0xFFFFFFFF
+                    valmem = self.mem.get(addr, mayTriggerBkpt=False)
+                    if valmem != val:
+                        strError += "Erreur : l'adresse mémoire {} devrait contenir {}, mais elle contient {}\n".format(target, val, valmem)
+                    assert self.mem.get(addr, mayTriggerBkpt=False) == val
+                elif len(target) == 1 and target in ('Z', 'V', 'N', 'C', 'I', 'F'):
+                    # Flag
+                    val = bool(value)
+                    if self.flags[target] != val:
+                        strError += "Erreur : le drapeau {} devrait signaler {}, mais il signale {}\n".format(target, val, self.flags[target])
+                else:
+                    # Assert type unknown
+                    strError += "Assertion inconnue!".format(target, val, self.flags[target])
+
+            if len(strError) > 0:
+                self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, strError)))
 
     def decodeInstr(self):
         """
@@ -1377,14 +1386,14 @@ class Simulator:
         else:
             self.regs[15].set(self.regs[15].get() + 4)        # PC = PC + 4
 
-        if not pcmodified and keeppc in self.assertionCkpts and self.assertionData[keeppc][0] == "AFTER":
+        if not pcmodified and keeppc in self.assertionCkpts:
             # We check if we've hit an post-assertion checkpoint
-            self.execAssert(self.assertionData[keeppc][1:])
+            self.execAssert(self.assertionData[keeppc], 'AFTER')
 
         newpc = self.regs[15].get() - self.pcoffset
-        if newpc in self.assertionCkpts and self.assertionData[newpc][0] == "BEFORE":
+        if newpc in self.assertionCkpts:
             # We check if we've hit an pre-assertion checkpoint (for the next instruction)
-            self.execAssert(self.assertionData[newpc][1:])
+            self.execAssert(self.assertionData[newpc], 'BEFORE')
 
         # We look for interrupts
         # The current instruction is always finished before the interrupt
