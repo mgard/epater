@@ -417,8 +417,14 @@ def process(ws, msg_in):
                     # bank, reg name, mode [r,w,rw]
                     interpreters[ws].setBreakpointRegister(bank.lower(), reg_id, mode)
             elif data[0] == "interrupt":
-                mode = data[2] # FIQ/IRQ
-                interpreters[ws].setInterrupt(mode, not data[1], data[4], data[3], 0)
+                mode = ["FIQ", "IRQ"][data[2] == "IRQ"] # FIQ/IRQ
+                try: cycles_premier = int(data[4])
+                except (TypeError, ValueError): cycles_premier = 50; retval.append(['interrupt_cycles_first', 50])
+                try: cycles = int(data[3])
+                except (TypeError, ValueError): cycles = 50; retval.append(['interrupt_cycles', 50])
+                try: notactive = bool(data[1])
+                except (TypeError, ValueError): notactive = 0; retval.append(['interrupt_active', 0])
+                interpreters[ws].setInterrupt(mode, not notactive, cycles_premier, cycles, 0)
             elif data[0] == 'memchange':
                 try:
                     val = bytearray([int(data[2], 16)])
