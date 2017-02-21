@@ -156,7 +156,7 @@ ws.onmessage = function (event) {
             if (obj[1] == "User") {
                 $("#spsr_title").text("SPSR");
             } else {
-                $("#spsr_title").text("SPSR (" + obj[1] + ")");
+                $("#spsr_title").html("SPSR<br/>(" + obj[1] + ")");
             }
         } else if (obj[0] == 'error') {
             displayErrorMsg(obj[1]);
