@@ -156,7 +156,8 @@ class BCInterpreter:
 
     def getCurrentInfos(self):
         # Return [["highlightread", ["r3", "SVC_r12", "z", "sz"]], ["highlightwrite", ["r1", "MEM_adresseHexa"]], ["nextline", 42], ["disassembly", ""]]
-        s = self.sim.disassemblyInfo
+        # We must clone each element so we do not change the internals of the simulator
+        s = tuple(x[:] for x in self.sim.disassemblyInfo)
 
         # Convert nextline from addr to line number
         idx = [i for i, x in enumerate(s) if x[0] == "nextline"]
