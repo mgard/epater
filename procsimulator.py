@@ -1243,7 +1243,7 @@ class Simulator:
                 else:
                     self.regs.getCPSR().set(valToSet)
             else:       # Read
-                if self.regs.getSPSR() is None:
+                if misc['usespsr'] and self.regs.getSPSR() is None:
                     # Check if SPSR exists (we are not in user mode)
                     self.sysHandle.throw(
                         BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
