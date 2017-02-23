@@ -331,7 +331,8 @@ def process(ws, msg_in):
                 interpreters[ws].history__.append(data)
 
             if data[0] != 'assemble' and ws not in interpreters:
-                retval.append(["error", "Veuillez assembler le code avant d'effectuer cette opération."])
+                if data[0] != "interrupt":
+                    retval.append(["error", "Veuillez assembler le code avant d'effectuer cette opération."])
             elif data[0] == 'assemble':
                 # TODO: Afficher les erreurs à l'écran "codeerror"
                 code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)

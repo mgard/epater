@@ -185,7 +185,6 @@ function resetView() {
     $("#cycles_count").val("");
     $("#message_bar").slideUp("normal", "easeInOutBack", function() {});
 
-    $("#interrupt_active").attr('checked', false);
     disableSim();
     $("#assemble").text("Démarrer");
     $(".assemble_edit").removeClass("assemble_edit");
@@ -231,6 +230,10 @@ function assemble() {
         $("#stepforward").prop('disabled', false);
         $("#assemble").text("Arrêter").addClass("assemble_edit");
         sendCmd(['assemble', editor.getValue()]);
+        if ($("#interrupt_active").is(":checked")) {
+            sendCmd(["interrupt", true, $("#interrupt_type").val(), parseInt($("#interrupt_cycles").val()), parseInt($("#interrupt_cycles_first").val())]);
+        }
+
     } else {
         $("#assemble").text("Démarrer");
         asm_breakpoints.length = 0;
