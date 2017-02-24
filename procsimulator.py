@@ -1286,7 +1286,7 @@ class Simulator:
                     workingFlags['C'] = bool(carry)
             else:
                 op2 = self.regs[misc['op2'][0]].get()
-                if misc['op2'][0] == 15 and getSetting("PCspecialbehavior"):
+                if misc['op2'][0] == 15 and misc['op2'][1][1] == "reg" and getSetting("PCspecialbehavior"):
                     op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
                 carry, op2 = self._shiftVal(op2, misc['op2'][1])
                 workingFlags['C'] = bool(carry)
