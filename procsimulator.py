@@ -726,7 +726,7 @@ class Simulator:
                 disassembly += "L"
                 highlightwrite.append("r14")
                 highlightread.append("r15")
-                description += "<li>Copie la valeur de PC dans LR</li>\n"
+                description += "<li>Copie la valeur de PC+4 (l'adresse de la prochaine instruction) dans LR</li>\n"
             if misc['mode'] == 'imm':
                 nextline = self.regs[15].get() + misc['offset']
                 highlightread.append("r15")
