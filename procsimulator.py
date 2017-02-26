@@ -1202,6 +1202,8 @@ class Simulator:
             else:   # STR
                 for reg in regs[::misc['sign']]:
                     val = self.regs[reg].get()
+                    if reg == 15:
+                        val += 4            # PC+12 when PC is in an STM instruction (see 4.11.1 of the ARM instruction set manual)
                     self.mem.set(baseAddr, val, size=4)
                     baseAddr += misc['sign'] * 4
             if misc['pre']:
