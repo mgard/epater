@@ -134,6 +134,8 @@ class BCInterpreter:
 
     def getMemory(self, addr, returnHexaStr=True):
         val = self.sim.mem.get(addr, 1, mayTriggerBkpt=False)
+        if val is None:
+            return "--"
         if returnHexaStr:
             return "{:02X}".format(unpack("B", val)[0])
         else:
@@ -146,6 +148,10 @@ class BCInterpreter:
         # if addr is not initialized, then do nothing
         # val is a bytearray of one element (1 byte)
         if self.sim.mem._getRelativeAddr(addr, 1) is None:
+            return
+        try:
+            val = int(val, base=16)
+        except ValueError:      # Invalid value
             return
         self.sim.mem.set(addr, val[0], 1)
         pc = self.sim.regs[15].get(mayTriggerBkpt=False)
