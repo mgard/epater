@@ -972,7 +972,7 @@ class Simulator:
                     carry, op2 = self._shiftVal(op2, misc['op2'][1])
                     if misc['op2'][1][0] != "LSL" or misc['op2'][1][2] > 0 or misc['op2'][1][1] == "reg":
                         modifiedFlags.add('C')
-                op2desc = "la constante {}".format(op2)
+                op2desc = "La constante {}".format(op2)
                 op2dis = "#{}".format(hex(op2))
             else:
                 op2 = self.regs[misc['op2'][0]].get()
@@ -984,7 +984,7 @@ class Simulator:
                     modifiedFlags.add('C')
                 shiftDesc = _shiftToDescription(misc['op2'][1])
                 shiftinstr = _shiftToInstruction(misc['op2'][1])
-                op2desc = "le registre R{} {}".format(misc['op2'][0], shiftDesc)
+                op2desc = "Le registre R{} {}".format(misc['op2'][0], shiftDesc)
                 op2dis = "R{}{}".format(misc['op2'][0], shiftinstr)
                 if misc['op2'][1][1] == 'reg':
                     highlightread.append(misc['op2'][1][2])
