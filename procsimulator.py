@@ -561,16 +561,18 @@ class Simulator:
                 val = ((val & (2**32-1)) >> shiftamount%32) | (val << (32-(shiftamount%32)) & (2**32-1))
         return carryOut, val
 
-    def _checkCarry(self, op1, op2, res):
-        return bool(res & (1 << 32))
-
-    def _checkOverflow(self, op1, op2, res):
-        if not bool((op1 & 0x80000000) ^ (op2 & 0x80000000)):
-            op1 = op1-2**32 if op1 & 0x80000000 else op1
-            op2 = op2-2**32 if op2 & 0x80000000 else op2
-            res = op1 + op2
-            return -2**31 > res or res > 2**31
-        return False
+    def _addWithCarry(self, op1, op2, carryIn):
+        def toSigned(n):
+            return n - 2**32 if n & 0x80000000 else n
+        # See AddWithCarry() definition, p.40 (A2-8) of ARM Architecture Reference Manual
+        op1 &= 0xFFFFFFFF
+        op2 &= 0xFFFFFFFF
+        usum = op1 + op2 + int(carryIn)
+        ssum = toSigned(op1) + toSigned(op2) + int(carryIn)
+        r = usum & 0xFFFFFFFF
+        carryOut = usum != r
+        overflowOut = ssum != toSigned(r)
+        return r, carryOut, overflowOut
 
     def execAssert(self, assertionsList, mode):
         for assertionInfo in assertionsList:
@@ -1305,29 +1307,20 @@ class Simulator:
                 # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
                 res = op1 ^ op2
             elif misc['opcode'] in ("SUB", "CMP"):
-                res = op1 - op2
-                workingFlags['C'] = self._checkCarry(op1, op2, res)
-                workingFlags['V'] = self._checkOverflow(op1, (~op2)+1, res)
+                # For a subtraction, including the comparison instruction CMP, C is set to 0
+                # if the subtraction produced a borrow (that is, an unsigned underflow), and to 1 otherwise.
+                # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0801a/CIADCDHH.html
+                res, workingFlags['C'], workingFlags['V'] = self._addWithCarry(op1, ~op2, 1)
             elif misc['opcode'] == "RSB":
-                res = op2 - op1
-                workingFlags['C'] = self._checkCarry(op2, op1, res)
-                workingFlags['V'] = self._checkOverflow(op2, (~op1)+1, res)
+                res, workingFlags['C'], workingFlags['V'] = self._addWithCarry(~op1, op2, 1)
             elif misc['opcode'] in ("ADD", "CMN"):
-                res = op1 + op2
-                workingFlags['C'] = self._checkCarry(op1, op2, res)
-                workingFlags['V'] = self._checkOverflow(op1, op2, res)
+                res, workingFlags['C'], workingFlags['V'] = self._addWithCarry(op1, op2, 0)
             elif misc['opcode'] == "ADC":
-                res = op1 + op2 + int(self.flags['C'])
-                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C']), res)
-                workingFlags['V'] = self._checkOverflow(op1, op2 + int(self.flags['C']), res)
+                res, workingFlags['C'], workingFlags['V'] = self._addWithCarry(op1, op2, int(self.flags['C']))
             elif misc['opcode'] == "SBC":
-                res = op1 - op2 + int(self.flags['C']) - 1
-                workingFlags['C'] = self._checkCarry(op1, op2 + int(self.flags['C']) - 1, res)
-                workingFlags['V'] = self._checkOverflow(op1, ((~op2) + 1) + int(self.flags['C']) - 1, res)
+                res, workingFlags['C'], workingFlags['V'] = self._addWithCarry(op1, ~op2, int(self.flags['C']))
             elif misc['opcode'] == "RSC":
-                res = op2 - op1 + int(self.flags['C']) - 1
-                workingFlags['C'] = self._checkCarry(op2, op1 + int(self.flags['C']) - 1, res)
-                workingFlags['V'] = self._checkOverflow(op2, ((~op1) + 1) + int(self.flags['C']) - 1, res)
+                res, workingFlags['C'], workingFlags['V'] = self._addWithCarry(~op1, op2, int(self.flags['C']))
             elif misc['opcode'] == "ORR":
                 res = op1 | op2
             elif misc['opcode'] == "MOV":
