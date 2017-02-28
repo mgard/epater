@@ -375,7 +375,12 @@ def process(ws, msg_in):
                     interpreters[ws].user_asked_stop__ = False
                     interpreters[ws].step('run')
                     interpreters[ws].last_step__ = time.time()
-                    interpreters[ws].animate_speed__ = int(data[1]) / 1000
+                    try:
+                        anim_speed = int(data[1]) / 1000
+                    except (ValueError, TypeError):
+                        anim_speed = 0
+                        retval.append(["animate_speed", str(anim_speed)])
+                    interpreters[ws].animate_speed__ = anim_speed
             elif data[0] == 'stop':
                 #interpreters[ws].user_asked_stop__ = True
                 del interpreters[ws]
