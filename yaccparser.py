@@ -251,10 +251,11 @@ def p_op2_error(p):
 def p_shift(p):
     """shift : INNERSHIFT
              | INNERSHIFT SPACEORTAB REG
+             | INNERSHIFT SHARP CONST
              | INNERSHIFT SPACEORTAB SHARP CONST"""
     plist = list(p)
     # Shift type
-    if len(plist) == 4 and p[4] == 0 and p[1] in ('LSR', 'ASR', 'ROR'):
+    if len(plist) == 4 and "#" not in p[2] and p[4] == 0 and p[1] in ('LSR', 'ASR', 'ROR'):
         # "Logical shift right zero is redundant as it is the same as logical shift left zero, so the assembler
         # will convert LSR #0 (and ASR #0 and ROR #0) into LSL #0, and allow LSR #32 to be specified."
         p[0] = instruction.shiftMapping['LSL'] << 5
@@ -263,17 +264,17 @@ def p_shift(p):
     if len(plist) == 2:
         # Special case, must be RRX
         assert p[1] == "RRX"
-    elif len(plist) == 4:
+    elif len(plist) == 4 and "#" not in p[2]:
         # Shift by register
         p[0] |= 1 << 4
         p[0] |= p[3] << 8
-    elif not (p[1] in ('LSR', 'ASR') and p[4] == 32):
+    elif not (p[1] in ('LSR', 'ASR') and plist[-1] == 32):
         # Shift by a constant if we are not in special modes
-        if p[4] < 0:
+        if plist[-1] < 0:
             raise YaccError("Impossible d'encoder un décalage négatif ({}) dans une instruction (utilisez un autre opérateur de décalage pour arriver au même effet)".format(p[4]))
-        if p[4] > 31:
+        if plist[-1] > 31:
             raise YaccError("Impossible d'encoder le décalage {} dans une instruction (ce dernier doit être inférieur à 32)".format(p[4]))
-        p[0] |= p[4] << 7
+        p[0] |= plist[-1] << 7
 
 
 
@@ -415,8 +416,13 @@ def p_memaccesspre(p):
 
     p[0] = (p[0], None)     # No external dependencies (this instruction is self contained, no reference to labels)
 
+def p_memaccesspre_error(p):
+    """memaccesspre : OPENBRACKET REG COMMA REG error CLOSEBRACKET"""
+    raise YaccError("Une opération de décalage doit être précédée par une virgule.")
+
 def p_shiftnoreg(p):
     """shiftnoreg : INNERSHIFT
+                  | INNERSHIFT SHARP CONST
                   | INNERSHIFT SPACEORTAB SHARP CONST"""
     # Special shift for the LDR/STR operations : only shift by a constant is allowed
     plist = list(p)
@@ -424,9 +430,9 @@ def p_shiftnoreg(p):
     if len(plist) == 2:
         # Special case, must be RRX
         assert p[1] == "RRX"
-    elif not (p[1] in ('LSR', 'ASR') and p[4] == 32):
+    elif not (p[1] in ('LSR', 'ASR') and plist[-1] == 32):
         # Shift by a constant if we are not in special modes
-        p[0] |= p[4] << 7
+        p[0] |= plist[-1] << 7
 
 def p_memacesspost(p):
     """memaccesspost : OPENBRACKET REG CLOSEBRACKET COMMA REG
@@ -654,8 +660,12 @@ def p_svcinstruction(p):
 
 def p_multiplyinstruction(p):
     """multiplyinstruction : OPMUL logmnemonic flagscondandspace REG COMMA REG COMMA REG
-                           | OPMUL logmnemonic flagscondandspace REG COMMA REG COMMA REG COMMA REG"""
+                           | OPMUL logmnemonic flagscondandspace REG COMMA REG COMMA REG COMMA REG
+                           | OPMUL logmnemonic flagscondandspace REG COMMA REG COMMA SHARP CONST"""
     global currentMnemonic
+    if len(p) == 10:
+        raise YaccError("Une instruction {} ne peut recevoir de constante comme dernier argument, seulement un registre.".format(currentMnemonic))
+
     p[0] = 9 << 4
     if currentMnemonic == 'MLA':
         p[0] |= 1 << 21
