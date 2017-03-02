@@ -626,7 +626,18 @@ def p_psrinstruction(p):
         b |= 0x28F << 12
         if p[6] == '#':
             # Immediate
-            raise NotImplementedError()
+            if len(p[4]) == 1 or p[4][1] != "flg":
+                raise YaccError("Impossible d'affecter directement une constante dans un registre de statut.\n"
+                                    "Seuls les drapeaux peuvent être directement modifiés, en ajoutant le suffixe _flg au registre de statut.")
+            ret = instruction.immediateToBytecode(p[7], None)
+            if ret is None or ret[2]:
+                # Unable to encode constant
+                raise YaccError("Impossible d'encoder la constante suivante dans une instruction {} : {}".format(
+                        currentMnemonic, p[7]))
+            immval, immrot, inverse = ret
+            b |= immval
+            b |= immrot << 8
+            b |= 1 << 25        # Set immediate mode
         else:
             # Register
             b |= p[6]
