@@ -632,7 +632,7 @@ def p_psrinstruction(p):
             b |= p[6]
         if p[4][0] == "SPSR":
             b |= 1 << 22
-        if len(p[4]) == 1 or (len(p[4]) > 1 and p[4][1] != "f"):
+        if len(p[4]) == 1 or (len(p[4]) > 1 and p[4][1] != "flg"):
             b |= 1 << 16        # Transfer to the whole PSR (not just the flags)
 
     # Add the condition bits

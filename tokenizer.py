@@ -437,7 +437,7 @@ def t_multiplememinstr_LISTREGS(t):
 # PSR transfer might use CPSR or SPSR, with an optionnal suffix
 # Must be before REG rule, because else SPSR will be parsed as "SP + SR"
 def t_psrinstr_PSR(t):
-    r'(SPSR|CPSR)(_cxsf|_flg|_all|_f)?'
+    r'(SPSR|CPSR)(_flg|_all)?'
     t.value = t.value.split("_")
     return t
 

@@ -174,5 +174,5 @@ label2  STR R1, label2
   MRS R0, SPSR
   MSR CPSR, R4
   MSR SPSR, R1
-  MSR CPSR_f, R4
-  MSR SPSR_f, R1
+  MSR CPSR_flg, R4
+  MSR SPSR_flg, R1
