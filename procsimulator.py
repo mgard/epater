@@ -112,7 +112,7 @@ class ControlRegister:
         return bool((self.val >> self.flag2index[flag]) & 0x1)
 
     def __setitem__(self, flag, value):
-        self.setFlag(flag, value)
+        self.setFlag(flag, bool(value))
 
     def get(self):
         # Return the content of the PSR as an integer
@@ -151,6 +151,9 @@ class ControlRegister:
         # Mostly use for internal purposes like saving the CPSR in SPSR when an interrupt arises
         self.val = val
         self.history.append((self.sys.countCycles, self.val))
+        seqFlags = ('N', 'Z', 'C', 'V')
+        seqVals = [bool(self.val & (1 << self.flag2index[flag])) for flag in seqFlags]
+        self.historyFlags.append((self.sys.countCycles, dict(zip(seqFlags, seqVals))))
 
     def stepBack(self):
         # Set the program status registers as they were one step back
@@ -1223,6 +1226,11 @@ class Simulator:
 
         elif t == InstrType.psrtransfer:
             if misc['write']:
+                if misc['usespsr'] and self.regs.getSPSR() is None:
+                    # Check if SPSR exists (we are not in user mode)
+                    self.sysHandle.throw(
+                        BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
+                                                  "Erreur : écriture de SPSR en mode 'User' (ce mode ne possede pas de registre SPSR)")))
                 if misc['flagsOnly']:
                     if misc['imm']:
                         valToSet = misc['op2'][0]
@@ -1236,14 +1244,9 @@ class Simulator:
                         valToSet |= self.regs.getCPSR().get() & 0x0FFFFFFF
                 else:
                     valToSet = self.regs[misc['op2'][0]].get()
+
                 if misc['usespsr']:
-                    if self.regs.getSPSR() is None:
-                        # Check if SPSR exists (we are not in user mode)
-                        self.sysHandle.throw(
-                            BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
-                                                      "Erreur : écriture de SPSR en mode 'User' (ce mode ne possede pas de registre SPSR)")))
-                    else:
-                        self.regs.getSPSR().set(valToSet)
+                    self.regs.getSPSR().set(valToSet)
                 else:
                     self.regs.getCPSR().set(valToSet)
             else:       # Read
