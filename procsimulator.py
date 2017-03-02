@@ -1231,6 +1231,7 @@ class Simulator:
                     self.sysHandle.throw(
                         BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
                                                   "Erreur : écriture de SPSR en mode 'User' (ce mode ne possede pas de registre SPSR)")))
+                    return False
                 if misc['flagsOnly']:
                     if misc['imm']:
                         valToSet = misc['op2'][0]
