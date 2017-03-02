@@ -1249,7 +1249,13 @@ class Simulator:
                 if misc['usespsr']:
                     self.regs.getSPSR().set(valToSet)
                 else:
+                    if not getSetting("allowuserswitchmode") and self.regs.getSPSR() is None and self.regs.getCPSR().get() & 0x1F != valToSet & 0x1F:
+                        self.sysHandle.throw(
+                            BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
+                                                      "Erreur : tentative de changer le mode du processeur à partir d'un mode non privilégié!")))
+                        return False
                     self.regs.getCPSR().set(valToSet)
+                    self.regs.setCurrentBankFromMode(valToSet & 0b11111)
             else:       # Read
                 if misc['usespsr'] and self.regs.getSPSR() is None:
                     # Check if SPSR exists (we are not in user mode)

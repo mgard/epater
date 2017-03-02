@@ -354,7 +354,7 @@ def BytecodeToInstrInfos(bc):
 
         usespsr = bool(instrInt & (1 << 22))
         modeWrite = bool(instrInt & (1 << 21))
-        flagsOnly = bool(instrInt & (1 << 16))
+        flagsOnly = not bool(instrInt & (1 << 16))
         imm = bool(instrInt & (1 << 25))
         rd = (instrInt >> 12) & 0xF
 
