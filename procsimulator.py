@@ -894,23 +894,25 @@ class Simulator:
             if cond != 'AL':
                 disassembly += cond
             if misc['write']:
+                disassembly += " SPSR" if misc['usespsr'] else " CPSR"
                 if misc['flagsOnly']:
+                    disassembly += "_flg"
                     if misc['imm']:
                         valToSet = misc['op2'][0]
                         if misc['op2'][1][2] != 0:
                             _, valToSet = self._shiftVal(valToSet, misc['op2'][1])
                             description += "<li>Écrit la constante {} dans {}</li>\n".format(valToSet, "SPSR" if misc['usespsr'] else "CPSR")
+                            disassembly += ", #{}".format(hex(valToSet))
                     else:
-                        valToSet = self.regs[misc['op2'][0]].get() & 0xF0000000   # We only keep the condition flag bits
+                        disassembly += ", R{}".format(misc['op2'][0])
                         description += "<li>Lit la valeur de R{}</li>\n".format(misc['op2'][0])
                         description += "<li>Écrit les 4 bits les plus significatifs de cette valeur (qui correspondent aux drapeaux) dans {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                 else:
-                    valToSet = self.regs[misc['op2'][0]].get()
                     description += "<li>Lit la valeur de R{}</li>\n".format(misc['op2'][0])
                     description += "<li>Écrit cette valeur dans {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
-                if misc['usespsr']:
-                    pass
+                    disassembly += ", R{}".format(misc['op2'][0])
             else:       # Read
+                disassembly += " R{}, {}".format(misc['rd'], "SPSR" if misc['usespsr'] else "CPSR")
                 description += "<li>Lit la valeur de {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                 description += "<li>Écrit le résultat dans R{}</li>\n".format(misc['rd'])
 
