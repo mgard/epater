@@ -1248,6 +1248,12 @@ class Simulator:
                 else:
                     valToSet = self.regs[misc['op2'][0]].get()
 
+                if (valToSet & 0x1F) not in self.regs.getCPSR().bits2mode:
+                    self.sysHandle.throw(
+                        BkptInfo("assert", None, (self.addr2line[self.regs[15].get() - self.pcoffset][-1] - 1,
+                                                  "Erreur : les bits ({:05b}) du mode du {} ne correspondent à aucun mode valide!".format(valToSet & 0x1F, "SPSR" if misc['usespsr'] else "CPSR"))))
+                    return False
+
                 if misc['usespsr']:
                     self.regs.getSPSR().set(valToSet)
                 else:
