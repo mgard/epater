@@ -651,7 +651,7 @@ class Simulator:
                     desc += "permuté vers la droite (mode ROR)"
 
             if shiftInfo[1] == 'reg':
-                desc += " du nombre de positions contenu dans R{}".format(shiftInfo[2])
+                desc += " du nombre de positions contenu dans {}".format(_regSuffixWithBank(shiftInfo[2]))
             else:
                 desc += " de {} {}".format(shiftInfo[2], "positions" if shiftInfo[2] > 1 else "position")
 
@@ -677,33 +677,39 @@ class Simulator:
             listAffectedRegs = ["{}r{}".format(prefixBanks[self.regs.currentBank], reg)]
 
             if self.regs.currentBank == "User":
-                if reg < 13:
+                if reg < 13 or reg == 15:
                     listAffectedRegs.append("IRQ_r{}".format(reg))
                     listAffectedRegs.append("SVC_r{}".format(reg))
-                if reg < 8:
+                if reg < 8 or reg == 15:
                     listAffectedRegs.append("FIQ_r{}".format(reg))
             elif self.regs.currentBank == "IRQ":
-                if reg < 13:
+                if reg < 13 or reg == 15:
                     listAffectedRegs.append("r{}".format(reg))
                     listAffectedRegs.append("SVC_r{}".format(reg))
-                if reg < 8:
+                if reg < 8 or reg == 15:
                     listAffectedRegs.append("FIQ_r{}".format(reg))
             elif self.regs.currentBank == "SVC":
-                if reg < 13:
+                if reg < 13 or reg == 15:
                     listAffectedRegs.append("r{}".format(reg))
                     listAffectedRegs.append("IRQ_r{}".format(reg))
-                if reg < 8:
+                if reg < 8 or reg == 15:
                     listAffectedRegs.append("FIQ_r{}".format(reg))
             elif self.regs.currentBank == "FIQ":
-                if reg < 8:
+                if reg < 8 or reg == 15:
                     listAffectedRegs.append("r{}".format(reg))
                     listAffectedRegs.append("IRQ_r{}".format(reg))
                     listAffectedRegs.append("SVC_r{}".format(reg))
             return listAffectedRegs
 
         def _regSuffixWithBank(reg):
-            suffixBanks = {"User": "", "FIQ": "_fiq", "IRQ": "_irq", "SVC": "_svc"}
-            return "R{}{}".format(reg, suffixBanks[self.regs.currentBank])
+            regStr = "R{}".format(reg) if reg < 13 else ["SP", "LR", "PC"][reg-13]
+            if self.regs.currentBank == "FIQ" and 7 < reg < 15:
+                return "{}_fiq".format(regStr)
+            elif self.regs.currentBank == "IRQ" and 12 < reg < 15:
+                return "{}_irq".format(regStr)
+            elif self.regs.currentBank == "SVC" and 12 < reg < 15:
+                return "{}_svc".format(regStr)
+            return regStr
 
         instrWillExecute = True
         if (cond == "EQ" and not self.flags['Z'] or
@@ -764,22 +770,22 @@ class Simulator:
                 disassembly += "L"
                 highlightwrite.extend(_registerWithCurrentBank(14))
                 highlightread.extend(_registerWithCurrentBank(15))
-                description += "<li>Copie la valeur de PC-4 (l'adresse de la prochaine instruction) dans LR</li>\n"
+                description += "<li>Copie la valeur de {}-4 (l'adresse de la prochaine instruction) dans {}</li>\n".format(_regSuffixWithBank(15), _regSuffixWithBank(14))
             if misc['mode'] == 'imm':
                 nextline = self.regs[15].get() + misc['offset']
                 highlightread.extend(_registerWithCurrentBank(15))
                 highlightwrite.extend(_registerWithCurrentBank(15))
                 valAdd = misc['offset']
                 if valAdd < 0:
-                    description += "<li>Soustrait la valeur {} à PC</li>\n".format(-valAdd)
+                    description += "<li>Soustrait la valeur {} à {}</li>\n".format(-valAdd, _regSuffixWithBank(15))
                 else:
-                    description += "<li>Additionne la valeur {} à PC</li>\n".format(valAdd)
+                    description += "<li>Additionne la valeur {} à {}</li>\n".format(valAdd, _regSuffixWithBank(15))
             else:   # BX
                 disassembly += "X"
                 nextline = self.regs[misc['offset']].get()
                 highlightread.extend(_registerWithCurrentBank(misc['offset']))
                 highlightwrite.extend(_registerWithCurrentBank(15))
-                description += "<li>Copie la valeur de R{} dans PC</li>\n".format(misc['offset'])
+                description += "<li>Copie la valeur de {} dans {}</li>\n".format(_regSuffixWithBank(misc['offset']), _regSuffixWithBank(15))
             pcchanged = True
 
             disassembly += cond if cond != 'AL' else ""
@@ -791,8 +797,7 @@ class Simulator:
             highlightread = _registerWithCurrentBank(misc['base'])
             addr = baseval = self.regs[misc['base']].get(mayTriggerBkpt=False)
 
-            description += "<li>Utilise la valeur du registre R{} comme adresse de base</li>\n".format(misc['base'])
-
+            description += "<li>Utilise la valeur du registre {} comme adresse de base</li>\n".format(_regSuffixWithBank(misc['base']))
             descoffset = ""
             if misc['imm']:
                 addr += misc['sign'] * misc['offset']
@@ -801,9 +806,9 @@ class Simulator:
             else:
                 shiftDesc = _shiftToDescription(misc['offset'][1])
                 if misc['sign'] > 0:
-                    descoffset = "<li>Additionne le registre R{} {} à l'adresse de base</li>\n".format(misc['offset'][0], shiftDesc)
+                    descoffset = "<li>Additionne le registre {} {} à l'adresse de base</li>\n".format(_regSuffixWithBank(misc['offset'][0]), shiftDesc)
                 else:
-                    descoffset = "<li>Soustrait le registre R{} {} à l'adresse de base</li>\n".format(misc['offset'][0], shiftDesc)
+                    descoffset = "<li>Soustrait le registre {} {} à l'adresse de base</li>\n".format(_regSuffixWithBank(misc['offset'][0]), shiftDesc)
                 _, sval = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
                 addr += misc['sign'] * sval
                 highlightread.extend(_registerWithCurrentBank(misc['offset'][0]))
@@ -814,9 +819,9 @@ class Simulator:
                 disassembly = "LDR{}{} R{}, [R{}".format("" if sizeaccess == 4 else "B", "" if cond == 'AL' else cond, misc['rd'], misc['base'])
                 if misc['pre']:
                     description += descoffset
-                    description += "<li>Lit {} octets à partir de l'adresse obtenue (pré-incrément) et stocke le résultat dans R{} (LDR)</li>\n".format(sizeaccess, misc['rd'])
+                    description += "<li>Lit {} octets à partir de l'adresse obtenue (pré-incrément) et stocke le résultat dans {} (LDR)</li>\n".format(sizeaccess, _regSuffixWithBank(misc['rd']))
                 else:
-                    description += "<li>Lit {} octets à partir de l'adresse de base et stocke le résultat dans R{} (LDR)</li>\n".format(sizeaccess, misc['rd'])
+                    description += "<li>Lit {} octets à partir de l'adresse de base et stocke le résultat dans {} (LDR)</li>\n".format(sizeaccess, _regSuffixWithBank(misc['rd']))
                     description += descoffset
                 for addrmem in range(realAddr, realAddr+sizeaccess):
                     highlightread.append("MEM_{:X}".format(addrmem))
@@ -825,9 +830,9 @@ class Simulator:
                 disassembly = "STR{}{} R{}, [R{}".format("" if sizeaccess == 4 else "B", "" if cond == 'AL' else cond, misc['rd'], misc['base'])
                 if misc['pre']:
                     description += descoffset
-                    description += "<li>Copie la valeur du registre R{} dans la mémoire, à l'adresse obtenue à l'étape précédente (pré-incrément), sur {} octets (STR)</li>\n".format(misc['rd'], sizeaccess)
+                    description += "<li>Copie la valeur du registre {} dans la mémoire, à l'adresse obtenue à l'étape précédente (pré-incrément), sur {} octets (STR)</li>\n".format(_regSuffixWithBank(misc['rd']), sizeaccess)
                 else:
-                    description += "<li>Copie la valeur du registre R{} dans la mémoire, à l'adresse de base, sur {} octets (STR)</li>\n".format(misc['rd'], sizeaccess)
+                    description += "<li>Copie la valeur du registre {} dans la mémoire, à l'adresse de base, sur {} octets (STR)</li>\n".format(_regSuffixWithBank(misc['rd']), sizeaccess)
                     description += descoffset
 
                 for addrmem in range(realAddr, realAddr+sizeaccess):
@@ -857,7 +862,7 @@ class Simulator:
 
             if misc['writeback']:
                 highlightwrite.extend(_registerWithCurrentBank(misc['base']))
-                description += "<li>Écrit l'adresse effective dans le registre de base R{} (mode writeback)</li>\n".format(misc['base'])
+                description += "<li>Écrit l'adresse effective dans le registre de base {} (mode writeback)</li>\n".format(_regSuffixWithBank(misc['base']))
                 if misc['pre']:
                     disassembly += "!"
 
@@ -885,9 +890,9 @@ class Simulator:
                 description += "<li>Lit la valeur de SP</li>\n"
                 description += "<li>Pour chaque registre de la liste suivante, décrémente SP de 4, puis stocke la valeur du registre à l'adresse pointée par SP.</li>\n"
             elif misc['mode'] == 'LDR':
-                description += "<li>Lit la valeur de R{}</li>\n".format(misc['base'])
+                description += "<li>Lit la valeur de {}</li>\n".format(_regSuffixWithBank(misc['base']))
             else:
-                description += "<li>Lit la valeur de R{}</li>\n".format(misc['base'])
+                description += "<li>Lit la valeur de {}</li>\n".format(_regSuffixWithBank(misc['base']))
 
             if disassembly[:3] not in ("PUS", "POP"):
                 disassembly += " R{}{},".format(misc['base'], "!" if misc['writeback'] else "")
@@ -942,14 +947,14 @@ class Simulator:
                         description += "<li>Lit la valeur de R{}</li>\n".format(misc['op2'][0])
                         description += "<li>Écrit les 4 bits les plus significatifs de cette valeur (qui correspondent aux drapeaux) dans {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                 else:
-                    description += "<li>Lit la valeur de R{}</li>\n".format(misc['op2'][0])
+                    description += "<li>Lit la valeur de {}</li>\n".format(_regSuffixWithBank(misc['op2'][0]))
                     description += "<li>Écrit cette valeur dans {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                     disassembly += ", R{}".format(misc['op2'][0])
             else:       # Read
                 disassembly += " R{}, {}".format(misc['rd'], "SPSR" if misc['usespsr'] else "CPSR")
                 highlightwrite.extend(_registerWithCurrentBank(misc['rd']))
                 description += "<li>Lit la valeur de {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
-                description += "<li>Écrit le résultat dans R{}</li>\n".format(misc['rd'])
+                description += "<li>Écrit le résultat dans {}</li>\n".format(_regSuffixWithBank(misc['rd']))
 
         elif t == InstrType.multiply:
             op1, op2 = misc['operandsmul']
@@ -958,9 +963,9 @@ class Simulator:
                 # MLA
                 disassembly = "MLA"
                 description += "<li>Effectue une multiplication suivie d'une addition (A*B+C) entre :\n"
-                description += "<ol type=\"A\"><li>Le registre R{}</li>\n".format(op1)
-                description += "<li>Le registre R{}</li>\n".format(op2)
-                description += "<li>Le registre R{}</li></ol>\n".format(misc['operandadd'])
+                description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(op1))
+                description += "<li>Le registre {}</li>\n".format(_regSuffixWithBank(op2))
+                description += "<li>Le registre {}</li></ol>\n".format(_regSuffixWithBank(misc['operandadd']))
                 if misc['setflags']:
                     disassembly += "S"
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
@@ -972,8 +977,8 @@ class Simulator:
                 # MUL
                 disassembly = "MUL"
                 description += "<li>Effectue une multiplication (A*B) entre :\n"
-                description += "<ol type=\"A\"><li>Le registre R{}</li>\n".format(op1)
-                description += "<li>Le registre R{}</li></ol>\n".format(op2)
+                description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(op1))
+                description += "<li>Le registre {}</li></ol>\n".format(_regSuffixWithBank(op2))
                 if misc['setflags']:
                     disassembly += "S"
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
@@ -1024,7 +1029,7 @@ class Simulator:
                     modifiedFlags.add('C')
                 shiftDesc = _shiftToDescription(misc['op2'][1])
                 shiftinstr = _shiftToInstruction(misc['op2'][1])
-                op2desc = "Le registre R{} {}".format(misc['op2'][0], shiftDesc)
+                op2desc = "Le registre {} {}".format(_regSuffixWithBank(misc['op2'][0]), shiftDesc)
                 op2dis = "R{}{}".format(misc['op2'][0], shiftinstr)
                 if misc['op2'][1][1] == 'reg':
                     highlightread.extend(_registerWithCurrentBank(misc['op2'][1][2]))
@@ -1091,9 +1096,9 @@ class Simulator:
             if misc['opcode'] in ("MOV", "MVN"):
                 description += "<ol type=\"A\"><li>{}</li></ol>\n".format(op2desc)
             elif misc['opcode'] in ("TST", "TEQ", "CMP", "CMN"):
-                description += "<ol type=\"A\"><li>Le registre R{}</li><li>{}</li></ol>\n".format(misc['rd'], op2desc)
+                description += "<ol type=\"A\"><li>Le registre {}</li><li>{}</li></ol>\n".format(_regSuffixWithBank(misc['rd']), op2desc)
             else:
-                description += "<ol type=\"A\"><li>Le registre R{}</li>\n".format(misc['rn'])
+                description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(misc['rn']))
                 description += "<li>{}</li></ol>\n".format(op2desc)
                 disassembly += "R{}, ".format(misc['rn'])
             disassembly += op2dis
@@ -1110,7 +1115,7 @@ class Simulator:
                         highlightwrite.append(flag.lower())
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
-                description += "<li>Écrit le résultat dans R{}</li>".format(destrd)
+                description += "<li>Écrit le résultat dans {}</li>".format(_regSuffixWithBank(destrd))
                 highlightwrite.extend(_registerWithCurrentBank(destrd))
 
         if t != InstrType.undefined:
