@@ -92,6 +92,7 @@ $(window).bind('keydown', function(e) {
             $("#fileToLoad").trigger('click'); 
             break;
         }
+    if (!isSimulatorInEditMode()) {
         switch (e.which) {
             case 37: // left
                 simulate('stepforward');
@@ -108,6 +109,7 @@ $(window).bind('keydown', function(e) {
             case 40: // down
                 simulate('stepinto');
                 break;
+            }
         }
     }
 });

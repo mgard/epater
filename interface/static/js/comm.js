@@ -221,9 +221,9 @@ function disableSim() {
 }
 
 function assemble() {
-    var label = $("#assemble").text();
+    var simExec = isSimulatorInEditMode();
     resetView();
-    if (label == "Démarrer") {
+    if (simExec) {
         $("#run").prop('disabled', false);
         $("#stepin").prop('disabled', false);
         $("#stepout").prop('disabled', false);
@@ -240,6 +240,10 @@ function assemble() {
         sendBreakpointsInstr();
         sendCmd(['stop']);
     }
+}
+
+function isSimulatorInEditMode() {
+    return $("#assemble").text() == "Démarrer";
 }
 
 function reset() {
