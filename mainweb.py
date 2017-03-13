@@ -99,7 +99,14 @@ async def handler(websocket, path):
                 break
             done, pending = await asyncio.wait(
                 [listener_task, producer_task, to_run_task, update_ui_task],
-                return_when=asyncio.FIRST_COMPLETED)
+                timeout=3600, return_when=asyncio.FIRST_COMPLETED)
+
+            if len(done) == 0:
+                print("{} timeout!".format(websocket))
+                listener_task.cancel()
+                producer_task.cancel()
+                to_run_task.cancel()
+                break
 
             if listener_task in done:
                 try:
