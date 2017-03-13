@@ -753,7 +753,7 @@ class Simulator:
             description += "<li>Copie du CPSR dans le SPSR_svc</li>\n"
             description += "<li>Copie de PC dans LR_svc</li>\n"
             description += "<li>Assignation de 0x08 dans PC</li>\n"
-            disassembly = "SVC {}".format(hex(misc))
+            disassembly = "SVC 0x{:X}".format(misc)
 
         elif t == InstrType.nopop:
             disassembly = "NOP"
