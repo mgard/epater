@@ -672,6 +672,10 @@ class Simulator:
                 str += " #{}".format(shiftInfo[2])
             return str
 
+        def _registerWithCurrentBank(reg):
+            prefixBanks = {"User": "", "FIQ": "FIQ_", "IRQ": "IRQ_", "SVC": "SVC_"}
+            return "{}{}".format(prefixBanks[self.regs.currentBank], reg)
+
         instrWillExecute = True
         if (cond == "EQ" and not self.flags['Z'] or
                 cond == "NE" and self.flags['Z'] or
@@ -729,13 +733,13 @@ class Simulator:
             if misc['L']:       # Link
                 nextline = self.regs[15].get() - self.pcoffset + 4
                 disassembly += "L"
-                highlightwrite.append("r14")
-                highlightread.append("r15")
+                highlightwrite.append(_registerWithCurrentBank("r14"))
+                highlightread.append(_registerWithCurrentBank("r15"))
                 description += "<li>Copie la valeur de PC-4 (l'adresse de la prochaine instruction) dans LR</li>\n"
             if misc['mode'] == 'imm':
                 nextline = self.regs[15].get() + misc['offset']
-                highlightread.append("r15")
-                highlightwrite.append("r15")
+                highlightread.append(_registerWithCurrentBank("r15"))
+                highlightwrite.append(_registerWithCurrentBank("r15"))
                 valAdd = misc['offset']
                 if valAdd < 0:
                     description += "<li>Soustrait la valeur {} à PC</li>\n".format(-valAdd)
@@ -744,8 +748,8 @@ class Simulator:
             else:   # BX
                 disassembly += "X"
                 nextline = self.regs[misc['offset']].get()
-                highlightread.append("r{}".format(misc['offset']))
-                highlightwrite.append("r15")
+                highlightread.append(_registerWithCurrentBank("r{}".format(misc['offset'])))
+                highlightwrite.append(_registerWithCurrentBank("r15"))
                 description += "<li>Copie la valeur de R{} dans PC</li>\n".format(misc['offset'])
             pcchanged = True
 
@@ -755,7 +759,7 @@ class Simulator:
                 nextline = self.regs[15].get() + 4 - self.pcoffset
 
         elif t == InstrType.memop:
-            highlightread = ["r{}".format(misc['base'])]
+            highlightread = [_registerWithCurrentBank("r{}".format(misc['base']))]
             addr = baseval = self.regs[misc['base']].get(mayTriggerBkpt=False)
 
             description += "<li>Utilise la valeur du registre R{} comme adresse de base</li>\n".format(misc['base'])
@@ -773,7 +777,7 @@ class Simulator:
                     descoffset = "<li>Soustrait le registre R{} {} à l'adresse de base</li>\n".format(misc['offset'][0], shiftDesc)
                 _, sval = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
                 addr += misc['sign'] * sval
-                highlightread.append("r{}".format(misc['offset'][0]))
+                highlightread.append(_registerWithCurrentBank("r{}".format(misc['offset'][0])))
 
             realAddr = addr if misc['pre'] else baseval
             sizeaccess = 1 if misc['byte'] else 4
@@ -787,7 +791,7 @@ class Simulator:
                     description += descoffset
                 for addrmem in range(realAddr, realAddr+sizeaccess):
                     highlightread.append("MEM_{:X}".format(addrmem))
-                highlightwrite.append("r{}".format(misc['rd']))
+                highlightwrite.append(_registerWithCurrentBank("r{}".format(misc['rd'])))
             else:       # STR
                 disassembly = "STR{}{} R{}, [R{}".format("" if sizeaccess == 4 else "B", "" if cond == 'AL' else cond, misc['rd'], misc['base'])
                 if misc['pre']:
@@ -799,7 +803,7 @@ class Simulator:
 
                 for addrmem in range(realAddr, realAddr+sizeaccess):
                     highlightwrite.append("MEM_{:X}".format(addrmem))
-                highlightread.append("r{}".format(misc['rd']))
+                highlightread.append(_registerWithCurrentBank("r{}".format(misc['rd'])))
 
             if misc['pre']:
                 if misc['imm']:
@@ -823,7 +827,7 @@ class Simulator:
                 disassembly += "]"
 
             if misc['writeback']:
-                highlightwrite.append("r{}".format(misc['base']))
+                highlightwrite.append(_registerWithCurrentBank("r{}".format(misc['base'])))
                 description += "<li>Écrit l'adresse effective dans le registre de base R{} (mode writeback)</li>\n".format(misc['base'])
                 if misc['pre']:
                     disassembly += "!"
@@ -905,6 +909,7 @@ class Simulator:
                             disassembly += ", #{}".format(hex(valToSet))
                     else:
                         disassembly += ", R{}".format(misc['op2'][0])
+                        highlightread.append(_registerWithCurrentBank("r{}".format(misc['op2'][0])))
                         description += "<li>Lit la valeur de R{}</li>\n".format(misc['op2'][0])
                         description += "<li>Écrit les 4 bits les plus significatifs de cette valeur (qui correspondent aux drapeaux) dans {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                 else:
@@ -913,6 +918,7 @@ class Simulator:
                     disassembly += ", R{}".format(misc['op2'][0])
             else:       # Read
                 disassembly += " R{}, {}".format(misc['rd'], "SPSR" if misc['usespsr'] else "CPSR")
+                highlightwrite.append(_registerWithCurrentBank("r{}".format(misc['rd'])))
                 description += "<li>Lit la valeur de {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                 description += "<li>Écrit le résultat dans R{}</li>\n".format(misc['rd'])
 
@@ -930,9 +936,9 @@ class Simulator:
                     disassembly += "S"
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
                 disassembly += " R{}, R{}, R{}, R{} ".format(destrd, op1, op2, misc['operandadd'])
-                highlightread.append("r{}".format(op1))
-                highlightread.append("r{}".format(op2))
-                highlightread.append("r{}".format(misc['operandadd']))
+                highlightread.append(_registerWithCurrentBank("r{}".format(op1)))
+                highlightread.append(_registerWithCurrentBank("r{}".format(op2)))
+                highlightread.append(_registerWithCurrentBank("r{}".format(misc['operandadd'])))
             else:
                 # MUL
                 disassembly = "MUL"
@@ -943,11 +949,11 @@ class Simulator:
                     disassembly += "S"
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
                 disassembly += " R{}, R{}, R{} ".format(destrd, op1, op2)
-                highlightread.append("r{}".format(op1))
-                highlightread.append("r{}".format(op2))
+                highlightread.append(_registerWithCurrentBank("r{}".format(op1)))
+                highlightread.append(_registerWithCurrentBank("r{}".format(op2)))
 
             description += "<li>Écrit le résultat dans R{}</li>".format(destrd)
-            highlightwrite.append("r{}".format(destrd))
+            highlightwrite.append(_registerWithCurrentBank("r{}".format(destrd)))
 
             if misc['setflags']:
                 for flag in ('c', 'z', 'n'):
@@ -966,7 +972,7 @@ class Simulator:
 
             op1 = self.regs[misc['rn']].get()
             if misc['opcode'] not in ("MOV", "MVN"):
-                highlightread.append("r{}".format(misc['rn']))
+                highlightread.append(_registerWithCurrentBank("r{}".format(misc['rn'])))
 
             op2desc = ""
             op2dis = ""
@@ -981,7 +987,7 @@ class Simulator:
                 op2dis = "#{}".format(hex(op2))
             else:
                 op2 = self.regs[misc['op2'][0]].get()
-                highlightread.append("r{}".format(misc['op2'][0]))
+                highlightread.append(_registerWithCurrentBank("r{}".format(misc['op2'][0])))
                 if misc['op2'][0] == 15 and getSetting("PCspecialbehavior"):
                     op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
                 carry, op2 = self._shiftVal(op2, misc['op2'][1])
@@ -992,7 +998,7 @@ class Simulator:
                 op2desc = "Le registre R{} {}".format(misc['op2'][0], shiftDesc)
                 op2dis = "R{}{}".format(misc['op2'][0], shiftinstr)
                 if misc['op2'][1][1] == 'reg':
-                    highlightread.append(misc['op2'][1][2])
+                    highlightread.append(_registerWithCurrentBank(misc['op2'][1][2]))
 
             # Get destination register and write the result
             destrd = misc['rd']
@@ -1076,7 +1082,7 @@ class Simulator:
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
                 description += "<li>Écrit le résultat dans R{}</li>".format(destrd)
-                highlightwrite.append("r{}".format(destrd))
+                highlightwrite.append(_registerWithCurrentBank("r{}".format(destrd)))
 
         if t != InstrType.undefined:
             description += "</ol>"
