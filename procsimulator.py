@@ -1145,8 +1145,13 @@ class Simulator:
 
         if t == InstrType.undefined:
             # Invalid instruction, we report it
-            self.sysHandle.throw(BkptInfo("assert", None, (self.addr2line[self.regs[15].get()-self.pcoffset][-1]-1,
+            try:
+                self.sysHandle.throw(BkptInfo("assert", None, (self.addr2line[self.regs[15].get()-self.pcoffset][-1]-1,
                                                            "Erreur : le bytecode ne correspond à aucune instruction valide!")))
+            except IndexError:
+                self.sysHandle.throw(BkptInfo("pc", None, ("Erreur : la valeur de PC ({}) est invalide (ce doit être un multiple de 4)"
+                                                           ", et le bytecode pointé ne correspond à aucune instruction valide!".format(hex(self.regs[15].get())))))
+            return False
 
 
         # Check condition
