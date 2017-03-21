@@ -440,7 +440,9 @@ class Simulator:
         self.mem = Memory(memorycontent, self.sysHandle)
         self.assertionCkpts = set(assertionTriggers.keys())
         self.assertionData = assertionTriggers
+        self.assertionWhenReturn = set()
         self.pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
+        self.callStack = []
 
         self.addr2line = addr2line
 
@@ -596,14 +598,18 @@ class Simulator:
                     valreg = self.regs[reg].get()
                     if valreg != val:
                         strError += "Erreur : {} devrait valoir {}, mais il vaut {}\n".format(target, val, valreg)
-                elif target[:1] == "0x":
+                elif target[:2] == "0x":
                     # Memory
                     addr = int(target, base=16)
-                    val = int(value, base=0) & 0xFFFFFFFF
-                    valmem = self.mem.get(addr, mayTriggerBkpt=False)
+                    val = int(value, base=0)
+                    formatStruct = "<B"
+                    if not 0 <= int(val) < 255:
+                        val &= 0xFFFFFFFF
+                        formatStruct = "<I"
+                    valmem = self.mem.get(addr, mayTriggerBkpt=False, size=4 if formatStruct == "<I" else 1)
+                    valmem = struct.unpack(formatStruct, valmem)[0]
                     if valmem != val:
                         strError += "Erreur : l'adresse mémoire {} devrait contenir {}, mais elle contient {}\n".format(target, val, valmem)
-                    assert self.mem.get(addr, mayTriggerBkpt=False) == val
                 elif len(target) == 1 and target in ('Z', 'V', 'N', 'C', 'I', 'F'):
                     # Flag
                     val = bool(value)
@@ -611,7 +617,7 @@ class Simulator:
                         strError += "Erreur : le drapeau {} devrait signaler {}, mais il signale {}\n".format(target, val, self.flags[target])
                 else:
                     # Assert type unknown
-                    strError += "Assertion inconnue!".format(target, val, self.flags[target])
+                    strError += "Assertion inconnue!".format(target, val)
 
             if len(strError) > 0:
                 self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, strError)))
@@ -1193,11 +1199,14 @@ class Simulator:
             if misc['L']:       # Link
                 self.regs[14].set(self.regs[15].get() - self.pcoffset + 4)
                 self.stepCondition += 1         # We are entering a function, we log it (useful for stepForward and stepOut)
+                self.callStack.append(self.regs[15].get() - self.pcoffset)
             if misc['mode'] == 'imm':
                 self.regs[15].set(self.regs[15].get() + misc['offset'])
             else:   # BX
                 self.regs[15].set(self.regs[misc['offset']].get())
                 self.stepCondition -= 1         # We are returning from a function, we log it (useful for stepForward and stepOut)
+                if len(self.callStack) > 0:
+                    self.callStack.pop()
             pcchanged = True
 
         elif t == InstrType.memop:
@@ -1443,17 +1452,30 @@ class Simulator:
         keeppc = self.regs[15].get() - self.pcoffset
 
         # The instruction should have been fetched by the last instruction
+        currentCallStackLen = len(self.callStack)
         pcmodified = self.execInstr()
         if pcmodified:
             self.regs[15].set(self.regs[15].get() + self.pcoffset)
         else:
             self.regs[15].set(self.regs[15].get() + 4)        # PC = PC + 4
 
-        if not pcmodified and keeppc in self.assertionCkpts:
+        newpc = self.regs[15].get() - self.pcoffset
+
+        if keeppc in self.assertionCkpts and not pcmodified:
             # We check if we've hit an post-assertion checkpoint
             self.execAssert(self.assertionData[keeppc], 'AFTER')
+        elif currentCallStackLen > len(self.callStack):
+            # We have branched out of a function
+            # If an assertion was following a BL and we exited a function, we want to execute it now!
+            if len(self.callStack) in self.assertionWhenReturn and (newpc-4) in self.assertionCkpts:
+                self.execAssert(self.assertionData[newpc-4], 'AFTER')
+                self.assertionWhenReturn.remove(len(self.callStack))
+        elif currentCallStackLen < len(self.callStack):
+            # We have branched in a function
+            # We want to remember that we want to assert something when we return
+            if keeppc in self.assertionCkpts:
+                self.assertionWhenReturn.add(currentCallStackLen)
 
-        newpc = self.regs[15].get() - self.pcoffset
         if newpc in self.assertionCkpts:
             # We check if we've hit an pre-assertion checkpoint (for the next instruction)
             self.execAssert(self.assertionData[newpc], 'BEFORE')
