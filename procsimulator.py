@@ -627,6 +627,9 @@ class Simulator:
         Decode the current instruction in self.decodedInstr
         :return:
         """
+        if self.decodedInstr is None:
+            # May happen if the user changes the flags while PC holds an illegal value
+            return
         t, regs, cond, misc = self.decodedInstr
 
         pcchanged = False
