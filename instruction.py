@@ -242,7 +242,7 @@ def BytecodeToInstrInfos(bc):
 
     if checkMask(instrInt, (24, 25, 26, 27), ()): # Software interrupt
         category = InstrType.softinterrupt
-        miscInfo = instrInt & (0xFF << 24)
+        miscInfo = instrInt & 0xFFFFFF
 
     elif checkMask(instrInt, (4, 25, 26), (27,)):    # Undefined instruction
         category = InstrType.undefined

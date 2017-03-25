@@ -440,7 +440,9 @@ class Simulator:
         self.mem = Memory(memorycontent, self.sysHandle)
         self.assertionCkpts = set(assertionTriggers.keys())
         self.assertionData = assertionTriggers
+        self.assertionWhenReturn = set()
         self.pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
+        self.callStack = []
 
         self.addr2line = addr2line
 
@@ -596,14 +598,18 @@ class Simulator:
                     valreg = self.regs[reg].get()
                     if valreg != val:
                         strError += "Erreur : {} devrait valoir {}, mais il vaut {}\n".format(target, val, valreg)
-                elif target[:1] == "0x":
+                elif target[:2] == "0x":
                     # Memory
                     addr = int(target, base=16)
-                    val = int(value, base=0) & 0xFFFFFFFF
-                    valmem = self.mem.get(addr, mayTriggerBkpt=False)
+                    val = int(value, base=0)
+                    formatStruct = "<B"
+                    if not 0 <= int(val) < 255:
+                        val &= 0xFFFFFFFF
+                        formatStruct = "<I"
+                    valmem = self.mem.get(addr, mayTriggerBkpt=False, size=4 if formatStruct == "<I" else 1)
+                    valmem = struct.unpack(formatStruct, valmem)[0]
                     if valmem != val:
                         strError += "Erreur : l'adresse mémoire {} devrait contenir {}, mais elle contient {}\n".format(target, val, valmem)
-                    assert self.mem.get(addr, mayTriggerBkpt=False) == val
                 elif len(target) == 1 and target in ('Z', 'V', 'N', 'C', 'I', 'F'):
                     # Flag
                     val = bool(value)
@@ -611,7 +617,7 @@ class Simulator:
                         strError += "Erreur : le drapeau {} devrait signaler {}, mais il signale {}\n".format(target, val, self.flags[target])
                 else:
                     # Assert type unknown
-                    strError += "Assertion inconnue!".format(target, val, self.flags[target])
+                    strError += "Assertion inconnue!".format(target, val)
 
             if len(strError) > 0:
                 self.sysHandle.throw(BkptInfo("assert", None, (assertionLine, strError)))
@@ -621,6 +627,9 @@ class Simulator:
         Decode the current instruction in self.decodedInstr
         :return:
         """
+        if self.decodedInstr is None:
+            # May happen if the user changes the flags while PC holds an illegal value
+            return
         t, regs, cond, misc = self.decodedInstr
 
         pcchanged = False
@@ -651,7 +660,7 @@ class Simulator:
                     desc += "permuté vers la droite (mode ROR)"
 
             if shiftInfo[1] == 'reg':
-                desc += " du nombre de positions contenu dans R{}".format(shiftInfo[2])
+                desc += " du nombre de positions contenu dans {}".format(_regSuffixWithBank(shiftInfo[2]))
             else:
                 desc += " de {} {}".format(shiftInfo[2], "positions" if shiftInfo[2] > 1 else "position")
 
@@ -671,6 +680,45 @@ class Simulator:
             else:
                 str += " #{}".format(shiftInfo[2])
             return str
+
+        def _registerWithCurrentBank(reg):
+            prefixBanks = {"User": "", "FIQ": "FIQ_", "IRQ": "IRQ_", "SVC": "SVC_"}
+            listAffectedRegs = ["{}r{}".format(prefixBanks[self.regs.currentBank], reg)]
+
+            if self.regs.currentBank == "User":
+                if reg < 13 or reg == 15:
+                    listAffectedRegs.append("IRQ_r{}".format(reg))
+                    listAffectedRegs.append("SVC_r{}".format(reg))
+                if reg < 8 or reg == 15:
+                    listAffectedRegs.append("FIQ_r{}".format(reg))
+            elif self.regs.currentBank == "IRQ":
+                if reg < 13 or reg == 15:
+                    listAffectedRegs.append("r{}".format(reg))
+                    listAffectedRegs.append("SVC_r{}".format(reg))
+                if reg < 8 or reg == 15:
+                    listAffectedRegs.append("FIQ_r{}".format(reg))
+            elif self.regs.currentBank == "SVC":
+                if reg < 13 or reg == 15:
+                    listAffectedRegs.append("r{}".format(reg))
+                    listAffectedRegs.append("IRQ_r{}".format(reg))
+                if reg < 8 or reg == 15:
+                    listAffectedRegs.append("FIQ_r{}".format(reg))
+            elif self.regs.currentBank == "FIQ":
+                if reg < 8 or reg == 15:
+                    listAffectedRegs.append("r{}".format(reg))
+                    listAffectedRegs.append("IRQ_r{}".format(reg))
+                    listAffectedRegs.append("SVC_r{}".format(reg))
+            return listAffectedRegs
+
+        def _regSuffixWithBank(reg):
+            regStr = "R{}".format(reg) if reg < 13 else ["SP", "LR", "PC"][reg-13]
+            if self.regs.currentBank == "FIQ" and 7 < reg < 15:
+                return "{}_fiq".format(regStr)
+            elif self.regs.currentBank == "IRQ" and 12 < reg < 15:
+                return "{}_irq".format(regStr)
+            elif self.regs.currentBank == "SVC" and 12 < reg < 15:
+                return "{}_svc".format(regStr)
+            return regStr
 
         instrWillExecute = True
         if (cond == "EQ" and not self.flags['Z'] or
@@ -714,7 +762,7 @@ class Simulator:
             description += "<li>Copie du CPSR dans le SPSR_svc</li>\n"
             description += "<li>Copie de PC dans LR_svc</li>\n"
             description += "<li>Assignation de 0x08 dans PC</li>\n"
-            disassembly = "SVC {}".format(hex(misc))
+            disassembly = "SVC 0x{:X}".format(misc)
 
         elif t == InstrType.nopop:
             disassembly = "NOP"
@@ -729,24 +777,24 @@ class Simulator:
             if misc['L']:       # Link
                 nextline = self.regs[15].get() - self.pcoffset + 4
                 disassembly += "L"
-                highlightwrite.append("r14")
-                highlightread.append("r15")
-                description += "<li>Copie la valeur de PC-4 (l'adresse de la prochaine instruction) dans LR</li>\n"
+                highlightwrite.extend(_registerWithCurrentBank(14))
+                highlightread.extend(_registerWithCurrentBank(15))
+                description += "<li>Copie la valeur de {}-4 (l'adresse de la prochaine instruction) dans {}</li>\n".format(_regSuffixWithBank(15), _regSuffixWithBank(14))
             if misc['mode'] == 'imm':
                 nextline = self.regs[15].get() + misc['offset']
-                highlightread.append("r15")
-                highlightwrite.append("r15")
+                highlightread.extend(_registerWithCurrentBank(15))
+                highlightwrite.extend(_registerWithCurrentBank(15))
                 valAdd = misc['offset']
                 if valAdd < 0:
-                    description += "<li>Soustrait la valeur {} à PC</li>\n".format(-valAdd)
+                    description += "<li>Soustrait la valeur {} à {}</li>\n".format(-valAdd, _regSuffixWithBank(15))
                 else:
-                    description += "<li>Additionne la valeur {} à PC</li>\n".format(valAdd)
+                    description += "<li>Additionne la valeur {} à {}</li>\n".format(valAdd, _regSuffixWithBank(15))
             else:   # BX
                 disassembly += "X"
                 nextline = self.regs[misc['offset']].get()
-                highlightread.append("r{}".format(misc['offset']))
-                highlightwrite.append("r15")
-                description += "<li>Copie la valeur de R{} dans PC</li>\n".format(misc['offset'])
+                highlightread.extend(_registerWithCurrentBank(misc['offset']))
+                highlightwrite.extend(_registerWithCurrentBank(15))
+                description += "<li>Copie la valeur de {} dans {}</li>\n".format(_regSuffixWithBank(misc['offset']), _regSuffixWithBank(15))
             pcchanged = True
 
             disassembly += cond if cond != 'AL' else ""
@@ -755,11 +803,10 @@ class Simulator:
                 nextline = self.regs[15].get() + 4 - self.pcoffset
 
         elif t == InstrType.memop:
-            highlightread = ["r{}".format(misc['base'])]
+            highlightread = _registerWithCurrentBank(misc['base'])
             addr = baseval = self.regs[misc['base']].get(mayTriggerBkpt=False)
 
-            description += "<li>Utilise la valeur du registre R{} comme adresse de base</li>\n".format(misc['base'])
-
+            description += "<li>Utilise la valeur du registre {} comme adresse de base</li>\n".format(_regSuffixWithBank(misc['base']))
             descoffset = ""
             if misc['imm']:
                 addr += misc['sign'] * misc['offset']
@@ -768,12 +815,12 @@ class Simulator:
             else:
                 shiftDesc = _shiftToDescription(misc['offset'][1])
                 if misc['sign'] > 0:
-                    descoffset = "<li>Additionne le registre R{} {} à l'adresse de base</li>\n".format(misc['offset'][0], shiftDesc)
+                    descoffset = "<li>Additionne le registre {} {} à l'adresse de base</li>\n".format(_regSuffixWithBank(misc['offset'][0]), shiftDesc)
                 else:
-                    descoffset = "<li>Soustrait le registre R{} {} à l'adresse de base</li>\n".format(misc['offset'][0], shiftDesc)
+                    descoffset = "<li>Soustrait le registre {} {} à l'adresse de base</li>\n".format(_regSuffixWithBank(misc['offset'][0]), shiftDesc)
                 _, sval = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
                 addr += misc['sign'] * sval
-                highlightread.append("r{}".format(misc['offset'][0]))
+                highlightread.extend(_registerWithCurrentBank(misc['offset'][0]))
 
             realAddr = addr if misc['pre'] else baseval
             sizeaccess = 1 if misc['byte'] else 4
@@ -781,25 +828,25 @@ class Simulator:
                 disassembly = "LDR{}{} R{}, [R{}".format("" if sizeaccess == 4 else "B", "" if cond == 'AL' else cond, misc['rd'], misc['base'])
                 if misc['pre']:
                     description += descoffset
-                    description += "<li>Lit {} octets à partir de l'adresse obtenue (pré-incrément) et stocke le résultat dans R{} (LDR)</li>\n".format(sizeaccess, misc['rd'])
+                    description += "<li>Lit {} octets à partir de l'adresse obtenue (pré-incrément) et stocke le résultat dans {} (LDR)</li>\n".format(sizeaccess, _regSuffixWithBank(misc['rd']))
                 else:
-                    description += "<li>Lit {} octets à partir de l'adresse de base et stocke le résultat dans R{} (LDR)</li>\n".format(sizeaccess, misc['rd'])
+                    description += "<li>Lit {} octets à partir de l'adresse de base et stocke le résultat dans {} (LDR)</li>\n".format(sizeaccess, _regSuffixWithBank(misc['rd']))
                     description += descoffset
                 for addrmem in range(realAddr, realAddr+sizeaccess):
                     highlightread.append("MEM_{:X}".format(addrmem))
-                highlightwrite.append("r{}".format(misc['rd']))
+                highlightwrite.extend(_registerWithCurrentBank(misc['rd']))
             else:       # STR
                 disassembly = "STR{}{} R{}, [R{}".format("" if sizeaccess == 4 else "B", "" if cond == 'AL' else cond, misc['rd'], misc['base'])
                 if misc['pre']:
                     description += descoffset
-                    description += "<li>Copie la valeur du registre R{} dans la mémoire, à l'adresse obtenue à l'étape précédente (pré-incrément), sur {} octets (STR)</li>\n".format(misc['rd'], sizeaccess)
+                    description += "<li>Copie la valeur du registre {} dans la mémoire, à l'adresse obtenue à l'étape précédente (pré-incrément), sur {} octets (STR)</li>\n".format(_regSuffixWithBank(misc['rd']), sizeaccess)
                 else:
-                    description += "<li>Copie la valeur du registre R{} dans la mémoire, à l'adresse de base, sur {} octets (STR)</li>\n".format(misc['rd'], sizeaccess)
+                    description += "<li>Copie la valeur du registre {} dans la mémoire, à l'adresse de base, sur {} octets (STR)</li>\n".format(_regSuffixWithBank(misc['rd']), sizeaccess)
                     description += descoffset
 
                 for addrmem in range(realAddr, realAddr+sizeaccess):
                     highlightwrite.append("MEM_{:X}".format(addrmem))
-                highlightread.append("r{}".format(misc['rd']))
+                highlightread.extend(_registerWithCurrentBank(misc['rd']))
 
             if misc['pre']:
                 if misc['imm']:
@@ -823,8 +870,8 @@ class Simulator:
                 disassembly += "]"
 
             if misc['writeback']:
-                highlightwrite.append("r{}".format(misc['base']))
-                description += "<li>Écrit l'adresse effective dans le registre de base R{} (mode writeback)</li>\n".format(misc['base'])
+                highlightwrite.extend(_registerWithCurrentBank(misc['base']))
+                description += "<li>Écrit l'adresse effective dans le registre de base {} (mode writeback)</li>\n".format(_regSuffixWithBank(misc['base']))
                 if misc['pre']:
                     disassembly += "!"
 
@@ -852,9 +899,9 @@ class Simulator:
                 description += "<li>Lit la valeur de SP</li>\n"
                 description += "<li>Pour chaque registre de la liste suivante, décrémente SP de 4, puis stocke la valeur du registre à l'adresse pointée par SP.</li>\n"
             elif misc['mode'] == 'LDR':
-                description += "<li>Lit la valeur de R{}</li>\n".format(misc['base'])
+                description += "<li>Lit la valeur de {}</li>\n".format(_regSuffixWithBank(misc['base']))
             else:
-                description += "<li>Lit la valeur de R{}</li>\n".format(misc['base'])
+                description += "<li>Lit la valeur de {}</li>\n".format(_regSuffixWithBank(misc['base']))
 
             if disassembly[:3] not in ("PUS", "POP"):
                 disassembly += " R{}{},".format(misc['base'], "!" if misc['writeback'] else "")
@@ -905,16 +952,18 @@ class Simulator:
                             disassembly += ", #{}".format(hex(valToSet))
                     else:
                         disassembly += ", R{}".format(misc['op2'][0])
+                        highlightread.extend(_registerWithCurrentBank(misc['op2'][0]))
                         description += "<li>Lit la valeur de R{}</li>\n".format(misc['op2'][0])
                         description += "<li>Écrit les 4 bits les plus significatifs de cette valeur (qui correspondent aux drapeaux) dans {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                 else:
-                    description += "<li>Lit la valeur de R{}</li>\n".format(misc['op2'][0])
+                    description += "<li>Lit la valeur de {}</li>\n".format(_regSuffixWithBank(misc['op2'][0]))
                     description += "<li>Écrit cette valeur dans {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
                     disassembly += ", R{}".format(misc['op2'][0])
             else:       # Read
                 disassembly += " R{}, {}".format(misc['rd'], "SPSR" if misc['usespsr'] else "CPSR")
+                highlightwrite.extend(_registerWithCurrentBank(misc['rd']))
                 description += "<li>Lit la valeur de {}</li>\n".format("SPSR" if misc['usespsr'] else "CPSR")
-                description += "<li>Écrit le résultat dans R{}</li>\n".format(misc['rd'])
+                description += "<li>Écrit le résultat dans {}</li>\n".format(_regSuffixWithBank(misc['rd']))
 
         elif t == InstrType.multiply:
             op1, op2 = misc['operandsmul']
@@ -923,31 +972,31 @@ class Simulator:
                 # MLA
                 disassembly = "MLA"
                 description += "<li>Effectue une multiplication suivie d'une addition (A*B+C) entre :\n"
-                description += "<ol type=\"A\"><li>Le registre R{}</li>\n".format(op1)
-                description += "<li>Le registre R{}</li>\n".format(op2)
-                description += "<li>Le registre R{}</li></ol>\n".format(misc['operandadd'])
+                description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(op1))
+                description += "<li>Le registre {}</li>\n".format(_regSuffixWithBank(op2))
+                description += "<li>Le registre {}</li></ol>\n".format(_regSuffixWithBank(misc['operandadd']))
                 if misc['setflags']:
                     disassembly += "S"
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
                 disassembly += " R{}, R{}, R{}, R{} ".format(destrd, op1, op2, misc['operandadd'])
-                highlightread.append("r{}".format(op1))
-                highlightread.append("r{}".format(op2))
-                highlightread.append("r{}".format(misc['operandadd']))
+                highlightread.extend(_registerWithCurrentBank(op1))
+                highlightread.extend(_registerWithCurrentBank(op2))
+                highlightread.extend(_registerWithCurrentBank(misc['operandadd']))
             else:
                 # MUL
                 disassembly = "MUL"
                 description += "<li>Effectue une multiplication (A*B) entre :\n"
-                description += "<ol type=\"A\"><li>Le registre R{}</li>\n".format(op1)
-                description += "<li>Le registre R{}</li></ol>\n".format(op2)
+                description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(op1))
+                description += "<li>Le registre {}</li></ol>\n".format(_regSuffixWithBank(op2))
                 if misc['setflags']:
                     disassembly += "S"
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
                 disassembly += " R{}, R{}, R{} ".format(destrd, op1, op2)
-                highlightread.append("r{}".format(op1))
-                highlightread.append("r{}".format(op2))
+                highlightread.extend(_registerWithCurrentBank(op1))
+                highlightread.extend(_registerWithCurrentBank(op2))
 
             description += "<li>Écrit le résultat dans R{}</li>".format(destrd)
-            highlightwrite.append("r{}".format(destrd))
+            highlightwrite.extend(_registerWithCurrentBank(destrd))
 
             if misc['setflags']:
                 for flag in ('c', 'z', 'n'):
@@ -966,7 +1015,7 @@ class Simulator:
 
             op1 = self.regs[misc['rn']].get()
             if misc['opcode'] not in ("MOV", "MVN"):
-                highlightread.append("r{}".format(misc['rn']))
+                highlightread.extend(_registerWithCurrentBank(misc['rn']))
 
             op2desc = ""
             op2dis = ""
@@ -981,7 +1030,7 @@ class Simulator:
                 op2dis = "#{}".format(hex(op2))
             else:
                 op2 = self.regs[misc['op2'][0]].get()
-                highlightread.append("r{}".format(misc['op2'][0]))
+                highlightread.extend(_registerWithCurrentBank(misc['op2'][0]))
                 if misc['op2'][0] == 15 and getSetting("PCspecialbehavior"):
                     op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
                 carry, op2 = self._shiftVal(op2, misc['op2'][1])
@@ -989,10 +1038,10 @@ class Simulator:
                     modifiedFlags.add('C')
                 shiftDesc = _shiftToDescription(misc['op2'][1])
                 shiftinstr = _shiftToInstruction(misc['op2'][1])
-                op2desc = "Le registre R{} {}".format(misc['op2'][0], shiftDesc)
+                op2desc = "Le registre {} {}".format(_regSuffixWithBank(misc['op2'][0]), shiftDesc)
                 op2dis = "R{}{}".format(misc['op2'][0], shiftinstr)
                 if misc['op2'][1][1] == 'reg':
-                    highlightread.append(misc['op2'][1][2])
+                    highlightread.extend(_registerWithCurrentBank(misc['op2'][1][2]))
 
             # Get destination register and write the result
             destrd = misc['rd']
@@ -1056,9 +1105,9 @@ class Simulator:
             if misc['opcode'] in ("MOV", "MVN"):
                 description += "<ol type=\"A\"><li>{}</li></ol>\n".format(op2desc)
             elif misc['opcode'] in ("TST", "TEQ", "CMP", "CMN"):
-                description += "<ol type=\"A\"><li>Le registre R{}</li><li>{}</li></ol>\n".format(misc['rd'], op2desc)
+                description += "<ol type=\"A\"><li>Le registre {}</li><li>{}</li></ol>\n".format(_regSuffixWithBank(misc['rd']), op2desc)
             else:
-                description += "<ol type=\"A\"><li>Le registre R{}</li>\n".format(misc['rn'])
+                description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(misc['rn']))
                 description += "<li>{}</li></ol>\n".format(op2desc)
                 disassembly += "R{}, ".format(misc['rn'])
             disassembly += op2dis
@@ -1075,8 +1124,8 @@ class Simulator:
                         highlightwrite.append(flag.lower())
                     description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
             if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
-                description += "<li>Écrit le résultat dans R{}</li>".format(destrd)
-                highlightwrite.append("r{}".format(destrd))
+                description += "<li>Écrit le résultat dans {}</li>".format(_regSuffixWithBank(destrd))
+                highlightwrite.extend(_registerWithCurrentBank(destrd))
 
         if t != InstrType.undefined:
             description += "</ol>"
@@ -1105,8 +1154,13 @@ class Simulator:
 
         if t == InstrType.undefined:
             # Invalid instruction, we report it
-            self.sysHandle.throw(BkptInfo("assert", None, (self.addr2line[self.regs[15].get()-self.pcoffset][-1]-1,
+            try:
+                self.sysHandle.throw(BkptInfo("assert", None, (self.addr2line[self.regs[15].get()-self.pcoffset][-1]-1,
                                                            "Erreur : le bytecode ne correspond à aucune instruction valide!")))
+            except IndexError:
+                self.sysHandle.throw(BkptInfo("pc", None, ("Erreur : la valeur de PC ({}) est invalide (ce doit être un multiple de 4)"
+                                                           ", et le bytecode pointé ne correspond à aucune instruction valide!".format(hex(self.regs[15].get())))))
+            return False
 
 
         # Check condition
@@ -1148,11 +1202,14 @@ class Simulator:
             if misc['L']:       # Link
                 self.regs[14].set(self.regs[15].get() - self.pcoffset + 4)
                 self.stepCondition += 1         # We are entering a function, we log it (useful for stepForward and stepOut)
+                self.callStack.append(self.regs[15].get() - self.pcoffset)
             if misc['mode'] == 'imm':
                 self.regs[15].set(self.regs[15].get() + misc['offset'])
             else:   # BX
                 self.regs[15].set(self.regs[misc['offset']].get())
                 self.stepCondition -= 1         # We are returning from a function, we log it (useful for stepForward and stepOut)
+                if len(self.callStack) > 0:
+                    self.callStack.pop()
             pcchanged = True
 
         elif t == InstrType.memop:
@@ -1398,17 +1455,30 @@ class Simulator:
         keeppc = self.regs[15].get() - self.pcoffset
 
         # The instruction should have been fetched by the last instruction
+        currentCallStackLen = len(self.callStack)
         pcmodified = self.execInstr()
         if pcmodified:
             self.regs[15].set(self.regs[15].get() + self.pcoffset)
         else:
             self.regs[15].set(self.regs[15].get() + 4)        # PC = PC + 4
 
-        if not pcmodified and keeppc in self.assertionCkpts:
+        newpc = self.regs[15].get() - self.pcoffset
+
+        if keeppc in self.assertionCkpts and not pcmodified:
             # We check if we've hit an post-assertion checkpoint
             self.execAssert(self.assertionData[keeppc], 'AFTER')
+        elif currentCallStackLen > len(self.callStack):
+            # We have branched out of a function
+            # If an assertion was following a BL and we exited a function, we want to execute it now!
+            if len(self.callStack) in self.assertionWhenReturn and (newpc-4) in self.assertionCkpts:
+                self.execAssert(self.assertionData[newpc-4], 'AFTER')
+                self.assertionWhenReturn.remove(len(self.callStack))
+        elif currentCallStackLen < len(self.callStack):
+            # We have branched in a function
+            # We want to remember that we want to assert something when we return
+            if keeppc in self.assertionCkpts:
+                self.assertionWhenReturn.add(currentCallStackLen)
 
-        newpc = self.regs[15].get() - self.pcoffset
         if newpc in self.assertionCkpts:
             # We check if we've hit an pre-assertion checkpoint (for the next instruction)
             self.execAssert(self.assertionData[newpc], 'BEFORE')
