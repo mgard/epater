@@ -341,7 +341,6 @@ def process(ws, msg_in):
                 if data[0] != "interrupt":
                     retval.append(["error", "Veuillez assembler le code avant d'effectuer cette opération."])
             elif data[0] == 'assemble':
-                # TODO: Afficher les erreurs à l'écran "codeerror"
                 code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)
                 if ws in interpreters:
                     del interpreters[ws]
@@ -389,7 +388,6 @@ def process(ws, msg_in):
                         retval.append(["animate_speed", str(anim_speed)])
                     interpreters[ws].animate_speed__ = anim_speed
             elif data[0] == 'stop':
-                #interpreters[ws].user_asked_stop__ = True
                 del interpreters[ws]
             elif data[0] == 'reset':
                 interpreters[ws].reset()

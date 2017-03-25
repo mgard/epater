@@ -237,7 +237,6 @@ function assemble() {
     } else {
         $("#assemble").text("Démarrer");
         asm_breakpoints.length = 0;
-        sendBreakpointsInstr();
         sendCmd(['stop']);
     }
 }
