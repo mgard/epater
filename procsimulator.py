@@ -922,12 +922,16 @@ class Simulator:
                     beginReg = reg
                 currentReg = reg
 
-            listregstxt += "R{}".format(beginReg)
-            if currentReg - beginReg == 1:
-                listregstxt += ", R{}".format(currentReg)
-            elif currentReg != beginReg:
-                listregstxt += "-R{}".format(currentReg)
-            listregstxt += "}"
+            if currentReg is None:
+                # No register (the last 16 bits are all zeros)
+                listregstxt = ""
+            else:
+                listregstxt += "R{}".format(beginReg)
+                if currentReg - beginReg == 1:
+                    listregstxt += ", R{}".format(currentReg)
+                elif currentReg != beginReg:
+                    listregstxt += "-R{}".format(currentReg)
+                listregstxt += "}"
 
             disassembly += listregstxt
             description += "<li>{}</li>\n".format(listregstxt)
