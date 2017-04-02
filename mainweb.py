@@ -368,12 +368,20 @@ def process(ws, msg_in):
                 interpreters[ws].step('forward')
                 interpreters[ws].user_asked_stop__ = False
                 interpreters[ws].last_step__ = time.time()
-                interpreters[ws].animate_speed__ = int(data[1]) / 1000
+                try:
+                    interpreters[ws].animate_speed__ = int(data[1]) / 1000
+                except (ValueError, TypeError):
+                    interpreters[ws].animate_speed__ = 0
+                    retval.append(["animate_speed", str(interpreters[ws].animate_speed__)])
             elif data[0] == 'stepout':
                 interpreters[ws].step('out')
                 interpreters[ws].user_asked_stop__ = False
                 interpreters[ws].last_step__ = time.time()
-                interpreters[ws].animate_speed__ = int(data[1]) / 1000
+                try:
+                    interpreters[ws].animate_speed__ = int(data[1]) / 1000
+                except (ValueError, TypeError):
+                    interpreters[ws].animate_speed__ = 0
+                    retval.append(["animate_speed", str(interpreters[ws].animate_speed__)])
             elif data[0] == 'run':
                 if interpreters[ws].shouldStop == False and (interpreters[ws].user_asked_stop__ == False):
                     interpreters[ws].user_asked_stop__ = True
