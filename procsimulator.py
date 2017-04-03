@@ -1049,7 +1049,6 @@ class Simulator:
 
             # Get destination register and write the result
             destrd = misc['rd']
-            disassembly += " R{}, ".format(destrd)
 
             if misc['opcode'] in ("AND", "TST"):
                 # These instructions do not affect the V flag (ARM Instr. set, 4.5.1)
@@ -1108,12 +1107,14 @@ class Simulator:
 
             if misc['opcode'] in ("MOV", "MVN"):
                 description += "<ol type=\"A\"><li>{}</li></ol>\n".format(op2desc)
+                disassembly += " R{}, ".format(destrd)
             elif misc['opcode'] in ("TST", "TEQ", "CMP", "CMN"):
-                description += "<ol type=\"A\"><li>Le registre {}</li><li>{}</li></ol>\n".format(_regSuffixWithBank(misc['rd']), op2desc)
+                description += "<ol type=\"A\"><li>Le registre {}</li><li>{}</li></ol>\n".format(_regSuffixWithBank(misc['rn']), op2desc)
+                disassembly += " R{}, ".format(misc['rn'])
             else:
                 description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(misc['rn']))
                 description += "<li>{}</li></ol>\n".format(op2desc)
-                disassembly += "R{}, ".format(misc['rn'])
+                disassembly += " R{}, R{}, ".format(destrd, misc['rn'])
             disassembly += op2dis
 
             description += "</li>\n"
