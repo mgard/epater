@@ -602,7 +602,7 @@ else:
 
 @get('/')
 def index():
-    page = request.query.get("page", "demo")
+    page = request.query.get("page", "accueil")
 
     code = default_code
     enonce = ""
@@ -652,6 +652,12 @@ def index():
                 tomatch = "exercices/{}/*.html"
             files = glob.glob(tomatch.format(page), recursive=True)
             files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
+        elif page == "accueil":
+            try:
+                enonce = readFileBrokenEncoding(os.path.join("exercices", "accueil.html"))
+            except FileNotFoundError:
+                enonce = "<h1>Bienvenue!</h1>"
+
         sections = OrderedDict()
         sections_names = {}
         for f in sorted(files):
@@ -676,9 +682,7 @@ def index():
                 k1r = fs[1].replace("_", " ").encode('utf-8', 'replace')
                 if k1r not in sections_names:
                     try:
-                        print(os.path.join("exercices", fs[1], 'nom.txt'))
                         k1 = readFileBrokenEncoding(os.path.join("exercices", page, fs[1], 'nom.txt'))
-                        print(k1)
                     except FileNotFoundError:
                         k1 = fs[1].replace("_", " ").encode('utf-8', 'replace')
                     sections_names[k1r] = k1
@@ -693,14 +697,14 @@ def index():
 
                 sections[sections_names[k1r]][k2] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
 
-        if len(sections) == 0:
+        if page != "accueil" and len(sections) == 0:
             sections = {"Aucune section n'est disponible en ce moment.": {}}
 
         if page == "exo":
             title = "Exercices facultatifs"
         elif page == "tp":
             title = "Travaux pratiques"
-        else:
+        elif page == "demo":
             title = "Démonstrations"
 
     return template(this_template, code=code, enonce=enonce, solution=solution,
