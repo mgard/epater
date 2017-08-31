@@ -12,7 +12,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     with open(args.inputfile) as f:
-        bytecode, bcinfos, assertions, errors = ASMparser(f)
+        bytecode, bcinfos, line2addr, assertions, errors = ASMparser(f)
+    print("Parsed source code!")
+    print(bytecode)
 
 
     interpreter = BCInterpreter(bytecode, bcinfos, assertions)
@@ -20,11 +22,14 @@ if __name__ == '__main__':
         lines = f.readlines()
         a = time.time()
         for i in range(100000):
-            #print(i, lines[interpreter.getCurrentLine()][:-1])
+            if i < 7:
+                print(i, lines[interpreter.getCurrentLine()][:-1])
             interpreter.step()
             b = interpreter.getCurrentLine(), interpreter.getChanges()
-            #print(interpreter.getCurrentLine(), interpreter.getChanges())
-            #print("################")
+            if i < 7:
+                print(interpreter.getCurrentLine(), interpreter.getChanges())
+                print("################")
+        print("...")
     print("Time execute {} instructions : {}".format(i, time.time() - a))
 
 
