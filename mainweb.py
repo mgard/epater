@@ -701,7 +701,7 @@ def index():
             sections = {"Aucune section n'est disponible en ce moment.": {}}
 
         if page == "exo":
-            title = "Exercices facultatifs"
+            title = "Exercices formatifs"
         elif page == "tp":
             title = "Travaux pratiques"
         elif page == "demo":
