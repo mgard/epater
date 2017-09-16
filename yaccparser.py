@@ -249,34 +249,48 @@ def p_op2_error(p):
 
 
 def p_shift(p):
-    """shift : INNERSHIFT
-             | INNERSHIFT SPACEORTAB REG
-             | INNERSHIFT SHARP CONST
-             | INNERSHIFT SPACEORTAB SHARP CONST"""
+    """shift : shiftbyreg
+             | shiftbyvalue"""
+    # A shift operation can be either by value or by register
+    p[0] = p[1]
+
+def p_shiftbyreg(p):
+    """shiftbyreg : INNERSHIFT
+                  | INNERSHIFT SPACEORTAB REG"""
     plist = list(p)
-    # Shift type
-    if len(plist) == 4 and "#" not in p[2] and p[4] == 0 and p[1] in ('LSR', 'ASR', 'ROR'):
+
+    # Encode shift type
+    p[0] = instruction.shiftMapping[p[1]] << 5
+    if len(plist) == 2:
+        # Special case, must be RRX
+        if p[1] != "RRX":
+            raise YaccError("Décalage {} invalide sans un paramètre (registre ou constante) indiquant le décalage".format(p[1]))
+    else:
+        # Shift by register
+        p[0] |= 1 << 4
+        p[0] |= p[3] << 8
+
+def p_shiftbyvalue(p):
+    """shiftbyvalue : INNERSHIFT SHARP CONST
+                    | INNERSHIFT SPACEORTAB SHARP CONST"""
+    plist = list(p)
+
+    # Encode shift type
+    if plist[-1] == 0 and p[1] in ('LSR', 'ASR', 'ROR'):
         # "Logical shift right zero is redundant as it is the same as logical shift left zero, so the assembler
         # will convert LSR #0 (and ASR #0 and ROR #0) into LSL #0, and allow LSR #32 to be specified."
         p[0] = instruction.shiftMapping['LSL'] << 5
     else:
         p[0] = instruction.shiftMapping[p[1]] << 5
-    if len(plist) == 2:
-        # Special case, must be RRX
-        assert p[1] == "RRX"
-    elif len(plist) == 4 and "#" not in p[2]:
-        # Shift by register
-        p[0] |= 1 << 4
-        p[0] |= p[3] << 8
-    elif not (p[1] in ('LSR', 'ASR') and plist[-1] == 32):
+
+    # Encode shift value
+    if not (p[1] in ('LSR', 'ASR') and plist[-1] == 32):
         # Shift by a constant if we are not in special modes
         if plist[-1] < 0:
             raise YaccError("Impossible d'encoder un décalage négatif ({}) dans une instruction (utilisez un autre opérateur de décalage pour arriver au même effet)".format(p[4]))
         if plist[-1] > 31:
             raise YaccError("Impossible d'encoder le décalage {} dans une instruction (ce dernier doit être inférieur à 32)".format(p[4]))
         p[0] |= plist[-1] << 7
-
-
 
 
 def p_shiftinstruction(p):
@@ -748,6 +762,8 @@ parser = yacc.yacc()
 
 
 if __name__ == '__main__':
+    a = parser.parse("MOV R1, R2, LSL R3\n")
+    print(a)
     a = parser.parse("SECTION INTVEC\n")
     print(a)
     a = parser.parse("  LSR R0, R1, R1\n")
