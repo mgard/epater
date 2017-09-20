@@ -27,6 +27,7 @@ Unlike many other ARM emulators which *interpret* ARM assembly, **epater** is ac
 * beautifulsoup >= 4 and bs4
 * bottle >= 0.12
 * python-websockets >= 3.2
+* uvloop (optional)
 
 On client side, the following browsers are supported :
 
@@ -88,6 +89,14 @@ These features are not of great use in a simulation context and/or for academic 
 * Coprocessor instructions
 * Vectorized / Neon / SIMD instructions
 * Privileged mode
+
+## How to develop
+
+Once the repository is pulled, it is possible to launch a local version of the system using this command:
+
+    python mainweb.py DEBUG
+
+The system will then be available at http://127.0.0.1:8000/.
 
 
 ## License
