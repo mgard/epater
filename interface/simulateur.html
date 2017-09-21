@@ -568,10 +568,16 @@
                 var index = $.inArray(row, asm_breakpoints);
                 if (index >= 0) {
                     asm_breakpoints.splice(index, 1);
+                    editor.session.clearBreakpoint(row);
                 } else {
                     asm_breakpoints.push(row);
+                    if($("#assemble").text() == "Démarrer"){
+                        editor.session.setBreakpoint(row);
+                    }
+                    else{
+                        sendBreakpointsInstr();
+                    }
                 }
-                sendBreakpointsInstr();
 
                 blockSelect = blockSelect + 1;
                 selectLine = row;
@@ -602,10 +608,34 @@
                 }
             });
 
-            editor.on("change",  function() {
+            editor.on("change",  function(e) {
                 if (debug_marker !== null) { editor.session.removeMarker(debug_marker); }
                 resetView();
+				var end_row = e.end.row;
+				var start_row = e.start.row;
+                if (end_row != start_row){
+                    editor.session.clearBreakpoints();
+                    for (var i = asm_breakpoints.length - 1; i >= 0; i--){
+                        var row = asm_breakpoints[i]
+                        if (e.action == "insert"){
+                            if (row > start_row || (row == start_row && e.start.column == 0)){
+                                asm_breakpoints[i] = row + end_row - start_row;
+                            }
+                        }
+                        else{
+                            if ((row > start_row || (row == start_row && e.start.column == 0)) 
+                                && (row < end_row || (row == end_row && e.end.column > 0))){
+                                asm_breakpoints.splice(i, 1);
+                            }
+                            else if (row > start_row){
+                                asm_breakpoints[i] = row + start_row - end_row;
+                            }
+                        }
+                    }
+                    refreshBreakpoints();
+                }
             });
+
 
             $('a[href$="#tabsmain-simulation"]').click(function() {
                 editor.resize();

@@ -62,8 +62,10 @@ ws.onmessage = function (event) {
         } else if (obj[0] == 'edit_mode') {
             disableSim();
             $("#assemble").text("Démarrer").removeClass("assemble_edit");
+            refreshBreakpoints();
         } else if (obj[0] == 'line2addr') {
             line2addr = obj[1];
+            sendBreakpointsInstr();
         } else if (obj[0] == 'codeerror') {
             // row indices are 0-indexed
             codeerrors.push({row: obj[1], text: obj[2], type: "error"})
@@ -167,7 +169,6 @@ ws.onmessage = function (event) {
     }
 };
 
-
 function removeCodeErrors() {
     editor.session.clearAnnotations();
 }
@@ -177,9 +178,7 @@ function resetView() {
     codeerrors.length = 0;
     removeCodeErrors();
 
-    asm_breakpoints.length = 0;
     current_debugline = -1;
-    editor.session.clearBreakpoints();
     editor.session.clearAnnotations();
 
     $("#cycles_count").val("");
@@ -220,8 +219,16 @@ function disableSim() {
     $(".config_input").prop('disabled', false);
 }
 
+function refreshBreakpoints() {
+    editor.session.clearBreakpoints();
+    for (var i = 0; i < asm_breakpoints.length; i++) {
+        editor.session.setBreakpoint(asm_breakpoints[i]);
+    }
+}
+
 function assemble() {
     var simExec = isSimulatorInEditMode();
+    editor.session.clearBreakpoints();
     resetView();
     if (simExec) {
         $("#run").prop('disabled', false);
@@ -236,8 +243,8 @@ function assemble() {
 
     } else {
         $("#assemble").text("Démarrer");
-        asm_breakpoints.length = 0;
         sendCmd(['stop']);
+        refreshBreakpoints();
     }
 }
 
