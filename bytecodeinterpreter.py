@@ -149,10 +149,6 @@ class BCInterpreter:
         # val is a bytearray of one element (1 byte)
         if self.sim.mem._getRelativeAddr(addr, 1) is None:
             return
-        try:
-            val = int(val, base=16)
-        except ValueError:      # Invalid value
-            return
         self.sim.mem.set(addr, val[0], 1)
         pc = self.sim.regs[15].get(mayTriggerBkpt=False)
         pc -= 8 if getSetting("PCbehavior") == "+8" else 0
