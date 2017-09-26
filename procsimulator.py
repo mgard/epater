@@ -433,6 +433,10 @@ class SimState(Enum):
     finished = 4
 
 class Simulator:
+    """
+    Main simulator class.
+    None of its method should be called directly by the UI, everything should pass through bytecodeinterpreter class.
+    """
 
     def __init__(self, memorycontent, assertionTriggers, addr2line):
         self.state = SimState.uninitialized
