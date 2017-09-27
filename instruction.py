@@ -6,6 +6,25 @@ from enum import Enum
 
 from settings import getSetting
 
+
+"""
+Tools to encode and decode instructions.
+
+To add a new instruction, one must:
+1) Add it into the exportInstrInfo dictionary (see further down), with its type;
+2) Add a token for it in tokenizer (or extend an existing token) in tokenizer.py, ensuring that the token regexp is
+    unique and do not pick up other tokens;
+3) Add a yacc rule to parse it (or extend an existing one) in yaccparser.py and ensure that the rule does not
+    clash with others;
+4) Update BytecodeToInstrInfos() (see further down) so it is able to _decode_ this instruction from bytecode;
+5) Update Simulator.decodeInstr() in procsimulator.py so it can decode the new instruction and display a meaningful
+    message describing its behavior;
+6) Update Simulator.execInstr() in procsimulator.py so it can execute the new instruction correctly, including all of
+    its side effects (flags, memory change, etc.)
+7) Add a test case in tests/bytecodeTest.asm and update tests/bytecodeObj.o with a new version of the bytecode
+    synchronized with the new bytecodeTest.asm (use IAR for this purpose). Ensure all unit tests pass.
+"""
+
 class InstrType(Enum):
     undefined = -1
     dataop = 0
