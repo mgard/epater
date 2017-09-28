@@ -719,11 +719,16 @@ def static_serve(filename):
 
 @post('/download/')
 def download():
-    filename = request.forms.get('filename')
+    simParameter = unquote(request.forms.get('sim'))
+    try:
+        filename = base64.b64decode(simParameter).decode("utf-8")
+        filename = os.path.splitext(os.path.basename(filename))[0]
+    except binascii.Error:
+        filename = 'source'
     data = request.forms.get('data')
     data = encodeWSGI(data)
     response.headers['Content-Type'] = 'text/plain; charset=UTF-8'
-    response.headers['Content-Disposition'] = 'attachment; filename="source.txt"'
+    response.headers['Content-Disposition'] = 'attachment; filename="%s.txt"' % filename
     return data
 
 

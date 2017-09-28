@@ -38,7 +38,7 @@ function transformToAssocArray( prmstr ) {
 
 
 // //////////
-// Formatting 
+// Formatting
 function formatHexUnsigned32Bits(i) {
     return "0x" + ("00000000" + i.toString(16)).slice(-8);
 }
@@ -55,6 +55,20 @@ function destroyClickedElement(event)
     document.body.removeChild(event.target);
 }
 
+function getURLParameter(param)
+	{
+	    var pageURL = window.location.search.substring(1);
+	    var URLVariables = pageURL.split('&');
+	    for (var i = 0; i < URLVariables.length; i++)
+	    {
+	        var parameterName = URLVariables[i].split('=');
+	        if (parameterName[0] == param)
+	        {
+	            return parameterName[1];
+	        }
+	    }
+	}
+
 function saveTextAsFile() {
     var textToWrite = editor.getValue();
 
@@ -63,7 +77,9 @@ function saveTextAsFile() {
     form.setAttribute("action", "/download/");
     form.setAttribute("target", "_blank");
 
-    params = {filename:"source.txt", data:textToWrite};
+    var sim = getURLParameter('sim');
+
+    params = {sim:sim, data:textToWrite};
 
     for(var key in params) {
         if(params.hasOwnProperty(key)) {
@@ -89,7 +105,7 @@ $(window).bind('keydown', function(e) {
             break;
         case 'o':
             e.preventDefault();
-            $("#fileToLoad").trigger('click'); 
+            $("#fileToLoad").trigger('click');
             break;
         }
     if (!isSimulatorInEditMode()) {
