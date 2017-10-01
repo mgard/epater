@@ -679,10 +679,12 @@
                         target_val = target_val.toString(16);
                     } else if (format_ == "bin") {
                         target_val = parseInt(target_val, 2).toString(16);
+                    } else if (format_ == "hex") {
+                        target_val = parseInt(target_val, 16).toString(16);
                     }
                 }
 
-                if (isNaN(target_val)) {
+                if ("NaN" === target_val){
                     $(this).val("0");
                     target_val = "0";
                 }
