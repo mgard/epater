@@ -619,7 +619,7 @@ def index():
         elif not request.query["sim"] == "nouveau":
             try:
                 request.query["sim"] = base64.b64decode(unquote(request.query["sim"]))
-                # YAHOG -- When in WSGI, we must add 0xdc00 to every extended (e.g. accentuated) character in order for the 
+                # YAHOG -- When in WSGI, we must add 0xdc00 to every extended (e.g. accentuated) character in order for the
                 # open() call to understand correctly the path
                 if locale.getdefaultlocale() == (None, None):
                     request.query["sim"] = decodeWSGI(request.query["sim"])
@@ -661,7 +661,7 @@ def index():
         sections = OrderedDict()
         sections_names = {}
         for f in sorted(files):
-            # YAHOG -- When in WSGI, Python adds 0xdc00 to every extended (e.g. accentuated) character, leading to 
+            # YAHOG -- When in WSGI, Python adds 0xdc00 to every extended (e.g. accentuated) character, leading to
             # errors in utf-8 re-interpretation.
             if locale.getdefaultlocale() == (None, None):
                 f = encodeWSGI(f)
@@ -719,11 +719,16 @@ def static_serve(filename):
 
 @post('/download/')
 def download():
-    filename = request.forms.get('filename')
+    simParameter = unquote(request.forms.get('sim'))
+    try:
+        filename = base64.b64decode(simParameter).decode("utf-8")
+        filename = os.path.splitext(os.path.basename(filename))[0]
+    except binascii.Error:
+        filename = 'source'
     data = request.forms.get('data')
     data = encodeWSGI(data)
     response.headers['Content-Type'] = 'text/plain; charset=UTF-8'
-    response.headers['Content-Disposition'] = 'attachment; filename="source.txt"'
+    response.headers['Content-Disposition'] = 'attachment; filename="%s.txt"' % filename
     return data
 
 
