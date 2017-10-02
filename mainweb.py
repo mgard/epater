@@ -401,6 +401,7 @@ def process(ws, msg_in):
                 interpreters[ws].reset()
             elif data[0] == 'breakpointsinstr':
                 interpreters[ws].setBreakpointInstr(data[1])
+                force_update_all = True
             elif data[0] == 'breakpointsmem':
                 try:
                     interpreters[ws].toggleBreakpointMem(int(data[1], 16), data[2])

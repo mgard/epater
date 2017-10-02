@@ -574,9 +574,9 @@
                     if($("#assemble").text() == "Démarrer"){
                         editor.session.setBreakpoint(row);
                     }
-                    else{
-                        sendBreakpointsInstr();
-                    }
+                }
+                if($("#assemble").text() == "Arrêter"){
+                    sendBreakpointsInstr();
                 }
 
                 blockSelect = blockSelect + 1;
