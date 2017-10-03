@@ -71,7 +71,8 @@ class BCInterpreter:
                 nextLine = lineno + 1
                 while nextLine in self.line2addr and self.line2addr[nextLine] == self.line2addr[lineno]:
                     nextLine += 1
-                self.lineBreakpoints.append(nextLine-1)
+                if nextLine-1 not in self.lineBreakpoints:
+                    self.lineBreakpoints.append(nextLine-1)
 
     def getBreakpointsMem(self):
         """

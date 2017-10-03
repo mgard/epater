@@ -63,7 +63,6 @@ def parse(code):
     # First pass : the input code is passed through the lexer and the parser
     # Each line is parsed independently
     # The parser always returns a dictionnary
-    assignedAddr = []
     addrToLine = defaultdict(list)
     currentAddr, currentSection = -1, None
     labelsAddr = {}
@@ -113,10 +112,6 @@ def parse(code):
                 listErrors.append(("codeerror", i, "Instruction invalide"))
                 continue
 
-        # We also assign an address to each line
-        assignedAddr.append(max(currentAddr, 0))
-        addrToLine[max(currentAddr, 0)].append(i)
-
         if "SECTION" in parsedLine:
             if snippetMode:
                 listErrors.append(("codeerror", i, "Vous ne pouvez pas écrire d'instruction avant le premier mot clé SECTION; si vous souhaitez tester un extrait de code, ne déclarez aucune section."))
@@ -139,7 +134,7 @@ def parse(code):
             elif parsedLine["SECTION"] == "DATA":
                 currentSection = "DATA"
                 currentAddr = max(BASE_ADDR_DATA, currentAddr)
-            
+
             if currentSection in viewedSections:
                 listErrors.append(("codeerror", i, "La section '{}' est définie deux fois!".format(currentSection)))
                 continue
@@ -149,6 +144,8 @@ def parse(code):
             # Ensure word alignement
             currentAddr += 4 - currentAddr % 4 if currentAddr % 4 != 0 else 0
             bytecode[currentSection] = bytearray()
+        else:
+            addrToLine[max(currentAddr, 0)].append(i)
 
         if "ASSERTION" in parsedLine:
             if lastLineType is None or lastLineType in ("LABEL", "SECTION"):
