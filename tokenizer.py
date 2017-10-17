@@ -97,6 +97,7 @@ tokens = (
    'OPPSR',
    'OPSVC',
    'OPMUL',
+   'OPMULL',
    'OPNOP',
    'LABEL',
    'EQUALS',
@@ -356,6 +357,17 @@ def t_OPMUL(t):
     t.lexer.suffixesSeen = set()
     return t
 
+# A multiplication long
+@lex.TOKEN(r'(' + r'(?=[A-Z\t ])|'.join([k for k,v in instrInfos.exportInstrInfo.items() if v == instrInfos.InstrType.multiplylong])+r'(?=[A-Z\t ]))')
+def t_OPMULL(t):
+    t.lexer.begin('mulopcode')
+    t.lexer.currentMnemonic = t.value
+    t.lexer.countArgs = 0
+    t.lexer.instrType = instrInfos.InstrType.multiplylong
+    t.lexer.expectedArgs = 4
+    t.lexer.suffixesSeen = set()
+    return t
+
 # We transition into the instruction arguments
 def t_mulopcode_SPACEORTAB(t):
     r'[ \t]+'
@@ -606,7 +618,7 @@ lexer = lex.lex()
 
 
 if __name__ == "__main__":
-    a = lexer.input("BLEQ test\n")
+    a = lexer.input("UMULL R0 R1 R2 R4 R5\n")
     print(lexer.token())
     print(lexer.token())
     print(lexer.token())

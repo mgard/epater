@@ -38,6 +38,7 @@ class InstrType(Enum):
     shiftop = 8
     nopop = 9
     otherop = 10
+    multiplylong = 11
     declareOp = 100
 
 
@@ -83,6 +84,11 @@ exportInstrInfo = {# DATA OPERATIONS
                     # MULTIPLY OPERATIONS
                    'MUL': InstrType.multiply,
                    'MLA': InstrType.multiply,
+                    # MULTIPLY OPERATIONS LONG
+                   'UMULL': InstrType.multiplylong,
+                   'UMLAL': InstrType.multiplylong,
+                   'SMULL': InstrType.multiplylong,
+                   'SMLAL': InstrType.multiplylong,
                     # SWAP OPERATIONS
                    'SWP': InstrType.swap,
                     # SOFTWARE INTERRUPT OPERATIONS
@@ -355,6 +361,26 @@ def BytecodeToInstrInfos(bc):
                     'rd': rd,
                     'operandsmul': (rm, rs),
                     'operandadd': rn}
+
+    elif checkMask(instrInt, (7, 4, 23), tuple(range(24, 28)) + (5, 6)):    # UMULL, SMULL, UMLAL or SMLAL
+        category = InstrType.multiplylong
+        rdHi = (instrInt >> 16) & 0xF
+        rdLo = (instrInt >> 12) & 0xF
+        rs = (instrInt >> 8) & 0xF
+        rm = instrInt & 0xF
+        affectedRegs = (rdHi,rdLo,)
+
+        flags = bool(instrInt & (1 << 20))
+        accumulate = bool(instrInt & (1 << 21))
+        signed = bool(instrInt & (1 << 22))
+
+        miscInfo = {'accumulate':accumulate,
+                    'setflags': flags,
+                    'signed': signed,
+                    'rdHi': rdHi,
+                    'rdLo': rdLo,
+                    'operandsmul': (rm, rs),
+                    'operandadd': (rdHi, rdLo)}
 
     elif checkMask(instrInt, (7, 4, 24), (27, 26, 25, 23, 21, 20, 11, 10, 9, 8, 6, 5)): # Swap
         category = InstrType.swap
