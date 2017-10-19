@@ -6,6 +6,7 @@ from ply.lex import LexError
 from tokenizer import ParserError, lexer
 import yaccparser
 from settings import getSetting
+from i18n import I18n as _
 
 BASE_ADDR_INTVEC = 0x00
 BASE_ADDR_CODE   = 0x80
@@ -97,7 +98,7 @@ def parse(code):
             lexer.begin("INITIAL")
             parsedLine = yaccparser.parser.parse(input=line)
         except ParserError as e:
-            listErrors.append(("codeerror", i, str(e)))
+            listErrors.append(("codeerror", i, e.getMsg()))
             continue
         except LexError as e:
             listErrors.append(("codeerror", i, "Format de l'instruction invalide"))
@@ -114,7 +115,7 @@ def parse(code):
 
         if "SECTION" in parsedLine:
             if snippetMode:
-                listErrors.append(("codeerror", i, "Vous ne pouvez pas écrire d'instruction avant le premier mot clé SECTION; si vous souhaitez tester un extrait de code, ne déclarez aucune section."))
+                listErrors.append(("codeerror", i, _('assembler.beforeSection')))
                 continue
             lastLineType = "SECTION"
             if "SNIPPET_DUMMY_SECTION" in bytecode['__MEMINFOSTART']:

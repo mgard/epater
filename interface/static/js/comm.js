@@ -212,6 +212,7 @@ function resetView() {
 
 function disableSim() {
     $("#run").prop('disabled', true);
+    $("#reset").prop('disabled', true);
     $("#stepin").prop('disabled', true);
     $("#stepout").prop('disabled', true);
     $("#stepforward").prop('disabled', true);
@@ -226,17 +227,18 @@ function refreshBreakpoints() {
     }
 }
 
-function assemble() {
+function assemble(lang) {
     var simExec = isSimulatorInEditMode();
     editor.session.clearBreakpoints();
     resetView();
     if (simExec) {
         $("#run").prop('disabled', false);
+        $("#reset").prop('disabled', false);
         $("#stepin").prop('disabled', false);
         $("#stepout").prop('disabled', false);
         $("#stepforward").prop('disabled', false);
         $("#assemble").text("Arrêter").addClass("assemble_edit");
-        sendCmd(['assemble', editor.getValue()]);
+        sendCmd(['assemble', editor.getValue(), lang]);
         if ($("#interrupt_active").is(":checked")) {
             sendCmd(["interrupt", true, $("#interrupt_type").val(), parseInt($("#interrupt_cycles").val()), parseInt($("#interrupt_cycles_first").val())]);
         }

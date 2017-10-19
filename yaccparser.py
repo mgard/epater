@@ -4,6 +4,7 @@ from ply.lex import LexToken
 
 from tokenizer import tokens, ParserError, lexer
 from settings import getSetting
+from i18n import I18n as _
 
 import instruction
 
@@ -16,6 +17,9 @@ class YaccError(ParserError):
         lexer.begin('INITIAL')
 
     def __str__(self):
+        return self.msg
+
+    def getMsg(self):
         return self.msg
 
 currentMnemonic = ""
@@ -33,7 +37,7 @@ def p_line(p):
 
 def p_line_error(p):
     """line : CONST error ENDLINESPACES"""
-    raise YaccError("Une étiquette doit commencer par une lettre majuscule ou minuscule (et non pas un chiffre)")
+    raise YaccError("Une étiquette doit commencer par une lettre majuscule ou minuscule (et non par un chiffre)")
 
 def p_linelabel(p):
     """linelabel : LABEL
@@ -733,7 +737,7 @@ def p_multiplylonginstruction(p):
     # RdHi, RdLo, and Rm must all specify different registers.
     sameRegister = [reg for reg in regs if regs.count(reg) > 1]
     if sameRegister:
-        raise YaccError("Le régistre R{} ne peut être utilisé plus d'une fois.".format(sameRegister[0]))
+        raise YaccError(_('yaccparser.sameRegister').format(sameRegister[0]))
 
     p[0] |= p[4] << 12          # Set RdLo
     p[0] |= p[6] << 16          # Set RdHi

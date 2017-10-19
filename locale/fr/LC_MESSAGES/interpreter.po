@@ -1,0 +1,15 @@
+msgid ""
+msgstr ""
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "yaccparser.sameRegister"
+msgstr "Le régistre R{} ne peut être utilisé plus d'une fois."
+
+msgid "procsimulator.sub"
+msgstr "<li>Soustrait la valeur {val} à {reg}</li>\n"
+
+msgid "assembler.beforeSection"
+msgstr "Vous ne pouvez pas écrire d'instruction avant le premier mot clé SECTION; si vous souhaitez tester un extrait de code, ne déclarez aucune section."

@@ -1,0 +1,15 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "yaccparser.sameRegister"
+msgstr "The register R{} cannot be used more than once."
+
+msgid "procsimulator.sub"
+msgstr "<li>Subtract the value {val} from {reg}</li>\n"
+
+msgid "assembler.beforeSection"
+msgstr "You cannot write instruction before the first keyword SECTION; if you want to test partial code, no section should be declare."

@@ -139,3 +139,18 @@ function loadFileAsText(){
     fileReader.readAsText(fileToLoad, "UTF-8");
 }
 
+function setLang(lang){
+    previousLang = getLang();
+    if (previousLang != lang){
+        document.cookie = "lang=" + lang;
+        location.reload();
+    }
+}
+
+function getLang(){
+    var value = "; " + document.cookie;
+    var parts = value.split("; lang=");
+    if (parts.length == 2)
+        return parts.pop().split(";").shift();
+}
+
