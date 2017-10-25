@@ -176,3 +176,9 @@ label2  STR R1, label2
   MSR SPSR, R1
   MSR CPSR_flg, R4
   MSR SPSR_flg, R1
+  
+  ; MULTIPLICATION LONG
+  UMULL R1, R2, R3, R4
+  SMULL R2, R3, LR, R0
+  UMLAL R3, R4, R5, R6
+  SMLAL R3, R4, R5, R6

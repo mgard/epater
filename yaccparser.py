@@ -81,6 +81,7 @@ def p_instruction(p):
                    | psrinstruction
                    | svcinstruction
                    | multiplyinstruction
+                   | multiplylonginstruction
                    | nopinstruction"""
     # We just shift the instruction bytecode and dependencies to the next level
     p[0] = p[1]
@@ -700,6 +701,8 @@ def p_multiplyinstruction(p):
         p[0] |= p[6]                # Set Rm
         p[0] |= p[4] << 16          # Set Rd
     else:
+        if len(p) == 9:
+            raise YaccError("Une instruction {} ne peut recevoir plus de 3 registres en argument.".format(currentMnemonic))
         p[0] |= p[8] << 8           # Set Rs
         p[0] |= p[6]                # Set Rm
         p[0] |= p[4] << 16          # Set Rd
@@ -711,6 +714,44 @@ def p_multiplyinstruction(p):
     # so we just pack it in a bytes object
     p[0] = (struct.pack("<I", p[0]), None)
 
+def p_multiplylonginstruction(p):
+    """multiplylonginstruction : OPMULL logmnemonic flagscondandspace REG COMMA REG COMMA REG COMMA REG
+                               | OPMULL logmnemonic flagscondandspace REG COMMA REG  COMMA REG COMMA SHARP CONST"""
+    global currentMnemonic
+    if len(p) == 12:
+        raise YaccError("Une instruction {} ne peut recevoir de constante comme dernier argument, seulement un registre.".format(currentMnemonic))
+
+    p[0] = 9 << 4
+    p[0] |= 1 << 23
+
+    regs = [p[4], p[6], p[8], p[10]]
+    # R15 (PC) must not be used as an operand or as a destination register
+    if 15 in regs:
+        raise YaccError("Le régistre PC ne peut pas être utilisé.")
+    regs.remove(p[10])
+
+    # RdHi, RdLo, and Rm must all specify different registers.
+    sameRegister = [reg for reg in regs if regs.count(reg) > 1]
+    if sameRegister:
+        raise YaccError("Le régistre R{} ne peut être utilisé plus d'une fois.".format(sameRegister[0]))
+
+    p[0] |= p[4] << 12          # Set RdLo
+    p[0] |= p[6] << 16          # Set RdHi
+    p[0] |= p[8]                # Set Rm
+    p[0] |= p[10] << 8          # Set Rs
+    if currentMnemonic == "SMULL":
+        p[0] |= 1 << 22
+    elif currentMnemonic == "UMLAL":
+        p[0] |= 1 << 21
+    elif currentMnemonic == "SMLAL":
+        p[0] |= 3 << 21
+
+    # Add the condition bits
+    p[0] |= p[3]
+
+    # A multiply instruction is always complete (e.g. it never depends on the location of a label),
+    # so we just pack it in a bytes object
+    p[0] = (struct.pack("<I", p[0]), None)
 
 def p_nopinstruction(p):
     """nopinstruction : OPNOP logmnemonic
@@ -762,14 +803,12 @@ parser = yacc.yacc()
 
 
 if __name__ == '__main__':
-    a = parser.parse("MOV R1, R2, LSL R3\n")
+    a1 = parser.parse("MUL R1, R3, R2\n")
+    print(a1)
+    a = parser.parse("UMULL R1, R2, R3, R4\n")
     print(a)
-    a = parser.parse("SECTION INTVEC\n")
-    print(a)
-    a = parser.parse("  LSR R0, R1, R1\n")
-    print(a)
-    # print(a, hex(a['BYTECODE']))
-    a = parser.parse("\n")
-    print(">>>", a, "<<<")
-    a = parser.parse("MOV R1, R3, ASR #4\n")
-    print(a, hex(a['INSTR']))
+    #print(a, hex(a['BYTECODE']))
+    #a = parser.parse("\n")
+    #print(">>>", a, "<<<")
+    #a = parser.parse("MUL R1, R3, R2, R4\n")
+    #print(a, hex(a['INSTR']))

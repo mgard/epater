@@ -1010,6 +1010,43 @@ class Simulator:
                 for flag in ('c', 'z', 'n'):
                     highlightwrite.append(flag)
 
+        elif t == InstrType.multiplylong:
+            op1, op2 = misc['operandsmul']
+            destrdHi = misc['rdHi']
+            destrdLo = misc['rdLo']
+            if misc['signed']:
+                disassembly = "S"
+            else:
+                disassembly = "U"
+
+            if misc['accumulate']:
+                # MLAL
+                disassembly += "MLAL"
+                description += "<li>Effectue une multiplication et une addition {} sur 64 bits (A*B+[C,D]) entre :\n".format("signées" if misc['signed'] else "non signées")
+                description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(op1))
+                description += "<li>Le registre {}</li>\n".format(_regSuffixWithBank(op2))
+                description += "<li>Le registre {}</li>\n".format(_regSuffixWithBank(misc['operandadd'][0]))
+                description += "<li>Le registre {}</li></ol>\n".format(_regSuffixWithBank(misc['operandadd'][1]))
+            else:
+                # MULL
+                disassembly += "MULL"
+                description += "<li>Effectue une multiplication {} (A*B) entre :\n".format("signée" if misc['signed'] else "non signée")
+                description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(op1))
+                description += "<li>Le registre {}</li></ol>\n".format(_regSuffixWithBank(op2))
+
+            highlightread.extend(_registerWithCurrentBank(op1))
+            highlightread.extend(_registerWithCurrentBank(op2))
+            if misc['setflags']:
+                disassembly += "S"
+                description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
+            disassembly += " R{}, R{}, R{}, R{} ".format(destrdLo, destrdHi, op1, op2)
+            description += "<li>Écrit les 32 MSB du résultat dans R{} et les 32 LSB dans R{}</li>".format(destrdHi, destrdLo)
+            highlightwrite.extend(_registerWithCurrentBank(destrdHi))
+            highlightwrite.extend(_registerWithCurrentBank(destrdLo))
+
+            if misc['setflags']:
+                for flag in ('c', 'z', 'n'):
+                    highlightwrite.append(flag)
 
         elif t == InstrType.dataop:
             # Get first operand value
@@ -1361,6 +1398,40 @@ class Simulator:
                 for flag in workingFlags:
                     self.flags[flag] = workingFlags[flag]
 
+        elif t == InstrType.multiplylong:
+            op1 = self.regs[misc['operandsmul'][0]].get()
+            op2 = self.regs[misc['operandsmul'][1]].get()
+            destHi = misc['rdHi']
+            destLo = misc['rdLo']
+
+            res = (self.regs[destHi].get() << 32) + self.regs[destLo].get()
+            if misc['signed']:
+                op1 -= (op1 >> 31 & 1) << 32
+                op2 -= (op2 >> 31 & 1) << 32
+                res -= (res >> 63 & 1) << 64
+
+            if misc['accumulate']:
+                # MLAL
+                res += (op1 * op2)
+            else:
+                # MULL
+                res = op1 * op2
+
+            if misc['signed'] and res < 0:
+                res += 1 << 64
+
+            self.regs[destHi].set(res >> 32 & 0xFFFFFFFF)
+            self.regs[destLo].set(res & 0xFFFFFFFF)
+
+            # Z and N are set, V and C is set to "meaningless value" (see ARM spec 4.8.2)
+            workingFlags['Z'] = res == 0
+            workingFlags['N'] = res & (1 << 63)  # "N flag will be set to the value of bit 63 of the result" (4.8.2)
+            workingFlags['C'] = 0       # I suppose "0" can be qualified as a meaningless value...
+            workingFlags['V'] = 0       # I suppose "0" can be qualified as a meaningless value...
+
+            if misc['setflags']:
+                for flag in workingFlags:
+                    self.flags[flag] = workingFlags[flag]
         elif t == InstrType.dataop:
             workingFlags['C'] = 0
             workingFlags['V'] = 0

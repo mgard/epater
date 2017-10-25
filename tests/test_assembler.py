@@ -13,7 +13,7 @@ def bytecodeLoad(line):
 fasm = open('bytecodeTest.asm', 'r')
 tlist = []
 with open('bytecodeObj.o', 'rb') as fbin:
-    fbin.seek(0x34)       # TODO :  compute that automatically
+    fbin.seek(0x35c)       # TODO :  compute that automatically
 
     line = fasm.readline()
     i = 0
