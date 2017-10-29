@@ -12,9 +12,14 @@ import time
 
 class Test(unittest.TestCase):
     def setUp(self):
-        self.driver = webdriver.Chrome()
+        #self.driver = webdriver.Chrome()
+        from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+        binary = FirefoxBinary('/gel/usr/yahog/browser/firefox/firefox')
+        self.driver = webdriver.Firefox(firefox_binary=binary)
         self.driver.implicitly_wait(30)
-        self.base_url = "http://127.0.0.1:8000/"
+        #self.base_url = "http://127.0.0.1:8000/"
+        #self.base_url = "http://gif1001-sim.gel.ulaval.ca/?sim=nouveau#tabsmain-simulation"
+        self.base_url = "http://gif1001-sim.gel.ulaval.ca/?page=tp&sim=debug#tabsmain-simulation"
         self.verificationErrors = []
         self.accept_next_alert = True
 
@@ -22,12 +27,16 @@ class Test(unittest.TestCase):
         wdw = WebDriverWait(self.driver, 100)
         driver = self.driver
         driver.get(self.base_url)
+        time.sleep(3)
         driver.find_element_by_id("assemble").click()
-        driver.find_element_by_id("animate_speed").clear()
-        driver.find_element_by_id("animate_speed").send_keys("0")
+        #driver.find_element_by_id("configurations").click()
+        #driver.find_element_by_id("animate_speed").clear()
+        #driver.find_element_by_id("animate_speed").send_keys("0")
+        #driver.find_element_by_class_name("ui-icon-closethick").click()
+        time.sleep(2)
         wdw.until(EC.element_to_be_clickable((By.ID, "run")))
         driver.find_element_by_id("run").click()
-        time.sleep(30)
+        time.sleep(60*5)
         driver.find_element_by_id("run").click()
 
     def is_element_present(self, how, what):
