@@ -18,6 +18,13 @@ class AbstractOp:
 
     def decode(self):
         raise NotImplementedError()
+
+    def _explainCondition(self):
+        # Since all instructions can be conditional, we can put a generic
+        # implementation of the condition explanation here
+        if self.condition == 'AL':
+            return ""
+        return "<li>Vérifie si la condition {} est remplie</li>\n".format(coself.condition)
     
     def explain(self):
         raise NotImplementedError()
@@ -36,6 +43,10 @@ class AbstractOp:
     @property
     def affectedFlags(self):
         return ()
+
+    @property
+    def nextLineToExecute(self):
+        return -1
 
     @property
     def instructionType(self):
