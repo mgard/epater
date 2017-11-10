@@ -28,7 +28,19 @@
                 <a href="?page=demo"><div class="left_item{{!' current_page' if page == "demo" else ""}}"><div class="left_item_inner">D&eacute;mo</div></div></a>
                 <a href="?page=exo"><div class="left_item{{!' current_page' if page == "exo" else ""}}"><div class="left_item_inner">Exercices formatifs</div></div></a>
                 <a href="?page=tp"><div class="left_item{{!' current_page' if page == "tp" else ""}}"><div class="left_item_inner">Travaux pratiques</div></div></a>
-                <a href="?sim=nouveau&r={{ rand }}#tabsmain-simulation"><div class="left_item"><div class="left_item_inner">Nouvelle session</div></div></a>
+                <a href="?sim=nouveau&r={{ rand }}#tabsmain-simulation"><div class="left_item"><div class="left_item_inner">Simulation libre</div></div></a>
+                <div class="left_item" id="slideout">
+                    <div class="left_item_inner_top">&#10095;</div>
+                    <div class="left_item_inner">Sessions sauvegardées</div>
+                    <div id="slideout_inner">
+                        <div id="slide_buttons">
+                            <button id="session_delete" class="delete_button">Effacer</button>
+                            <button id="session_delete_all" class="delete_button">Effacer tout</button>
+                            <button id="session_new">Nouvelle session</button>
+                        </div>
+                        <div id=session_content></div>
+                    </div>
+                </div>
             </td>
             <td id="content-td">
                 <div id="tabmain-container" class="tab-container">
@@ -480,6 +492,7 @@
     <script type="text/javascript">
         var editor = ace.edit("editor");
         var assembly_armMode = ace.require("ace/mode/assembly_arm").Mode;
+
         editor.getSession().setMode(new assembly_armMode());
         editor.$blockScrolling = Infinity;
         editor.setShowPrintMargin(false);
@@ -518,7 +531,6 @@
         });
 
         $(document).ready(function() {
-
             if (localStorage.getItem("lightmode") === "1") {
                 $(".ace_content").addClass("lightmode");
                 $("#memoryview").addClass("lightmode");
@@ -575,6 +587,7 @@
                         editor.session.setBreakpoint(row);
                     }
                 }
+
                 if($("#assemble").text() == "Arrêter"){
                     sendBreakpointsInstr();
                 }
@@ -757,9 +770,11 @@
             }
         }
     });
+
     </script>
     <script src="static/js/memory_viewer.js" type="text/javascript" charset="utf-8"></script>
     <script src="static/js/helpers.js" type="text/javascript" charset="utf-8"></script>
+    <script src="static/js/sessionSidePanel.js" type="text/javascript" charset="utf-8"></script>
     <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
