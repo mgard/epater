@@ -8,21 +8,18 @@ from abstractOp import AbstractOp, ExecutionException
 
 class DataOp(AbstractOp):
 
-    def __init__(self, bytecode):
-        super().__init__(bytecode)
+    def __init__(self):
+        super().__init__()
         self._type = utils.InstrType.dataop
-        self._nextline = -1
-        self._modflags = ()
 
     def decode(self):
-        assert utils.checkMask(self.instrInt, (), (27, 26)),
         instrInt = self.instrInt
+        if not utils.checkMask(instrInt, (), (27, 26)):
+            raise ExecutionException("masque de décodage invalide pour une instruction de type DATA", 
+                                        internalError=True)
 
-        # Retrieve condition filed
-        if instrInt >> 28 == 15:    # Invalid condition code
-            self.decodeError = True
-            return
-        self.condition = utils.conditionMappingR[instrInt >> 28]
+        # Retrieve the condition field
+        self._decodeCondition()
 
         # Get the opcode
         self.opcodeNum = (instrInt >> 21) & 0xF
@@ -58,17 +55,21 @@ class DataOp(AbstractOp):
     def explain(self, simulatorContext):
         bank = simulatorContext.bank
         modifiedFlags = {'Z', 'N'}
-        highlightread, highlightwrite = [], []
+
+        self._nextInstrAddr = -1
 
         disassembly = self.opcode
-        if cond != 'AL':
-            disassembly += cond
+        description = "<ol>\n"
+        disCond, descCond = self._explainCondition()
+        disassembly += disCond
+        description += descCond
+
         if self.modifyFlags and self.opcode not in ("TST", "TEQ", "CMP", "CMN"):
             disassembly += "S"
 
         op1 = simulatorContext.regs[self.rn].get()
         if self.opcode not in ("MOV", "MVN"):
-            highlightread.extend(utils.registerWithCurrentBank(self.rn, bank))
+            self._readregs |= utils.registerWithCurrentBank(self.rn, bank)
 
         op2desc = ""
         op2dis = ""
@@ -78,7 +79,7 @@ class DataOp(AbstractOp):
             op2desc = "La constante {}".format(op2)
             op2dis = "#{}".format(hex(op2))
         else:
-            highlightread.extend(utils.registerWithCurrentBank(self.op2reg, bank))
+            self._readregs |= utils.registerWithCurrentBank(self.op2reg, bank)
             
             if self.shift.type != "LSL" or self.shift.value > 0 or not self.shift.immediate:
                 modifiedFlags.add('C')
@@ -88,7 +89,7 @@ class DataOp(AbstractOp):
             op2desc = "Le registre {} {}".format(utils.regSuffixWithBank(self.shift.value, bank), shiftDesc)
             op2dis = "R{}{}".format(self.op2reg, shiftinstr)
             if not self.shift.immediate:
-                highlightread.extend(utils.registerWithCurrentBank(self.shift.value, bank))
+                self._readregs |= utils.registerWithCurrentBank(self.shift.value, bank)
 
         if self.opcode in ("AND", "TST"):
             # These instructions do not affect the V flag (ARM Instr. set, 4.5.1)
@@ -101,18 +102,18 @@ class DataOp(AbstractOp):
         elif self.opcode in ("SUB", "CMP"):
             modifiedFlags.update(('C', 'V'))
             description += "<li>Effectue une soustraction (A-B) entre:\n"
-            if self.opcode == "SUB" and self.rd == 15:
+            if self.opcode == "SUB" and self.rd == simulatorContext.PC:
                 # We change PC, we show it in the editor
-                self._nextline = simulatorContext.regs[self.rn].get() - op2
+                self._nextInstrAddr = simulatorContext.regs[self.rn].get() - op2
         elif self.opcode == "RSB":
             modifiedFlags.update(('C', 'V'))
             description += "<li>Effectue une soustraction inverse (B-A) entre:\n"
         elif self.opcode in ("ADD", "CMN"):
             modifiedFlags.update(('C', 'V'))
             description += "<li>Effectue une addition (A+B) entre:\n"
-            if self.opcode == "ADD" and self.rd == 15:
+            if self.opcode == "ADD" and self.rd == simulatorContext.PC:
                 # We change PC, we show it in the editor
-                self._nextline = simulatorContext.regs[self.rn].get() + op2
+                self._nextInstrAddr = simulatorContext.regs[self.rn].get() + op2
         elif self.opcode == "ADC":
             modifiedFlags.update(('C', 'V'))
             description += "<li>Effectue une addition avec retenue (A+B+carry) entre:\n"
@@ -126,18 +127,18 @@ class DataOp(AbstractOp):
             description += "<li>Effectue une opération OU entre:\n"
         elif self.opcode == "MOV":
             description += "<li>Lit la valeur de :\n"
-            if self.rd == 15:
+            if self.rd == simulatorContext.PC:
                 # We change PC, we show it in the editor
-                self._nextline = op2
+                self._nextInstrAddr = op2
         elif self.opcode == "BIC":
             description += "<li>Effectue une opération ET NON entre:\n"
         elif self.opcode == "MVN":
             description += "<li>Effectue une opération NOT sur :\n"
-            if self.rd == 15:
+            if self.rd == simulatorContext.PC:
                 # We change PC, we show it in the editor
-                self._nextline = ~op2
+                self._nextInstrAddr = ~op2
         else:
-            assert False, "Bad data opcode : " + self.opcode
+            raise ExecutionException("Mnémonique invalide : {}".format(self.opcode))
 
         if self.opcode in ("MOV", "MVN"):
             description += "<ol type=\"A\"><li>{}</li></ol>\n".format(op2desc)
@@ -154,22 +155,31 @@ class DataOp(AbstractOp):
         description += "</li>\n"
 
         if self.modifyFlags:
-            if self.rd == 15:
+            if self.rd == simulatorContext.PC:
                 description += "<li>Copie le SPSR courant dans CPSR</li>\n"
             else:
-                self._modflags = tuple(modifiedFlags)
+                self._writeflags = modifiedFlags
                 description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
         if self.opcode not in ("TST", "TEQ", "CMP", "CMN"):
             description += "<li>Écrit le résultat dans {}</li>".format(utils.regSuffixWithBank(self.rd, bank))
-            highlightwrite.extend(utils.registerWithCurrentBank(self.rd, bank))
+            self._writeregs |= utils.registerWithCurrentBank(self.rd, bank)
 
         description += "</ol>"
+
+        if self._nextInstrAddr == -1 or not self._checkCondition(simulatorContext.flags):
+            # The conditional instruction will not be executed,
+            # or the current instruction did not change PC
+            self._nextInstrAddr = simulatorContext.regs[simulatorContext.PC] - 4    # PC is 8 bytes ahead
 
         return disassembly, description
         #dis = '<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">{}</div>\n'.format(disassembly, description)
     
 
     def execute(self, simulatorContext):
+        if not self._checkCondition(simulatorContext.flags):
+            # Nothing to do, instruction not executed
+            return
+
         workingFlags['C'] = 0
         workingFlags['V'] = 0
         # Get first operand value
@@ -179,7 +189,7 @@ class DataOp(AbstractOp):
             op2 = self.shiftedVal
         else:
             op2 = simulatorContext.regs[self.op2reg].get()
-            if self.op2reg == 15 and not self.shift.immediate and simulatorContext.PCbehavior == "real":
+            if self.op2reg == simulatorContext.PC and not self.shift.immediate and simulatorContext.PCbehavior == "real":
                 op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
             carry, op2 = utils.applyShift(op2, self.shift, simulatorContext.flags['C'])
             workingFlags['C'] = bool(carry)
@@ -218,13 +228,15 @@ class DataOp(AbstractOp):
         else:
             raise ExecutionException("Mnémonique invalide : {}".format(self.opcode))
 
-        res &= 0xFFFFFFFF           # Get the result back to 32 bits, if applicable (else it's just a no-op)
+        # Get the result back to 32 bits, if applicable (else it's just a no-op)
+        res &= 0xFFFFFFFF           
 
         workingFlags['Z'] = res == 0
-        workingFlags['N'] = res & 0x80000000            # "N flag will be set to the value of bit 31 of the result" (4.5.1)
+         # "N flag will be set to the value of bit 31 of the result" (4.5.1)
+        workingFlags['N'] = res & 0x80000000
 
         if self.modifyFlags:
-            if self.rd == 15:
+            if self.rd == simulatorContext.PC:
                 # Combining writing to PC and the S flag is a special case (see ARM Instr. set, 4.5.5)
                 # "When Rd is R15 and the S flag is set the result of the operation is placed in R15 and
                 # the SPSR corresponding to the current mode is moved to the CPSR. This allows state
@@ -241,18 +253,3 @@ class DataOp(AbstractOp):
             # We actually write the result
             simulatorContext.regs[self.rd].set(res)
 
-    @property
-    def affectedRegs(self):
-        return () if 7 < self.opcodeNum < 12 else (self.rd,)
-
-    @property
-    def affectedFlags(self):
-        return self._modflags
-
-    @property
-    def nextLineToExecute(self):
-        return self._nextline
-
-    @property
-    def pcHasChanged(self):
-        return self.rd == 15

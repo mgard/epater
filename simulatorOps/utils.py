@@ -42,6 +42,22 @@ conditionMapping = {'EQ': 0,
 
 conditionMappingR = {v: k for k,v in conditionMapping.items()}
 
+conditionFlagsMapping =    {'EQ': {'Z'},
+                            'NE': {'Z'},
+                            'CS': {'C'},
+                            'CC': {'C'},
+                            'MI': {'N'},
+                            'PL': {'N'},
+                            'VS': {'V'},
+                            'VC': {'V'},
+                            'HI': {'C', 'Z'},
+                            'LS': {'C', 'Z'},
+                            'GE': {'N', 'V'},
+                            'LT': {'N', 'V'},
+                            'GT': {'N', 'V', 'Z'},
+                            'LE': {'N', 'V', 'Z'},
+                            'AL': set()}
+
 updateModeLDMMapping = {'ED': 3, 'IB': 3,
                         'FD': 1, 'IA': 1,
                         'EA': 2, 'DB': 2,
@@ -121,7 +137,7 @@ def registerWithCurrentBank(reg, bank):
             listAffectedRegs.append("r{}".format(reg))
             listAffectedRegs.append("IRQ_r{}".format(reg))
             listAffectedRegs.append("SVC_r{}".format(reg))
-    return listAffectedRegs
+    return set(listAffectedRegs)
 
 def regSuffixWithBank(reg, bank):
     regStr = "R{}".format(reg) if reg < 13 else ["SP", "LR", "PC"][reg-13]
