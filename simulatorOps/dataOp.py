@@ -4,7 +4,7 @@ from enum import Enum
 from collections import defaultdict, namedtuple, deque 
 
 import utils
-from abstractOp import AbstractOp
+from abstractOp import AbstractOp, ExecutionException
 
 class DataOp(AbstractOp):
 
@@ -36,13 +36,16 @@ class DataOp(AbstractOp):
         self.rn = (instrInt >> 16) & 0xF    # First operand register
 
         if self.imm:
-            self.val = instrInt & 0xFF
+            self.shiftedVal = instrInt & 0xFF
             # see 4.5.3 of ARM doc to understand the * 2
             self.shift = utils.shiftInfo(type="ROR", 
                                             immediate=True, 
                                             value=((instrInt >> 8) & 0xF) * 2)
+            if self.shift.value != 0:
+                # If it is a constant, we shift as we decode
+                _, self.shiftedVal = utils.applyShift(self.val, self.shift, False)
         else:
-            self.val = instrInt & 0xF
+            self.op2reg = instrInt & 0xF
             if instrInt & (1 << 4):
                 self.shift = utils.shiftInfo(type=utils.shiftMappingR[(instrInt >> 5) & 0x3],
                                                 immediate=False,
@@ -71,13 +74,11 @@ class DataOp(AbstractOp):
         op2dis = ""
         # Get second operand value
         if self.imm:
-            op2 = self.val
-            if self.shift.value != 0:
-                carry, op2 = utils.applyShift(op2, self.shift, simulatorContext.flags['C'])
+            op2 = self.shiftedVal
             op2desc = "La constante {}".format(op2)
             op2dis = "#{}".format(hex(op2))
         else:
-            highlightread.extend(utils.registerWithCurrentBank(self.val, bank))
+            highlightread.extend(utils.registerWithCurrentBank(self.op2reg, bank))
             
             if self.shift.type != "LSL" or self.shift.value > 0 or not self.shift.immediate:
                 modifiedFlags.add('C')
@@ -85,7 +86,7 @@ class DataOp(AbstractOp):
             shiftDesc = utils.shiftToDescription(self.shift, bank)
             shiftinstr = utils.shiftToInstruction(self.shift)
             op2desc = "Le registre {} {}".format(utils.regSuffixWithBank(self.shift.value, bank), shiftDesc)
-            op2dis = "R{}{}".format(self.val, shiftinstr)
+            op2dis = "R{}{}".format(self.op2reg, shiftinstr)
             if not self.shift.immediate:
                 highlightread.extend(utils.registerWithCurrentBank(self.shift.value, bank))
 
@@ -145,7 +146,7 @@ class DataOp(AbstractOp):
             description += "<ol type=\"A\"><li>Le registre {}</li><li>{}</li></ol>\n".format(utils.regSuffixWithBank(self.rn, bank), op2desc)
             disassembly += " R{}, ".format(self.rn)
         else:
-            description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(misc['rn']))
+            description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(self.rn))
             description += "<li>{}</li></ol>\n".format(op2desc)
             disassembly += " R{}, R{}, ".format(self.rd, self.rn)
         disassembly += op2dis
@@ -164,10 +165,81 @@ class DataOp(AbstractOp):
 
         description += "</ol>"
 
-        dis = '<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">{}</div>\n'.format(disassembly, description)
+        return disassembly, description
+        #dis = '<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">{}</div>\n'.format(disassembly, description)
     
-    def execute(self):
-        pass
+
+    def execute(self, simulatorContext):
+        workingFlags['C'] = 0
+        workingFlags['V'] = 0
+        # Get first operand value
+        op1 = simulatorContext.regs[self.rn].get()
+        # Get second operand value
+        if self.imm:
+            op2 = self.shiftedVal
+        else:
+            op2 = simulatorContext.regs[self.op2reg].get()
+            if self.op2reg == 15 and not self.shift.immediate and simulatorContext.PCbehavior == "real":
+                op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
+            carry, op2 = utils.applyShift(op2, self.shift, simulatorContext.flags['C'])
+            workingFlags['C'] = bool(carry)
+
+        if self.opcode in ("AND", "TST"):
+            # These instructions do not affect the V flag (ARM Instr. set, 4.5.1)
+            # However, C flag "is set to the carry out from the barrel shifter [if the shift is not LSL #0]" (4.5.1)
+            # this was already done when we called _shiftVal
+            res = op1 & op2
+        elif self.opcode in ("EOR", "TEQ"):
+            # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
+            res = op1 ^ op2
+        elif self.opcode in ("SUB", "CMP"):
+            # For a subtraction, including the comparison instruction CMP, C is set to 0
+            # if the subtraction produced a borrow (that is, an unsigned underflow), and to 1 otherwise.
+            # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0801a/CIADCDHH.html
+            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, ~op2, 1)
+        elif self.opcode == "RSB":
+            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(~op1, op2, 1)
+        elif self.opcode in ("ADD", "CMN"):
+            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, op2, 0)
+        elif self.opcode== "ADC":
+            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, op2, int(simulatorContext.flags['C']))
+        elif self.opcode == "SBC":
+            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, ~op2, int(simulatorContext.flags['C']))
+        elif self.opcode == "RSC":
+            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(~op1, op2, int(simulatorContext.flags['C']))
+        elif self.opcode == "ORR":
+            res = op1 | op2
+        elif self.opcode == "MOV":
+            res = op2
+        elif self.opcode == "BIC":
+            res = op1 & ~op2     # Bit clear?
+        elif self.opcode == "MVN":
+            res = ~op2
+        else:
+            raise ExecutionException("Mnémonique invalide : {}".format(self.opcode))
+
+        res &= 0xFFFFFFFF           # Get the result back to 32 bits, if applicable (else it's just a no-op)
+
+        workingFlags['Z'] = res == 0
+        workingFlags['N'] = res & 0x80000000            # "N flag will be set to the value of bit 31 of the result" (4.5.1)
+
+        if self.modifyFlags:
+            if self.rd == 15:
+                # Combining writing to PC and the S flag is a special case (see ARM Instr. set, 4.5.5)
+                # "When Rd is R15 and the S flag is set the result of the operation is placed in R15 and
+                # the SPSR corresponding to the current mode is moved to the CPSR. This allows state
+                # changes which atomically restore both PC and CPSR. This form of instruction should
+                # not be used in User mode."
+                if simulatorContext.getCPSR().getMode() == "User":
+                    raise ExecutionException("L'utilisation de PC comme registre de destination en combinaison avec la mise a jour des drapeaux est interdite en mode User!")
+                simulatorContext.regs.getCPSR().set(simulatorContext.regs.getSPSR().get())          # Put back the saved SPSR in CPSR
+                simulatorContext.regs.setCurrentBankFromMode(simulatorContext.regs.getCPSR().get() & 0x1F)
+            else:
+                simulatorContext.flags.update(workingFlags)
+
+        if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
+            # We actually write the result
+            simulatorContext.regs[self.rd].set(res)
 
     @property
     def affectedRegs(self):
@@ -179,4 +251,8 @@ class DataOp(AbstractOp):
 
     @property
     def nextLineToExecute(self):
-        return self._nextline 
+        return self._nextline
+
+    @property
+    def pcHasChanged(self):
+        return self.rd == 15

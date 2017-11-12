@@ -5,6 +5,13 @@ from collections import defaultdict, namedtuple, deque
 
 import utils
 
+class ExecutionException(Exception):
+    def __init__(self, text):
+        self.text = test
+    
+    def __str__(self):
+        return self.text
+
 class AbstractOp:
 
     def __init__(self, bytecode):
@@ -47,6 +54,10 @@ class AbstractOp:
     @property
     def nextLineToExecute(self):
         return -1
+
+    @property
+    def pcHasChanged(self):
+        return False
 
     @property
     def instructionType(self):
