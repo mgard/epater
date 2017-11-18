@@ -147,7 +147,7 @@ class DataOp(AbstractOp):
             description += "<ol type=\"A\"><li>Le registre {}</li><li>{}</li></ol>\n".format(utils.regSuffixWithBank(self.rn, bank), op2desc)
             disassembly += " R{}, ".format(self.rn)
         else:
-            description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(_regSuffixWithBank(self.rn))
+            description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(utils.regSuffixWithBank(self.rn, bank))
             description += "<li>{}</li></ol>\n".format(op2desc)
             disassembly += " R{}, R{}, ".format(self.rd, self.rn)
         disassembly += op2dis
@@ -179,7 +179,8 @@ class DataOp(AbstractOp):
         if not self._checkCondition(simulatorContext.flags):
             # Nothing to do, instruction not executed
             return
-
+        
+        workingFlags = {}
         workingFlags['C'] = 0
         workingFlags['V'] = 0
         # Get first operand value
@@ -249,7 +250,7 @@ class DataOp(AbstractOp):
             else:
                 simulatorContext.flags.update(workingFlags)
 
-        if misc['opcode'] not in ("TST", "TEQ", "CMP", "CMN"):
+        if self.opcode not in ("TST", "TEQ", "CMP", "CMN"):
             # We actually write the result
             simulatorContext.regs[self.rd].set(res)
 
