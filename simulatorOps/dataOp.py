@@ -53,7 +53,8 @@ class DataOp(AbstractOp):
                                                 value=(instrInt >> 7) & 0x1F)
 
     def explain(self, simulatorContext):
-        bank = simulatorContext.bank
+        bank = simulatorContext.regs.mode
+        simulatorContext.regs.deactivateBreakpoints()
         modifiedFlags = {'Z', 'N'}
 
         self._nextInstrAddr = -1
@@ -67,7 +68,7 @@ class DataOp(AbstractOp):
         if self.modifyFlags and self.opcode not in ("TST", "TEQ", "CMP", "CMN"):
             disassembly += "S"
 
-        op1 = simulatorContext.regs[self.rn].get()
+        op1 = simulatorContext.regs[self.rn]
         if self.opcode not in ("MOV", "MVN"):
             self._readregs |= utils.registerWithCurrentBank(self.rn, bank)
 
@@ -104,7 +105,7 @@ class DataOp(AbstractOp):
             description += "<li>Effectue une soustraction (A-B) entre:\n"
             if self.opcode == "SUB" and self.rd == simulatorContext.PC:
                 # We change PC, we show it in the editor
-                self._nextInstrAddr = simulatorContext.regs[self.rn].get() - op2
+                self._nextInstrAddr = simulatorContext.regs[self.rn] - op2
         elif self.opcode == "RSB":
             modifiedFlags.update(('C', 'V'))
             description += "<li>Effectue une soustraction inverse (B-A) entre:\n"
@@ -113,7 +114,7 @@ class DataOp(AbstractOp):
             description += "<li>Effectue une addition (A+B) entre:\n"
             if self.opcode == "ADD" and self.rd == simulatorContext.PC:
                 # We change PC, we show it in the editor
-                self._nextInstrAddr = simulatorContext.regs[self.rn].get() + op2
+                self._nextInstrAddr = simulatorContext.regs[self.rn] + op2
         elif self.opcode == "ADC":
             modifiedFlags.update(('C', 'V'))
             description += "<li>Effectue une addition avec retenue (A+B+carry) entre:\n"
@@ -166,17 +167,16 @@ class DataOp(AbstractOp):
 
         description += "</ol>"
 
-        if self._nextInstrAddr == -1 or not self._checkCondition(simulatorContext.flags):
+        if self._nextInstrAddr == -1 or not self._checkCondition(simulatorContext.regs):
             # The conditional instruction will not be executed,
             # or the current instruction did not change PC
             self._nextInstrAddr = simulatorContext.regs[simulatorContext.PC] - 4    # PC is 8 bytes ahead
 
+        simulatorContext.regs.reactivateBreakpoints()
         return disassembly, description
-        #dis = '<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">{}</div>\n'.format(disassembly, description)
     
-
     def execute(self, simulatorContext):
-        if not self._checkCondition(simulatorContext.flags):
+        if not self._checkCondition(simulatorContext.regs):
             # Nothing to do, instruction not executed
             return
         
@@ -184,15 +184,15 @@ class DataOp(AbstractOp):
         workingFlags['C'] = 0
         workingFlags['V'] = 0
         # Get first operand value
-        op1 = simulatorContext.regs[self.rn].get()
+        op1 = simulatorContext.regs[self.rn]
         # Get second operand value
         if self.imm:
             op2 = self.shiftedVal
         else:
-            op2 = simulatorContext.regs[self.op2reg].get()
-            if self.op2reg == simulatorContext.PC and not self.shift.immediate and simulatorContext.PCbehavior == "real":
+            op2 = simulatorContext.regs[self.op2reg]
+            if self.op2reg == simulatorContext.PC and not self.shift.immediate and simulatorContext.PCSpecialBehavior:
                 op2 += 4    # Special case for PC where we use PC+12 instead of PC+8 (see 4.5.5 of ARM Instr. set)
-            carry, op2 = utils.applyShift(op2, self.shift, simulatorContext.flags['C'])
+            carry, op2 = utils.applyShift(op2, self.shift, simulatorContext.regs.C)
             workingFlags['C'] = bool(carry)
 
         if self.opcode in ("AND", "TST"):
@@ -213,11 +213,11 @@ class DataOp(AbstractOp):
         elif self.opcode in ("ADD", "CMN"):
             res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, op2, 0)
         elif self.opcode== "ADC":
-            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, op2, int(simulatorContext.flags['C']))
+            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, op2, int(simulatorContext.regs.C))
         elif self.opcode == "SBC":
-            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, ~op2, int(simulatorContext.flags['C']))
+            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, ~op2, int(simulatorContext.regs.C))
         elif self.opcode == "RSC":
-            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(~op1, op2, int(simulatorContext.flags['C']))
+            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(~op1, op2, int(simulatorContext.regs.C))
         elif self.opcode == "ORR":
             res = op1 | op2
         elif self.opcode == "MOV":
@@ -243,14 +243,15 @@ class DataOp(AbstractOp):
                 # the SPSR corresponding to the current mode is moved to the CPSR. This allows state
                 # changes which atomically restore both PC and CPSR. This form of instruction should
                 # not be used in User mode."
-                if simulatorContext.getCPSR().getMode() == "User":
+                if simulatorContext.regs.mode == "User":
                     raise ExecutionException("L'utilisation de PC comme registre de destination en combinaison avec la mise a jour des drapeaux est interdite en mode User!")
-                simulatorContext.regs.getCPSR().set(simulatorContext.regs.getSPSR().get())          # Put back the saved SPSR in CPSR
-                simulatorContext.regs.setCurrentBankFromMode(simulatorContext.regs.getCPSR().get() & 0x1F)
+                simulatorContext.regs.CPSR = simulatorContext.regs.SPSR        # Put back the saved SPSR in CPSR
             else:
-                simulatorContext.flags.update(workingFlags)
+                simulatorContext.setAllFlags(workingFlags)
 
         if self.opcode not in ("TST", "TEQ", "CMP", "CMN"):
             # We actually write the result
-            simulatorContext.regs[self.rd].set(res)
+            simulatorContext.regs[self.rd] = res
+            if self.rd == simulatorContext.PC:
+                self.pcmodified = True
 

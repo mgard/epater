@@ -43,7 +43,8 @@ class MemOp(AbstractOp):
 
 
     def explain(self, simulatorContext):
-        bank = simulatorContext.bank
+        bank = simulatorContext.regs.mode
+        simulatorContext.regs.deactivateBreakpoints()
         
         self._nextInstrAddr = -1
         
@@ -53,7 +54,7 @@ class MemOp(AbstractOp):
         description += descCond
 
         self._readregs = utils.registerWithCurrentBank(self.basereg, bank)
-        addr = baseval = simulatorContext.regs[self.basereg].get(mayTriggerBkpt=False)
+        addr = baseval = simulatorContext.regs[self.basereg]
 
         description += "<li>Utilise la valeur du registre {} comme adresse de base</li>\n".format(utils.regSuffixWithBank(self.basereg, bank))
         descoffset = ""
@@ -72,7 +73,7 @@ class MemOp(AbstractOp):
             else:
                 descoffset = "<li>Soustrait le registre {} {} à l'adresse de base</li>\n".format(regDesc, shiftDesc)
 
-            _, sval = utils.applyShift(simulatorContext.regs[self.offsetReg].get(mayTriggerBkpt=False), self.offsetRegShift, simulatorContext.flags['C'])
+            _, sval = utils.applyShift(simulatorContext.regs[self.offsetReg], self.offsetRegShift, simulatorContext.regs.C)
             addr += self.sign * sval
             self._readregs |= utils.registerWithCurrentBank(self.offsetReg, bank)
 
@@ -141,19 +142,20 @@ class MemOp(AbstractOp):
 
         description += "</ol>"
 
+        simulatorContext.regs.reactivateBreakpoints()
         return disassembly, description
     
 
     def execute(self, simulatorContext):
-        if not self._checkCondition(simulatorContext.flags):
+        if not self._checkCondition(simulatorContext.regs):
             # Nothing to do, instruction not executed
             return
 
-        addr = baseval = simulatorContext.regs[self.basereg].get()
+        addr = baseval = simulatorContext.regs[self.basereg]
         if self.imm:
             addr += self.sign * self.offsetImm
         else:
-            _, sval = utils.applyShift(simulatorContext.regs[self.offsetReg].get(), self.offsetRegShift, simulatorContext.flags['C'])
+            _, sval = utils.applyShift(simulatorContext.regs[self.offsetReg], self.offsetRegShift, simulatorContext.regs.C)
             addr += self.sign * sval
 
         realAddr = addr if self.pre else baseval
@@ -164,12 +166,14 @@ class MemOp(AbstractOp):
                 raise ExecutionException("Tentative de lecture de {} octets à partir de l'adresse {} invalide : mémoire non initialisée".format(s, realAddr))
             res = struct.unpack("<B" if self.byte else "<I", m)[0]
 
-            simulatorContext.regs[self.rd].set(res)
+            simulatorContext.regs[self.rd] = res
+            if self.rd == simulatorContext.PC:
+                self.pcmodified = True
         else:       # STR
-            valWrite = simulatorContext.regs[self.rd].get()
-            if self.rd == simulatorContext.PC and simulatorContext.PCbehavior == "real":
+            valWrite = simulatorContext.regs[self.rd]
+            if self.rd == simulatorContext.PC and simulatorContext.PCSpecialBehavior:
                 valWrite += 4       # Special case for PC (see ARM datasheet, 4.9.4)
             simulatorContext.mem.set(realAddr, valWrite, size=1 if self.byte else 4)
 
         if self.writeback:
-            simulatorContext.regs[self.basereg].set(addr)
+            simulatorContext.regs[self.basereg] = addr

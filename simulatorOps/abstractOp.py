@@ -27,6 +27,7 @@ class AbstractOp:
         self._writeregs = set()
         self._readmem = set()
         self._writemem = set()
+        self.pcmodified = False
 
     def setBytecode(self, bytecode):
         assert len(bytecode) == 4 # 32 bits
@@ -61,20 +62,20 @@ class AbstractOp:
         # Warning : here we check if the condition is NOT met, hence we use the
         # INVERSE of the actual condition
         # See Table 4-2 of ARM7TDMI data sheet as reference of these conditions
-        if (cond == "EQ" and not flags['Z'] or
-            cond == "NE" and flags['Z'] or
-            cond == "CS" and not flags['C'] or
-            cond == "CC" and flags['C'] or
-            cond == "MI" and not flags['N'] or
-            cond == "PL" and flags['N'] or
-            cond == "VS" and not flags['V'] or
-            cond == "VC" and flags['V'] or
-            cond == "HI" and (not flags['C'] or flags['Z']) or
-            cond == "LS" and (flags['C'] and not flags['Z']) or
-            cond == "GE" and not flags['V'] == flags['N'] or
-            cond == "LT" and flags['V'] == flags['N'] or
-            cond == "GT" and (flags['Z'] or flags['V'] != flags['N']) or
-            cond == "LE" and (not flags['Z'] and flags['V'] == flags['N'])):
+        if (cond == "EQ" and not flags.Z or
+            cond == "NE" and flags.Z or
+            cond == "CS" and not flags.C or
+            cond == "CC" and flags.C or
+            cond == "MI" and not flags.N or
+            cond == "PL" and flags.N or
+            cond == "VS" and not flags.V or
+            cond == "VC" and flags.V or
+            cond == "HI" and (not flags.C or flags.Z) or
+            cond == "LS" and (flags.C and not flags.Z) or
+            cond == "GE" and not flags.V == flags.N or
+            cond == "LT" and flags.V == flags.N or
+            cond == "GT" and (flags.Z or flags.V != flags.N) or
+            cond == "LE" and (not flags.Z and flags.V == flags.N)):
             return False
         
         # Else, the condition is true (including AL)

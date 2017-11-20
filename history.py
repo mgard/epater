@@ -9,6 +9,13 @@ class History:
         """
         self.maxlen = historyMaxLength
         self.members = {}
+        self.clear()
+
+    def clear(self):
+        """
+        Reset the history (but do not unregister the components)
+        """
+        self.cyclesCount = 0
         self.ckpt = {}
         self.history = deque(maxlen=self.maxlen)
 
@@ -19,13 +26,14 @@ class History:
         """
         self.members[obj.__class__] = obj
 
-    def newStep(self):
+    def newCycle(self):
         """
         Tell the history manager that we are starting another step
         (all the changes within one step are aggregated).
         Must be called at the _beginning_ of each step (before any changes).
         """
         self.history.append({k:{} for k in self.members})
+        self.cyclesCount += 1
 
     def signalChange(self, obj, change):
         """
@@ -48,6 +56,8 @@ class History:
 
         for name,obj in self.members.values():
             obj.stepBack(hist[name])
+        
+        self.cyclesCount -= 1
 
     def setCheckpoint(self):
         """
