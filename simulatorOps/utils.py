@@ -154,7 +154,7 @@ def regSuffixWithBank(reg, bank):
 ####              Shift related functions and data structures              ###
 ##############################################################################
 
-shiftInfo = namedtuple("shiftInfo", "type", "immediate", "value")
+shiftInfo = namedtuple("shiftInfo", ["type", "immediate", "value"])
 
 shiftMapping = {'LSL': 0,
                 'LSR': 1,

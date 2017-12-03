@@ -3,8 +3,8 @@ import struct
 from enum import Enum
 from collections import defaultdict, namedtuple, deque 
 
-import utils
-from abstractOp import AbstractOp, ExecutionException
+import simulatorOps.utils as utils
+from simulatorOps.abstractOp import AbstractOp, ExecutionException
 
 class BranchOp(AbstractOp):
 
@@ -14,7 +14,7 @@ class BranchOp(AbstractOp):
 
     def decode(self):
         instrInt = self.instrInt
-        if not (checkMask(instrInt, (27, 25), (26,)) or checkMask(instrInt, (24, 21, 4) + tuple(range(8, 20)), (27, 26, 25, 23, 22, 20, 7, 6, 5))):
+        if not (utils.checkMask(instrInt, (27, 25), (26,)) or utils.checkMask(instrInt, (24, 21, 4) + tuple(range(8, 20)), (27, 26, 25, 23, 22, 20, 7, 6, 5))):
             raise ExecutionException("masque de décodage invalide pour une instruction de type BRANCH", 
                                         internalError=True)
 
@@ -87,7 +87,7 @@ class BranchOp(AbstractOp):
             return
 
         if self.link:
-            simulatorContext.regs[14] = simulatorContext.regs[15] - simulatorContext.pcoffset + 4)
+            simulatorContext.regs[14] = simulatorContext.regs[15] - simulatorContext.pcoffset + 4
             simulatorContext.stepCondition += 1         # We are entering a function, we log it (useful for stepForward and stepOut)
             simulatorContext.callStack.append(simulatorContext.regs[15] - simulatorContext.pcoffset)
         if self.imm:

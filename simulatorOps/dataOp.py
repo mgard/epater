@@ -3,8 +3,8 @@ import struct
 from enum import Enum
 from collections import defaultdict, namedtuple, deque 
 
-import utils
-from abstractOp import AbstractOp, ExecutionException
+import simulatorOps.utils as utils
+from simulatorOps.abstractOp import AbstractOp, ExecutionException
 
 class DataOp(AbstractOp):
 
@@ -40,7 +40,7 @@ class DataOp(AbstractOp):
                                             value=((instrInt >> 8) & 0xF) * 2)
             if self.shift.value != 0:
                 # If it is a constant, we shift as we decode
-                _, self.shiftedVal = utils.applyShift(self.val, self.shift, False)
+                _, self.shiftedVal = utils.applyShift(self.shiftedVal, self.shift, False)
         else:
             self.op2reg = instrInt & 0xF
             if instrInt & (1 << 4):

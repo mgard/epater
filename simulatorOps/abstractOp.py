@@ -3,11 +3,11 @@ import struct
 from enum import Enum
 from collections import defaultdict, namedtuple, deque 
 
-import utils
+import simulatorOps.utils as utils
 
 class ExecutionException(Exception):
     def __init__(self, text, internalError=False):
-        self.text = test
+        self.text = text
         self.internal = internalError
     
     def __str__(self):
@@ -42,7 +42,7 @@ class AbstractOp:
     def _decodeCondition(self):
         # Retrieve the condition field
         # We must handle potential invalid condition code (instrInt >> 28 == 15)
-        self.condition = utils.conditionMappingR.get(instrInt >> 28, None)
+        self.condition = utils.conditionMappingR.get(self.instrInt >> 28, None)
         self.conditionValid = self.condition is not None
 
     def _explainCondition(self):
@@ -50,12 +50,12 @@ class AbstractOp:
         # implementation of the condition explanation here
         if self.condition == 'AL':
             return "", ""
-        return self.condition, 
-                "<li>Vérifie si la condition {} est remplie</li>\n".format(self.condition)
+        return self.condition, "<li>Vérifie si la condition {} est remplie</li>\n".format(self.condition)
 
     def _checkCondition(self, flags):
         # Since all instructions can be conditional, we can put a generic
         # implementation of the condition verification (before execution) here
+        cond = self.condition
         self._readflags = utils.conditionFlagsMapping[cond]
 
         # Check condition
@@ -105,4 +105,4 @@ class AbstractOp:
 
     @property
     def instructionType(self):
-        return self._type if not self.decodeError else utils.InstrType.undefined
+        return self._type

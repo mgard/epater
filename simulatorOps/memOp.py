@@ -3,8 +3,8 @@ import struct
 from enum import Enum
 from collections import defaultdict, namedtuple, deque 
 
-import utils
-from abstractOp import AbstractOp, ExecutionException
+import simulatorOps.utils as utils
+from simulatorOps.abstractOp import AbstractOp, ExecutionException
 
 class MemOp(AbstractOp):
 
@@ -81,7 +81,7 @@ class MemOp(AbstractOp):
         sizeaccess = 1 if self.byte else 4
         sizedesc = "1 octet" if sizeaccess == 1 else "{} octets".format(sizeaccess)
 
-        disassembly += "B" if sizeaccess == 1
+        disassembly += "B" if sizeaccess == 1 else "H" if sizeaccess == 2 else ""
         disassembly += disCond
         disassembly += "R{}, [R{}".format(self.rd, self.basereg)
 
@@ -130,9 +130,9 @@ class MemOp(AbstractOp):
             elif not self.imm:
                 disassembly += ", R{}".format(self.offsetReg)
                 disassembly += utils.shiftToInstruction(self.offsetRegShift)
-        else:
+        #else:
             # Weird case, would happen if we combine post-incrementation and immediate offset of 0
-            disassembly += "]"
+        #    disassembly += "]"
 
         if self.writeback:
             self._writeregs |= utils.registerWithCurrentBank(self.basereg, bank)

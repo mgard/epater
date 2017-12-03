@@ -311,6 +311,8 @@ class Registers(Component):
 
 
 class Memory(Component):
+    packformat = {1: "<B", 2: "<H", 4: "<I"}
+    maskformat = {1: 0xFF, 2: 0xFFFF, 4: 0xFFFFFFFF}
     
     def __init__(self, history, memcontent, initval=0):
         super().__init__(history)
@@ -376,13 +378,13 @@ class Memory(Component):
                 raise Breakpoint("memory", 2, addr + offset)
 
         sec, offset = resolvedAddr
-        val &= 0xFFFFFFFF if size == 4 else 0xFF if size == 1 else 0xFFFF
-        valBytes = struct.pack("<I", val) if size == 4 else struct.pack("<B", val) if size == 1 else struct.pack("<H", val)
+        val &= self.maskformat[size]
+        valBytes = struct.pack(self.packformat[size], val)
 
         dictChanges = {}
         for of in range(size):
             dictChanges[(sec, offset+of)] = (self.data[sec][offset+of], valBytes[of])
-        self.history.signalChange(self, dictChanges) {(sec, offset): (oldCPSR, self.regCPSR)})
+        self.history.signalChange(self, dictChanges)
 
         self.data[sec][offset:offset+size] = valBytes
 
