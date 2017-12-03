@@ -7,6 +7,11 @@ import simulatorOps.utils as utils
 from simulatorOps.abstractOp import AbstractOp, ExecutionException
 
 class DataOp(AbstractOp):
+    saveStateKeys = frozenset(("condition", 
+                                "opcodeNum", "opcode", 
+                                "imm", "modifiyFlags", 
+                                "rd", "rn", 
+                                "shiftedVal", "shift", "op2reg"))
 
     def __init__(self):
         super().__init__()

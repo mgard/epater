@@ -7,6 +7,8 @@ import simulatorOps.utils as utils
 from simulatorOps.abstractOp import AbstractOp, ExecutionException
 
 class BranchOp(AbstractOp):
+    saveStateKeys = frozenset(("condition", 
+                                "imm", "link", "offsetImm", "addrReg"))
 
     def __init__(self):
         super().__init__()

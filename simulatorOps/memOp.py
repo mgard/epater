@@ -7,6 +7,9 @@ import simulatorOps.utils as utils
 from simulatorOps.abstractOp import AbstractOp, ExecutionException
 
 class MemOp(AbstractOp):
+    saveStateKeys = frozenset(("condition", 
+                                "imm", "pre", "sign", "byte", "writeback", "mode",
+                                "basereg", "rd", "offsetImm", "offsetReg", "offsetRegShift"))
 
     def __init__(self):
         super().__init__()

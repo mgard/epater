@@ -17,6 +17,7 @@ class ExecutionException(Exception):
             return self.text
 
 class AbstractOp:
+    saveStateKeys = frozenset()
 
     def __init__(self):
         self._type = utils.InstrType.undefined
@@ -106,3 +107,10 @@ class AbstractOp:
     @property
     def instructionType(self):
         return self._type
+
+    def saveState(self):
+        # Each children class must define a saveStateKeys attribute
+        return {k:v for k,v in self.__dict__.items() if k in self.saveStateKeys}
+
+    def restoreState(self, state):
+        self.__dict__.update(state)
