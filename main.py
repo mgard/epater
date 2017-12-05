@@ -24,6 +24,7 @@ if __name__ == '__main__':
             if i < 7:
                 print(i, lines[interpreter.getCurrentLine()][:-1])
             interpreter.execute(mode='into')
+            print(interpreter.sim.regs[15])
             continue
             b = interpreter.getCurrentLine(), interpreter.getChanges()
             if i < 7:

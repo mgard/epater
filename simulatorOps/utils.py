@@ -205,9 +205,9 @@ def shiftToInstruction(shift):
     return str
 
 
-def applyShift(value, shift, cflag):
+def applyShift(val, shift, cflag):
     """
-    Apply the shifting operation described by `shift` to `value`.
+    Apply the shifting operation described by `shift` to `val`.
     The shift value MUST be an immediate (that is, shift.immediate must be true)
     `cflag` should contain the current value of the carry flag (used only for RRX)
     """

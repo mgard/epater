@@ -16,6 +16,7 @@ class Simulator:
     None of its method should be called directly by the UI, 
     everything should pass through bytecodeinterpreter class.
     """
+    PC = 15     # Helpful shorthand to get a reference on PC
 
     def __init__(self, memorycontent, assertionTriggers, addr2line):
         # Parameters
@@ -93,7 +94,8 @@ class Simulator:
         Stopping criterion can be set using `setStepCondition`.
         """
         self.history.setCheckpoint()
-        while not self.isStepDone():
+        self.nextInstr()                # We always execute at least one instruction
+        while not self.isStepDone():    # We repeat until the stopping criterion is met
             self.nextInstr()
         return self.history.getDiffFromCheckpoint()
 
