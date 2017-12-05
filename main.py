@@ -20,10 +20,10 @@ if __name__ == '__main__':
     with open(args.inputfile) as f:
         lines = f.readlines()
         a = time.time()
-        for i in range(10):
-            if i < 7:
+        for i in range(30):
+            if i < 37:
                 print(i, lines[interpreter.getCurrentLine()][:-1])
-            interpreter.execute(mode='into')
+            interpreter.execute(mode='run')
             print(interpreter.sim.regs[15])
             continue
             b = interpreter.getCurrentLine(), interpreter.getChanges()

@@ -285,9 +285,9 @@ class Registers(Component):
             self.regCPSR &= 0xFFFFFFFF - (1 << self.flag2index[flag])
 
         self.history.signalChange(self, {(currentBank, "CPSR"): (oldCPSR, self.regCPSR)})
-    
+
     def setAllFlags(self, flagsDict):
-        for flag,val in flagsDict:
+        for flag, val in flagsDict.items():
             self.setFlag(flag, val)
 
     def deactivateBreakpoints(self):
@@ -295,7 +295,7 @@ class Registers(Component):
         # is called. Useful for the decoding state, where we want to check the value of
         # a register or a flag without possiblity trigging a breakpoint.
         self.bkptActive = False
-    
+
     def reactivateBreakpoints(self):
         # See `deactivateBreakpoints`
         self.bkptActive = True
@@ -305,7 +305,7 @@ class Registers(Component):
 
     def setBreakpointOnFlag(self, flag, breakpointType):
         self.bkptFlags[flag] = breakpointType
-        
+
     def stepBack(self, state):
         # TODO what happens if we change mode at the same time we change a register?
         for k, val in state:

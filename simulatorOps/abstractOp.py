@@ -21,6 +21,9 @@ class AbstractOp:
 
     def __init__(self):
         self._type = utils.InstrType.undefined
+        self.resetAccessStates()
+
+    def resetAccessStates(self):
         self._nextInstrAddr = -1
         self._readflags = set()
         self._writeflags = set()

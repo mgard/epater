@@ -7,7 +7,7 @@ import simulatorOps.utils as utils
 from simulatorOps.abstractOp import AbstractOp, ExecutionException
 
 class NopOp(AbstractOp):
-    saveStateKeys = frozenset(("condition", ))      # TODO
+    saveStateKeys = frozenset(("condition",))
 
     def __init__(self):
         super().__init__()
@@ -22,7 +22,7 @@ class NopOp(AbstractOp):
         # Retrieve the condition field
         self._decodeCondition()
         
-        # TODO
+        # Nothing to do, it's a NOP...
 
     def explain(self, simulatorContext):
         bank = simulatorContext.regs.mode
@@ -35,15 +35,13 @@ class NopOp(AbstractOp):
         disCond, descCond = self._explainCondition()
         description += descCond
 
-        # TODO
+        disassembly = "NOP" + disCond
+        description += "<li>Ne rien faire</li><li>Nonon, vraiment, juste rien</li>"
 
         description += "</ol>"
         simulatorContext.regs.reactivateBreakpoints()
         return disassembly, description
     
     def execute(self, simulatorContext):
-        if not self._checkCondition(simulatorContext.regs):
-            # Nothing to do, instruction not executed
-            return
-
-        # TODO
+        # Whatever happens, a NOP instruction does nothing
+        return

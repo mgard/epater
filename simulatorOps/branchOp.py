@@ -40,10 +40,9 @@ class BranchOp(AbstractOp):
             self.addrReg = instrInt & 0xF
 
     def explain(self, simulatorContext):
+        self.resetAccessStates()
         bank = simulatorContext.regs.mode
         simulatorContext.regs.deactivateBreakpoints()
-        
-        self._nextInstrAddr = -1
         
         disassembly = "B"
         description = "<ol>\n"

@@ -7,7 +7,9 @@ import simulatorOps.utils as utils
 from simulatorOps.abstractOp import AbstractOp, ExecutionException
 
 class MulOp(AbstractOp):
-    saveStateKeys = frozenset(("condition", ))      # TODO
+    saveStateKeys = frozenset(("condition",
+                                "rd", "rn", "rs", "rm",
+                                "modifyFlags", "accumulate"))
 
     def __init__(self):
         super().__init__()
@@ -22,20 +24,53 @@ class MulOp(AbstractOp):
         # Retrieve the condition field
         self._decodeCondition()
         
-        # TODO
+        self.rd = (instrInt >> 16) & 0xF
+        self.rn = (instrInt >> 12) & 0xF
+        self.rs = (instrInt >> 8) & 0xF
+        self.rm = instrInt & 0xF
+
+        self.modifyFlags = bool(instrInt & (1 << 20))
+        self.accumulate = bool(instrInt & (1 << 21))
 
     def explain(self, simulatorContext):
+        self.resetAccessStates()
         bank = simulatorContext.regs.mode
         simulatorContext.regs.deactivateBreakpoints()
-        
-        self._nextInstrAddr = -1
         
         disassembly = ""
         description = "<ol>\n"
         disCond, descCond = self._explainCondition()
         description += descCond
 
-        # TODO
+        self._readregs |= utils.registerWithCurrentBank(self.rm, bank)
+        self._readregs |= utils.registerWithCurrentBank(self.rs, bank)
+
+        if self.accumulate:
+            disassembly = "MLA"
+            description += "<li>Effectue une multiplication suivie d'une addition (A*B+C) entre :\n"
+            description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(utils.regSuffixWithBank(self.rm, bank))
+            description += "<li>Le registre {}</li>\n".format(utils.regSuffixWithBank(self.rs, bank))
+            description += "<li>Le registre {}</li></ol>\n".format(utils.regSuffixWithBank(self.rn, bank))
+            if self.modifyFlags:
+                disassembly += "S"
+                description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
+            disassembly += disCond + " R{}, R{}, R{}, R{} ".format(self.rd, self.rm, self.rs, self.rn)
+            self._readregs |= utils.registerWithCurrentBank(self.rn, bank)
+        else:
+            disassembly = "MUL"
+            description += "<li>Effectue une multiplication (A*B) entre :\n"
+            description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(utils.regSuffixWithBank(self.rm, bank))
+            description += "<li>Le registre {}</li></ol>\n".format(utils.regSuffixWithBank(self.rs, bank))
+            if self.modifyFlags:
+                disassembly += "S"
+                description += "<li>Met à jour les drapeaux de l'ALU en fonction du résultat de l'opération</li>\n"
+            disassembly += disCond + " R{}, R{}, R{} ".format(self.rd, self.rm, self.rs)
+
+        description += "<li>Écrit le résultat dans R{}</li>".format(self.rd)
+        self._writeregs |= utils.registerWithCurrentBank(self.rd, bank)
+
+        if self.modifyFlags:
+            self._writeflags = {'c', 'z', 'n'}
 
         description += "</ol>"
         simulatorContext.regs.reactivateBreakpoints()
@@ -45,5 +80,23 @@ class MulOp(AbstractOp):
         if not self._checkCondition(simulatorContext.regs):
             # Nothing to do, instruction not executed
             return
+        
+        op1 = simulatorContext.regs[self.rm]
+        op2 = simulatorContext.regs[self.rs]
+        if self.accumulate:
+            # MLA
+            res = op1 * op2 + simulatorContext.regs[self.rn]
+        else:
+            # MUL
+            res = op1 * op2
 
-        # TODO
+        simulatorContext.regs[self.rd] = res & 0xFFFFFFFF
+
+        # Z and V are set, C is set to "meaningless value" (see ARM spec 4.7.2), V is unaffected
+        workingFlags = {}
+        workingFlags['Z'] = res == 0
+        workingFlags['N'] = res & 0x80000000  # "N flag will be set to the value of bit 31 of the result" (4.5.1)
+        workingFlags['C'] = 0       # I suppose "0" can be qualified as a meaningless value...
+
+        if self.modifyFlags:
+            simulatorContext.regs.setAllFlags(workingFlags)

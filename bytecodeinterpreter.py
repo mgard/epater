@@ -194,7 +194,7 @@ class BCInterpreter:
         :param stepMode: can be "into" | "forward" | "out" | "run"
         """
         self.sim.setStepCondition(mode)
-        self.sim.loop()
+        print(self.sim.loop())
 
     def step(self, stepMode=None):
         """

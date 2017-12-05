@@ -45,7 +45,7 @@ class DataOp(AbstractOp):
                                             value=((instrInt >> 8) & 0xF) * 2)
             if self.shift.value != 0:
                 # If it is a constant, we shift as we decode
-                _, self.shiftedVal = utils.applyShift(self.shiftedVal, self.shift, False)
+                _u, self.shiftedVal = utils.applyShift(self.shiftedVal, self.shift, False)
         else:
             self.op2reg = instrInt & 0xF
             if instrInt & (1 << 4):
@@ -58,11 +58,10 @@ class DataOp(AbstractOp):
                                                 value=(instrInt >> 7) & 0x1F)
 
     def explain(self, simulatorContext):
+        self.resetAccessStates()
         bank = simulatorContext.regs.mode
         simulatorContext.regs.deactivateBreakpoints()
         modifiedFlags = {'Z', 'N'}
-
-        self._nextInstrAddr = -1
 
         disassembly = self.opcode
         description = "<ol>\n"
@@ -252,7 +251,7 @@ class DataOp(AbstractOp):
                     raise ExecutionException("L'utilisation de PC comme registre de destination en combinaison avec la mise a jour des drapeaux est interdite en mode User!")
                 simulatorContext.regs.CPSR = simulatorContext.regs.SPSR        # Put back the saved SPSR in CPSR
             else:
-                simulatorContext.setAllFlags(workingFlags)
+                simulatorContext.regs.setAllFlags(workingFlags)
 
         if self.opcode not in ("TST", "TEQ", "CMP", "CMN"):
             # We actually write the result

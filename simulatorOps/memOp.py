@@ -46,10 +46,9 @@ class MemOp(AbstractOp):
 
 
     def explain(self, simulatorContext):
+        self.resetAccessStates()
         bank = simulatorContext.regs.mode
         simulatorContext.regs.deactivateBreakpoints()
-        
-        self._nextInstrAddr = -1
         
         disassembly = self.mode
         description = "<ol>\n"
