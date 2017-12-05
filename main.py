@@ -4,7 +4,6 @@ import math
 
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
-from procsimulator import Simulator
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='EPATER, ARM emulator')
@@ -21,10 +20,11 @@ if __name__ == '__main__':
     with open(args.inputfile) as f:
         lines = f.readlines()
         a = time.time()
-        for i in range(100000):
+        for i in range(10):
             if i < 7:
                 print(i, lines[interpreter.getCurrentLine()][:-1])
-            interpreter.step()
+            interpreter.execute(mode='into')
+            continue
             b = interpreter.getCurrentLine(), interpreter.getChanges()
             if i < 7:
                 print(interpreter.getCurrentLine(), interpreter.getChanges())

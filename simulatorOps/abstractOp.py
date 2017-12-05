@@ -110,7 +110,10 @@ class AbstractOp:
 
     def saveState(self):
         # Each children class must define a saveStateKeys attribute
-        return {k:v for k,v in self.__dict__.items() if k in self.saveStateKeys}
+        d = {k:v for k,v in self.__dict__.items() if k in self.saveStateKeys} 
+        d['__class__'] = self.__class__
+        return d
 
     def restoreState(self, state):
+        assert state['__class__'] == self.__class__
         self.__dict__.update(state)

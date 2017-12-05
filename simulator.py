@@ -33,9 +33,10 @@ class Simulator:
         # Initialize decoders
         self.decoders = {'BranchOp': BranchOp(), 'DataOp': DataOp(), 
                             'MemOp': MemOp(), 'MultipleMemOp': MultipleMemOp(),
-                            'ShiftOp': ShiftOp(), 'PSROp': PSROp(),
+                            'PSROp': PSROp(),
                             'MulOp': MulOp(), 'MulLongOp': MulLongOp(), 
                             'SoftInterruptOp': SoftInterruptOp(), 'NopOp': NopOp()}
+        self.decoderCache = {}
 
         # Initialize assertion structures
         self.assertionCkpts = set(assertionTriggers.keys())
@@ -59,7 +60,7 @@ class Simulator:
 
     def reset(self):
         self.history.clear()
-        self.regs[15] = self.pcoffset
+        self.regs.banks['User'][15].val = self.pcoffset
         self.fetchAndDecode()
 
     def setStepCondition(self, stepMode):
@@ -85,8 +86,20 @@ class Simulator:
         # We are doing a step into, we always stop
         return True
 
-    def stepBack(self):
-        self.history.stepBack()
+    def loop(self):
+        """
+        Loop until the stopping criterion is met. Returns the aggregated list
+        of changes since the beginning of the simulation loop.
+        Stopping criterion can be set using `setStepCondition`.
+        """
+        self.history.setCheckpoint()
+        while not self.isStepDone():
+            self.nextInstr()
+        return self.history.getDiffFromCheckpoint()
+
+    def stepBack(self, count=1):
+        for c in range(count):
+            self.history.stepBack()
 
     def fetchAndDecode(self):
         # Check if PC is valid (multiple of 4)
@@ -100,11 +113,12 @@ class Simulator:
 
     def bytecodeToInstr(self):
         # Assumes that the instruction to decode is in self.fetchedInstr
-        # TODO : add a LRU cache for this mapping bytecode/instruction
-        #           since the number of instructions in a given program is << than
-        #           the number of instructions executed, this should produce a
-        #           nice speedup.
         instrInt = struct.unpack("<I", self.fetchedInstr)[0]
+        if instrInt in self.decoderCache:
+            self.currentInstr = self.decoderCache[instrInt][0]
+            self.currentInstr.setBytecode(self.fetchedInstr)
+            self.currentInstr.restoreState(self.decoderCache[instrInt][1])
+            return
 
         # Select the right data type to handle the decoding
         if checkMask(instrInt, (19, 24), (27, 26, 23, 20)):       # MRS or MSR
@@ -152,20 +166,31 @@ class Simulator:
 
         if self.currentInstr is not None:
             self.currentInstr.setBytecode(self.fetchedInstr)
+            self.currentInstr.decode()
+            # Once decoded, we add the instruction to the cache
+            self.decoderCache[instrInt] = (self.currentInstr, self.currentInstr.saveState())
+            if len(self.decoderCache) > 5000:
+                # Fail-safe, we should never get there with programs < 2000 lines, but just in case,
+                # we do not want to bust the RAM with our cache
+                self.decoderCache = {}
 
     def explainInstruction(self):
-        disassembly, description = self.currentInstr.explain()
+        disassembly, description = self.currentInstr.explain(self)
         dis = '<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">{}</div>\n'.format(disassembly, description)
 
         if self.currentInstr.nextAddressToExecute != -1:
-            self.disassemblyInfo = (["highlightread", self.currentInstr.affectedRegs[0] + self.currentInstr.affectedMem[0]], 
-                                    ["highlightwrite", self.currentInstr.affectedRegs[1] + self.currentInstr.affectedMem[1]], 
+            self.disassemblyInfo = (["highlightread", list(self.currentInstr.affectedRegs[0] | self.currentInstr.affectedMem[0])], 
+                                    ["highlightwrite", list(self.currentInstr.affectedRegs[1] | self.currentInstr.affectedMem[1])], 
                                     ["nextline", self.currentInstr.nextAddressToExecute], 
                                     ["disassembly", dis])
         else:
-            self.disassemblyInfo = (["highlightread", self.currentInstr.affectedRegs[0] + self.currentInstr.affectedMem[0]], 
-                                    ["highlightwrite", self.currentInstr.affectedRegs[1] + self.currentInstr.affectedMem[1]],
+            self.disassemblyInfo = (["highlightread", list(self.currentInstr.affectedRegs[0] | self.currentInstr.affectedMem[0])], 
+                                    ["highlightwrite", list(self.currentInstr.affectedRegs[1] | self.currentInstr.affectedMem[1])],
                                     ["disassembly", dis])
+
+    def execAssert(self, assertionsList, mode):
+        # TODO
+        pass
 
     def nextInstr(self):
         # One more cycle to do!

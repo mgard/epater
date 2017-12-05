@@ -108,6 +108,7 @@ class Registers(Component):
 
     def __init__(self, history):
         super().__init__(history)
+        #import pdb; pdb.set_trace()
         self.history.registerObject(self)
         self.bkptActive = True
 
@@ -115,9 +116,10 @@ class Registers(Component):
         # The "17th" register is the SPSR for this mode, which should never be
         # directly accessed by the user
         # In User mode, since there is no SPSR, no additional register is created
+        self.banks = {}
 
         # Create user registers
-        regs = [Register(i) for i in range(16)]
+        regs = [_Register(i) for i in range(16)]
         regs[13].altname = "SP"
         regs[14].altname = "LR"
         regs[15].altname = "PC"
@@ -125,31 +127,31 @@ class Registers(Component):
 
         # Create FIQ registers
         regsFIQ = regs[:8]          # R0-R7 are shared
-        regsFIQ.extend(Register(i) for i in range(8, 15))        # R8-R14 are exclusive
+        regsFIQ.extend(_Register(i) for i in range(8, 15))        # R8-R14 are exclusive
         regsFIQ[13].altname = "SP"
         regsFIQ[14].altname = "LR"
         regsFIQ.append(regs[15])    # PC is shared
-        regsFIQ.append(Register(16))
+        regsFIQ.append(_Register(16))
         regsFIQ[16].altname = "SPSR"
         self.banks['FIQ'] = regsFIQ
 
         # Create IRQ registers
         regsIRQ = regs[:13]         # R0-R12 are shared
-        regsIRQ.extend(Register(i) for i in range(13, 15))        # R13-R14 are exclusive
+        regsIRQ.extend(_Register(i) for i in range(13, 15))        # R13-R14 are exclusive
         regsIRQ[13].altname = "SP"
         regsIRQ[14].altname = "LR"
         regsIRQ.append(regs[15])    # PC is shared
-        regsIRQ.append(Register(16))
+        regsIRQ.append(_Register(16))
         regsIRQ[16].altname = "SPSR"
         self.banks['IRQ'] = regsIRQ
 
         # Create SVC registers (used with software interrupts)
         regsSVC = regs[:13]  # R0-R12 are shared
-        regsSVC.extend(Register(i) for i in range(13, 15))  # R13-R14 are exclusive
+        regsSVC.extend(_Register(i) for i in range(13, 15))  # R13-R14 are exclusive
         regsIRQ[13].altname = "SP"
         regsIRQ[14].altname = "LR"
         regsSVC.append(regs[15])  # PC is shared
-        regsSVC.append(Register(16))
+        regsSVC.append(_Register(16))
         regsSVC[16].altname = "SPSR"
         self.banks['SVC'] = regsSVC
 
@@ -206,6 +208,7 @@ class Registers(Component):
     @IRQ.setter
     def IRQ(self, val):
         oldCPSR = self.regCPSR
+        currentBank = self.mode
         if val:
             self.regCPSR |= 1 << 7
         else:
@@ -219,6 +222,7 @@ class Registers(Component):
     @FIQ.setter
     def FIQ(self, val):
         oldCPSR = self.regCPSR
+        currentBank = self.mode
         if val:
             self.regCPSR |= 1 << 6
         else:
@@ -228,24 +232,25 @@ class Registers(Component):
     def setMode(self, mode):
         if mode not in self.mode2bits:
             raise KeyError
+        currentBank = self.mode
         oldCPSR = self.regCPSR
         self.regCPSR &= 0xFFFFFFE0                  # Reset the mode
         self.regCPSR |= self.mode2bits[mode]        # Set the mode wanted
         self.history.signalChange(self, {(currentBank, "CPSR"): (oldCPSR, self.regCPSR)})
 
     def __getattr__(self, attr):
-        attr = attr.upper()
-        if attr in self.flag2index:
+        attrU = attr.upper()
+        if attrU in self.flag2index:
             # Flag
-            return bool((self.regCPSR >> self.flag2index[attr]) & 0x1)
-        raise AttributeError
+            return bool((self.regCPSR >> self.flag2index[attrU]) & 0x1)
+        raise AttributeError("Class Registers has no attribute {}".format(attr))
     
     def __setattr__(self, attr, val):
-        attr = attr.upper()
-        if attr in self.flag2index:
+        attrU = attr.upper()
+        if attrU in self.flag2index:
             # Flag
-            self.setFlag(attr, val)
-        raise AttributeError
+            self.setFlag(attrU, val)
+        self.__dict__[attr] = val
 
     def __getitem__(self, idx):
         currentBank = self.mode
@@ -265,6 +270,7 @@ class Registers(Component):
         self.banks[currentBank][idx].val = newValue
     
     def setFlag(self, flag, value, mayTriggerBkpt=True):
+        currentBank = self.mode
         flag = flag.upper()
         if flag not in self.flag2index:
             raise KeyError

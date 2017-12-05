@@ -1,7 +1,7 @@
 from struct import unpack
 
 from settings import getSetting
-from procsimulator import Simulator, Memory, Register
+from simulator import Simulator
 
 
 class BCInterpreter:
@@ -188,6 +188,14 @@ class BCInterpreter:
         """
         return self.sim.sysHandle.breakpointInfo if self.sim.sysHandle.breakpointTrigged else None
 
+    def execute(self, mode="into"):
+        """
+        Run the simulator in a given mode.
+        :param stepMode: can be "into" | "forward" | "out" | "run"
+        """
+        self.sim.setStepCondition(mode)
+        self.sim.loop()
+
     def step(self, stepMode=None):
         """
         Run the simulator in a given mode.
@@ -343,7 +351,9 @@ class BCInterpreter:
         """
         Return the number of the line currently accessed.
         """
-        pc = self.sim.regs[15].get(mayTriggerBkpt=False)
+        self.sim.regs.deactivateBreakpoints()
+        pc = self.sim.regs[15]
+        self.sim.regs.reactivateBreakpoints()
         pc -= 8 if getSetting("PCbehavior") == "+8" else 0
         assert pc in self.addr2line, "Line outside of linked memory!"
         assert len(self.addr2line[pc]) > 0, "Line outside of linked memory!"
@@ -353,7 +363,9 @@ class BCInterpreter:
         """
         Return the address of the instruction being executed
         """
-        pc = self.sim.regs[15].get(mayTriggerBkpt=False)
+        self.sim.regs.deactivateBreakpoints()
+        pc = self.sim.regs[15]
+        self.sim.regs.reactivateBreakpoints()
         pc -= 8 if getSetting("PCbehavior") == "+8" else 0
         return pc
 
