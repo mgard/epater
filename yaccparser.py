@@ -705,7 +705,7 @@ def p_multiplyinstruction(p):
         p[0] |= p[6]                # Set Rm
         p[0] |= p[4] << 16          # Set Rd
     else:
-        if len(p) == 9:
+        if len(p) == 11:
             raise YaccError("Une instruction {} ne peut recevoir plus de 3 registres en argument.".format(currentMnemonic))
         p[0] |= p[8] << 8           # Set Rs
         p[0] |= p[6]                # Set Rm
@@ -809,8 +809,6 @@ parser = yacc.yacc()
 if __name__ == '__main__':
     a1 = parser.parse("MUL R1, R3, R2\n")
     print(a1)
-    a = parser.parse("UMULL R1, R2, R3, R4\n")
-    print(a)
     #print(a, hex(a['BYTECODE']))
     #a = parser.parse("\n")
     #print(">>>", a, "<<<")
