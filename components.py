@@ -229,15 +229,6 @@ class Registers(Component):
             self.regCPSR &= 0xFFFFFFFF - (1 << 6)
         self.history.signalChange(self, {(currentBank, "CPSR"): (oldCPSR, self.regCPSR)})
 
-    def setMode(self, mode):
-        if mode not in self.mode2bits:
-            raise KeyError
-        currentBank = self.mode
-        oldCPSR = self.regCPSR
-        self.regCPSR &= 0xFFFFFFE0                  # Reset the mode
-        self.regCPSR |= self.mode2bits[mode]        # Set the mode wanted
-        self.history.signalChange(self, {(currentBank, "CPSR"): (oldCPSR, self.regCPSR)})
-
     def __getattr__(self, attr):
         attrU = attr.upper()
         if attrU in self.flag2index:
@@ -259,6 +250,12 @@ class Registers(Component):
             raise Breakpoint("register", 'r', idx)
         return self.banks[currentBank][idx].val
 
+    def getRegister(self, bank, reg):
+        # Get a register with a specific bank
+        if self.banks[bank][reg].breakpoint & 4:
+            raise Breakpoint("register", 'r', reg)
+        return self.banks[bank][reg].val
+
     def __setitem__(self, idx, val):
         currentBank = self.mode
         # Register
@@ -268,6 +265,16 @@ class Registers(Component):
         oldValue, newValue = self.banks[currentBank][idx].val, val & 0xFFFFFFFF
         self.history.signalChange(self, {(currentBank, idx): (oldValue, newValue)})
         self.banks[currentBank][idx].val = newValue
+
+    def setRegister(self, bank, reg, val):
+        # In some cases, we want to set the register of a specific bank
+        # The [] operator always uses the current bank, so this method
+        # can be used in this specific case
+        if self.banks[bank][reg].breakpoint & 2:
+            raise Breakpoint("register", 'w', reg)
+        oldValue, newValue = self.banks[bank][reg].val, val & 0xFFFFFFFF
+        self.history.signalChange(self, {(bank, reg): (oldValue, newValue)})
+        self.banks[bank][reg].val = newValue
     
     def setFlag(self, flag, value, mayTriggerBkpt=True):
         currentBank = self.mode

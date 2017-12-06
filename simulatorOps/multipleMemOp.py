@@ -61,7 +61,9 @@ class MultipleMemOp(AbstractOp):
 
         disassembly += disCond
 
-        # TODO : show the affected memory areas
+        # See the explanations in execute() for this line
+        transferToUserBank = bank != "User" and self.sbit and (self.mode == "STR" or 15 not in self.reglist)
+        bankToUse = "User" if transferToUserBank else bank
 
         if disassembly[:3] == 'POP':
             description += "<li>Lit la valeur de SP</li>\n"
@@ -106,9 +108,17 @@ class MultipleMemOp(AbstractOp):
         description += "<li>{}</li>\n".format(listregstxt)
         if self.sbit:
             disassembly += "^"
-            description += "<li>Copie du SPSR courant dans le CPSR</li>\n"
+            if self.mode == "LDR" and 15 in self.reglist:
+                description += "<li>Copie du SPSR courant dans le CPSR</li>\n"
 
-        # TODO : update _readregs, _writeregs, etc.
+        self._readregs |= utils.registerWithCurrentBank(self.basereg, bank)
+        if self.mode == "LDR":
+            self._readregs |= {utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist}
+        else:
+            self._writeregs |= {utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist}
+
+        # TODO : update _readmem and _writemem
+        # (show the affected memory areas)
 
         description += "</ol>"
         simulatorContext.regs.reactivateBreakpoints()
@@ -125,14 +135,12 @@ class MultipleMemOp(AbstractOp):
         if self.pre:
             baseAddr += self.sign * 4
 
-        currentbank = self.regs.currentBank
-        if currentbank != "User" and self.sbit and (self.mode == "STR" or 15 not in regs):
-            # "For both LDM and STM instructions, the User bank registers are transferred rather than the register
-            #  bank corresponding to the current mode. This is useful for saving the user state on process switches.
-            #  Base write-back should not be used when this mechanism is employed."
-
-            # TODO : FIX ME
-            self.regs.setCurrentBank("User", logToHistory=False)
+        currentbank = simulatorContext.regs.mode
+        # If R15 not in list and S bit set (ARM Instruction Set Manual, 4.11.4)
+        # "For both LDM and STM instructions, the User bank registers are transferred rather than the register
+        #  bank corresponding to the current mode. This is useful for saving the user state on process switches.
+        #  Base write-back should not be used when this mechanism is employed."
+        transferToUserBank = currentbank != "User" and self.sbit and (self.mode == "STR" or 15 not in self.reglist)
 
         if self.mode == 'LDR':
             for reg in self.reglist[::self.sign]:
@@ -140,14 +148,17 @@ class MultipleMemOp(AbstractOp):
                 if m is None:       # No such address in the mapped memory, we cannot continue
                     return False
                 val = struct.unpack("<I", m)[0]
-                simulatorContext.regs[reg] = val
+                if transferToUserBank:
+                    simulatorContext.regs.setRegister("User", reg, val)
+                else:
+                    simulatorContext.regs[reg] = val
                 baseAddr += self.sign * 4
             if self.sbit and simulatorContext.PC in self.reglist:
                 # "If the instruction is a LDM then SPSR_<mode> is transferred to CPSR at the same time as R15 is loaded."
                 simulatorContext.regs.CPSR = simulatorContext.regs.SPSR
         else:   # STR
             for reg in self.reglist[::self.sign]:
-                val = simulatorContext.regs[reg]
+                val = simulatorContext.regs.getRegister("User", reg) if transferToUserBank else simulatorContext.regs[reg]
                 if reg == simulatorContext.PC:
                     val += 4            # PC+12 when PC is in an STM instruction (see 4.11.1 of the ARM instruction set manual)
                 simulatorContext.mem.set(baseAddr, val, size=4)
@@ -161,6 +172,3 @@ class MultipleMemOp(AbstractOp):
             # Maybe we could output an explicit error if this is the case?
             simulatorContext.regs[self.basereg] = baseAddr
 
-        if currentbank != self.regs.currentBank:
-            # TODO : FIX ME (see above)
-            self.regs.setCurrentBank(currentbank, logToHistory=False)

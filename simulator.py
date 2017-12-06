@@ -111,7 +111,8 @@ class Simulator:
         self.fetchedInstr = self.mem.get(self.regs[15] - self.pcoffset, execMode=True)
         self.fetchedInstr = bytes(self.fetchedInstr)
         self.bytecodeToInstr()
-        self.explainInstruction()
+        if self.isStepDone():
+            self.explainInstruction()
 
     def bytecodeToInstr(self):
         # Assumes that the instruction to decode is in self.fetchedInstr

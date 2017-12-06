@@ -199,37 +199,37 @@ class DataOp(AbstractOp):
             carry, op2 = utils.applyShift(op2, self.shift, simulatorContext.regs.C)
             workingFlags['C'] = bool(carry)
 
-        if self.opcode in ("AND", "TST"):
-            # These instructions do not affect the V flag (ARM Instr. set, 4.5.1)
-            # However, C flag "is set to the carry out from the barrel shifter [if the shift is not LSL #0]" (4.5.1)
-            # this was already done when we called _shiftVal
-            res = op1 & op2
-        elif self.opcode in ("EOR", "TEQ"):
-            # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
-            res = op1 ^ op2
+        if self.opcode == "MOV":
+            res = op2
+        elif self.opcode in ("ADD", "CMN"):
+            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, op2, 0)
         elif self.opcode in ("SUB", "CMP"):
             # For a subtraction, including the comparison instruction CMP, C is set to 0
             # if the subtraction produced a borrow (that is, an unsigned underflow), and to 1 otherwise.
             # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0801a/CIADCDHH.html
             res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, ~op2, 1)
+        elif self.opcode == "MVN":
+            res = ~op2
+        elif self.opcode in ("AND", "TST"):
+            # These instructions do not affect the V flag (ARM Instr. set, 4.5.1)
+            # However, C flag "is set to the carry out from the barrel shifter [if the shift is not LSL #0]" (4.5.1)
+            # this was already done when we called _shiftVal
+            res = op1 & op2
+        elif self.opcode == "ORR":
+            res = op1 | op2
+        elif self.opcode == "BIC":
+            res = op1 & ~op2     # Bit clear?
+        elif self.opcode in ("EOR", "TEQ"):
+            # These instructions do not affect the C and V flags (ARM Instr. set, 4.5.1)
+            res = op1 ^ op2
         elif self.opcode == "RSB":
             res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(~op1, op2, 1)
-        elif self.opcode in ("ADD", "CMN"):
-            res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, op2, 0)
         elif self.opcode== "ADC":
             res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, op2, int(simulatorContext.regs.C))
         elif self.opcode == "SBC":
             res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(op1, ~op2, int(simulatorContext.regs.C))
         elif self.opcode == "RSC":
             res, workingFlags['C'], workingFlags['V'] = utils.addWithCarry(~op1, op2, int(simulatorContext.regs.C))
-        elif self.opcode == "ORR":
-            res = op1 | op2
-        elif self.opcode == "MOV":
-            res = op2
-        elif self.opcode == "BIC":
-            res = op1 & ~op2     # Bit clear?
-        elif self.opcode == "MVN":
-            res = ~op2
         else:
             raise ExecutionException("Mnémonique invalide : {}".format(self.opcode))
 
