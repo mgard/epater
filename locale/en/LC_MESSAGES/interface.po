@@ -1,0 +1,15 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "simulator.generalPurposeRegisters"
+msgstr "General-Purpose Registers (User)"
+
+msgid "simulator.currentInstruction"
+msgstr "Current instruction"
+
+msgid "langCode"
+msgstr "en-CA"
