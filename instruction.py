@@ -163,11 +163,15 @@ dataOpcodeInvert = {'MOV': 'MVN', 'MVN': 'MOV',
 
 dataOpcodeMappingR = {v: k for k,v in dataOpcodeMapping.items()}
 
-def immediateToBytecode(imm, mode=None, alreadyinverted=False):
+def immediateToBytecode(imm, mode=None, alreadyinverted=False, gccMode=True):
     """
     The immediate operand rotate field is a 4 bit unsigned integer which specifies a shift
     operation on the 8 bit immediate value. This value is zero extended to 32 bits, and then
     subject to a rotate right by twice the value in the rotate field. (ARM datasheet, 4.5.3)
+
+    GCC and IAR have different ways of dealing with immediate rotate:
+    IAR put the constant to the far left of the unsigned field (that is, it uses as many rotations as possible)
+    GCC put the constant to the far right of the unsigned field (using as few rotations as possible)
     :param imm:
     :return:
     """
@@ -209,12 +213,21 @@ def immediateToBytecode(imm, mode=None, alreadyinverted=False):
             # If so, we want to use the put the constant to the far left of the unsigned field
             # (that is, we want as many rotations as possible)
             # Remember that we can only do an EVEN number of right rotations
-            rotReal = i + (7 - max(rotatedPos))
-            if rotReal % 2 == 1:
-                if max(rotatedPos) < 7:
-                    rotReal -= 1
-                else:
-                    return None
+            if not gccMode:
+                rotReal = i + (7 - max(rotatedPos))
+                if rotReal % 2 == 1:
+                    if max(rotatedPos) < 7:
+                        rotReal -= 1
+                    else:
+                        return None
+            else:
+                rotReal = i - min(rotatedPos)
+                if rotReal % 2 == 1:
+                    if max(rotatedPos) < 7:
+                        rotReal += 1
+                    else:
+                        return None
+                    
             immBinRot = [str(b) for b in _rotLeftBin(immBin, rotReal)]
             val = int("".join(immBinRot), 2) & 0xFF
             rot = rotReal // 2
