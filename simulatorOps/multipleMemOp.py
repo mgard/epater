@@ -172,3 +172,5 @@ class MultipleMemOp(AbstractOp):
             # Maybe we could output an explicit error if this is the case?
             simulatorContext.regs[self.basereg] = baseAddr
 
+            # TODO Handle special case of the inclusion of base register in the register list (see ARM manual 4.11.6)
+

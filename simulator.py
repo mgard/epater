@@ -22,6 +22,7 @@ class Simulator:
         # Parameters
         self.pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
         self.PCSpecialBehavior = getSetting("PCspecialbehavior")
+        self.allowSwitchModeInUserMode = getSetting("allowuserswitchmode")
         self.maxit = getSetting("runmaxit")
 
         # Initialize history
@@ -63,6 +64,12 @@ class Simulator:
         self.history.clear()
         self.regs.banks['User'][15].val = self.pcoffset
         self.fetchAndDecode()
+
+    def getContext(self):
+        context = {"regs": self.regs.getContext(),
+                    "mem": self.mem.getContext()}
+        return context
+
 
     def setStepCondition(self, stepMode):
         assert stepMode in ("into", "out", "forward", "run")

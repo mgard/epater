@@ -46,6 +46,9 @@ class Component:
     def stepBack(self, state):
         raise NotImplementedError
 
+    def getContext(self):
+        raise NotImplementedError
+
 
 class _Register:
 
@@ -161,6 +164,11 @@ class Registers(Component):
 
         # Keep the breakpoints on the flags
         self.bkptFlags = {k:0 for k in self.flag2index.keys()}
+
+    def getContext(self):
+        c = {'CPSR': self.regCPSR}
+        c.update(self.banks)
+        return c
 
     @property
     def mode(self):
@@ -347,6 +355,9 @@ class Memory(Component):
         # If n & 2, then it is active for each write operation
         # If n & 1, then it is active for each exec operation (namely, an instruction load)
         self.breakpoints = defaultdict(int)
+
+    def getContext(self):
+        return self.data
     
     def _getRelativeAddr(self, addr, size):
         """

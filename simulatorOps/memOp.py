@@ -8,7 +8,7 @@ from simulatorOps.abstractOp import AbstractOp, ExecutionException
 
 class MemOp(AbstractOp):
     saveStateKeys = frozenset(("condition", 
-                                "imm", "pre", "sign", "byte", "writeback", "mode",
+                                "imm", "pre", "sign", "byte", "writeback", "mode", "nonprivileged",
                                 "basereg", "rd", "offsetImm", "offsetReg", "offsetRegShift"))
 
     def __init__(self):
@@ -30,7 +30,9 @@ class MemOp(AbstractOp):
         self.sign = 1 if instrInt & (1 << 23) else -1
         self.byte = bool(instrInt & (1 << 22))
         # See 4.9.1 (with post, writeback is redundant and always on)
-        self.writeback = bool(instrInt & (1 << 21)) or not self.pre       
+        self.writeback = bool(instrInt & (1 << 21)) or not self.pre
+        # See same section, with post-inc, writeback is actually used to indicate an LDRT instruction
+        self.nonprivileged = bool(instrInt & (1 << 21)) and not self.pre
         self.mode = "LDR" if instrInt & (1 << 20) else "STR"
 
         self.basereg = (instrInt >> 16) & 0xF
@@ -84,6 +86,8 @@ class MemOp(AbstractOp):
         sizedesc = "1 octet" if sizeaccess == 1 else "{} octets".format(sizeaccess)
 
         disassembly += "B" if sizeaccess == 1 else "H" if sizeaccess == 2 else ""
+        if self.nonprivileged:
+            disassembly += "T"
         disassembly += disCond
         disassembly += "R{}, [R{}".format(self.rd, self.basereg)
 
