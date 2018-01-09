@@ -10,7 +10,7 @@ from i18n import I18n as _
 
 memory_configs = {
     "simulation": {"INTVEC": 0x00, "CODE": 0x80, "DATA": 0x1000},
-    "test": {"INTVEC": 0x00, "CODE": 0x100000, "DATA": 0x101000}
+    "test": {"INTVEC": 0x100000, "CODE": 0x100080, "DATA": 0x101000}
 }
 
 
