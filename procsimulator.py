@@ -2,6 +2,7 @@ import operator
 import struct
 from enum import Enum
 from collections import defaultdict, namedtuple, deque
+from i18n import I18n as _
 
 from settings import getSetting
 from instruction import BytecodeToInstrInfos, InstrType
@@ -419,7 +420,7 @@ class Memory:
     def stepBack(self):
         # Set the memory as it was one step back in the past
         while (len(self.history) > 0) and (self.history[-1][0] >= self.sys.countCycles):
-            _, sec, offset, virtualAddr, size, val, previousValBytes,  = self.history.pop()
+            unused_, sec, offset, virtualAddr, size, val, previousValBytes,  = self.history.pop()
             self.data[sec][offset:offset+size] = previousValBytes
 
 
@@ -641,7 +642,7 @@ class Simulator:
         highlightwrite = []
         nextline = -1
         disassembly = ""
-        description = "<ol>\n"
+        description = _("<ol>\n", True)
         if cond != 'AL':
             description += "<li>Vérifie si la condition {} est remplie</li>\n".format(cond)
 
@@ -790,7 +791,7 @@ class Simulator:
                 highlightwrite.extend(_registerWithCurrentBank(15))
                 valAdd = misc['offset']
                 if valAdd < 0:
-                    description += "<li>Soustrait la valeur {} à {}</li>\n".format(-valAdd, _regSuffixWithBank(15))
+                    description += _("procsimulator.sub").format(val=-valAdd, reg=_regSuffixWithBank(15))
                 else:
                     description += "<li>Additionne la valeur {} à {}</li>\n".format(valAdd, _regSuffixWithBank(15))
             else:   # BX
@@ -822,7 +823,7 @@ class Simulator:
                     descoffset = "<li>Additionne le registre {} {} à l'adresse de base</li>\n".format(_regSuffixWithBank(misc['offset'][0]), shiftDesc)
                 else:
                     descoffset = "<li>Soustrait le registre {} {} à l'adresse de base</li>\n".format(_regSuffixWithBank(misc['offset'][0]), shiftDesc)
-                _, sval = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
+                unused_, sval = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
                 addr += misc['sign'] * sval
                 highlightread.extend(_registerWithCurrentBank(misc['offset'][0]))
 
@@ -955,7 +956,7 @@ class Simulator:
                     if misc['imm']:
                         valToSet = misc['op2'][0]
                         if misc['op2'][1][2] != 0:
-                            _, valToSet = self._shiftVal(valToSet, misc['op2'][1])
+                            unused_, valToSet = self._shiftVal(valToSet, misc['op2'][1])
                             description += "<li>Écrit la constante {} dans {}</li>\n".format(valToSet, "SPSR" if misc['usespsr'] else "CPSR")
                             disassembly += ", #{}".format(hex(valToSet))
                     else:
@@ -1176,7 +1177,9 @@ class Simulator:
         if t != InstrType.undefined:
             description += "</ol>"
 
-        dis = '<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">{}</div>\n'.format(disassembly, description)
+        dis = _('<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">'.format(disassembly), True)
+        description += '</div>\n'
+        dis += description
         #if t == InstrType.branch or instrWillExecute:
         if nextline != -1:
             self.disassemblyInfo = ["highlightread", highlightread], ["highlightwrite", highlightwrite], ["nextline", nextline], ["disassembly", dis]
@@ -1263,7 +1266,7 @@ class Simulator:
             if misc['imm']:
                 addr += misc['sign'] * misc['offset']
             else:
-                _, sval = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
+                unused_, sval = self._shiftVal(self.regs[misc['offset'][0]].get(), misc['offset'][1])
                 addr += misc['sign'] * sval
 
             realAddr = addr if misc['pre'] else baseval
@@ -1341,7 +1344,7 @@ class Simulator:
                     if misc['imm']:
                         valToSet = misc['op2'][0]
                         if misc['op2'][1][2] != 0:
-                            _, valToSet = self._shiftVal(valToSet, misc['op2'][1])
+                            unused_, valToSet = self._shiftVal(valToSet, misc['op2'][1])
                     else:
                         valToSet = self.regs[misc['op2'][0]].get() & 0xF0000000   # We only keep the condition flag bits
                     if misc['usespsr']:

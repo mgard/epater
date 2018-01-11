@@ -163,7 +163,7 @@ dataOpcodeInvert = {'MOV': 'MVN', 'MVN': 'MOV',
 
 dataOpcodeMappingR = {v: k for k,v in dataOpcodeMapping.items()}
 
-def immediateToBytecode(imm, mode=None, alreadyinverted=False, gccMode=False):
+def immediateToBytecode(imm, mode=None, alreadyinverted=False, gccMode=True):
     """
     The immediate operand rotate field is a 4 bit unsigned integer which specifies a shift
     operation on the 8 bit immediate value. This value is zero extended to 32 bits, and then
@@ -227,7 +227,7 @@ def immediateToBytecode(imm, mode=None, alreadyinverted=False, gccMode=False):
                         rotReal += 1
                     else:
                         return None
-                    
+
             immBinRot = [str(b) for b in _rotLeftBin(immBin, rotReal)]
             val = int("".join(immBinRot), 2) & 0xFF
             rot = rotReal // 2
