@@ -126,12 +126,16 @@ etiquette2:  BL etiquette2
   LDR R0, [R1, #0xFF]
   LDR R0, [R1, #0xFFF]
   LDR R0, [R1, #-0xFFF]
+  LDR R0, [R1, -R2]
+  LDR R0, [R1, +R2]
   LDR R0, [R1, R2, LSL #4]
   LDR R0, [R1, R2, LSR #4]
   LDR R0, [R1, R2, ROR #4]
+  LDR R0, [R1, -R2, ROR #4]
   LDR R0, [R1, R2, RRX]
   LDR R0, [R1, R2]!
   LDR R0, [R1], R2
+  LDR R0, [R1], -R2
   LDRNE R0, [R1]
   LDRB R0, [R1], R2
   LDRGTB R0, [R1], R2
@@ -140,6 +144,9 @@ etiquette2:  BL etiquette2
   STR R0, [R1, #18]
   STR R0, [R1, #-16]
   STR R0, [R1, #0xFFF]
+  STR R0, [R1, -R2]
+  STR R0, [R1, R3, ROR #4]
+  STR R0, [R1, -R3, ROR #4]
 label:  LDR R0, label
 label2:  STR R1, label2
 
@@ -151,10 +158,13 @@ label2:  STR R1, label2
   LDRSH R3, [R1]
   LDRSH R8, [R1], R2
   LDRLESH R8, [R1], R2
+  LDRLESH R8, [R1], -R2
   LDRSB R4, [R4, R6]
   LDRSB R5, [R5, R7]
+  LDRSB R5, [R5, -R7]
   STRH R12, [R10]
   STRH R8, [R2, R9]!
+  STRH R8, [R2, +R9]!
   STREQH R8, [R2, R4]!
   STRH R9, [R3], #-88
 label3:  LDRSB R0, label3

@@ -108,6 +108,7 @@ tokens = (
    'OPSWP',
    'LABEL',
    'EQUALS',
+   'SIGN',
    'RANGE',
 )
 
@@ -554,6 +555,7 @@ t_meminstr_swpinstr_OPENBRACKET = r'\['
 t_meminstr_swpinstr_CLOSEBRACKET = r'\]'
 t_meminstr_multiplememinstr_EXCLAMATION = r'!'
 t_meminstr_EQUALS = r'='
+t_meminstr_SIGN = r'[+-]'
 
 # Only multiple mem instructions may have braces
 t_multiplememinstr_OPENBRACE = r'{'

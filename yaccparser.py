@@ -448,11 +448,15 @@ def p_memaccess(p):
 def p_memaccesspre(p):
     """memaccesspre : OPENBRACKET REG CLOSEBRACKET
                     | OPENBRACKET REG COMMA REG CLOSEBRACKET
+                    | OPENBRACKET REG COMMA SIGN REG CLOSEBRACKET
                     | OPENBRACKET REG COMMA REG CLOSEBRACKET EXCLAMATION
+                    | OPENBRACKET REG COMMA SIGN REG CLOSEBRACKET EXCLAMATION
                     | OPENBRACKET REG COMMA SHARP CONST CLOSEBRACKET
                     | OPENBRACKET REG COMMA SHARP CONST CLOSEBRACKET EXCLAMATION
                     | OPENBRACKET REG COMMA REG COMMA shiftnoreg CLOSEBRACKET
-                    | OPENBRACKET REG COMMA REG COMMA shiftnoreg CLOSEBRACKET EXCLAMATION"""
+                    | OPENBRACKET REG COMMA SIGN REG COMMA shiftnoreg CLOSEBRACKET
+                    | OPENBRACKET REG COMMA REG COMMA shiftnoreg CLOSEBRACKET EXCLAMATION
+                    | OPENBRACKET REG COMMA SIGN REG COMMA shiftnoreg CLOSEBRACKET EXCLAMATION"""
     plist = list(p)
     p[0] = plist[2] << 16
     p[0] |= 1 << 24         # Pre indexing bit
@@ -470,13 +474,19 @@ def p_memaccesspre(p):
                 raise YaccError("Le décalage de {} demandé dans l'instruction est trop grand pour pouvoir être encodé (il doit être inférieur à 4096)".format(offset))
             p[0] |= offset & 0xFFF
         else:                   # Register offset
-            if plist[4] == 15:
+            sign = 1
+            addtoreg = 0
+            if p[4] in ('+', '-'):
+                sign = 1 if p[4] == '+' else -1
+                addtoreg = 1
+
+            if plist[4+addtoreg] == 15:
                 raise YaccError("PC ne peut pas être utilisé comme registre de décalage!")
             p[0] |= 1 << 25
-            p[0] |= 1 << 23         # We always add the offset if it is a register
-            p[0] |= plist[4]
-            if ',' in plist[5]:     # We have a shift
-                p[0] |= plist[6]
+            p[0] |= 1 << 23 if sign == 1 else 0
+            p[0] |= plist[4+addtoreg]
+            if ',' in plist[5+addtoreg]:     # We have a shift
+                p[0] |= plist[6+addtoreg]
     else:
         p[0] |= 1 << 23     # Default mode is UP (even if there is no offset)
 
@@ -502,7 +512,9 @@ def p_shiftnoreg(p):
 
 def p_memaccesspost(p):
     """memaccesspost : OPENBRACKET REG CLOSEBRACKET COMMA REG
+                     | OPENBRACKET REG CLOSEBRACKET COMMA SIGN REG
                      | OPENBRACKET REG CLOSEBRACKET COMMA REG COMMA shiftnoreg
+                     | OPENBRACKET REG CLOSEBRACKET COMMA SIGN REG COMMA shiftnoreg
                      | OPENBRACKET REG CLOSEBRACKET COMMA SHARP CONST"""
     plist = list(p)
     p[0] = plist[2] << 16
@@ -519,13 +531,19 @@ def p_memaccesspost(p):
             raise YaccError("Le décalage de {} demandé dans l'instruction est trop grand pour pouvoir être encodé (il doit être inférieur à 4096)".format(offset))
         p[0] |= offset & 0xFFF
     else:                   # Register offset
-        if plist[5] == 15:
+        sign = 1
+        addtoreg = 0
+        if p[5] in ('+', '-'):
+            sign = 1 if p[5] == '+' else -1
+            addtoreg = 1
+
+        if plist[5+addtoreg] == 15:
             raise YaccError("PC ne peut pas être utilisé comme registre de décalage!")
         p[0] |= 1 << 25
-        p[0] |= 1 << 23  # We always add the offset if it is a register
-        p[0] |= plist[5]
-        if len(plist) > 7:  # We have a shift
-            p[0] |= plist[7]
+        p[0] |= 1 << 23 if sign == 1 else 0
+        p[0] |= plist[5+addtoreg]
+        if len(p) > 7:     # We have a shift
+            p[0] |= plist[-1]
 
     p[0] = (p[0], None)     # No external dependencies (this instruction is self contained, no reference to labels)
 
