@@ -256,13 +256,22 @@ def parse(code, memLayout="simulation"):
                 continue
 
             diff = addrToReach - (addr + pcoffset)
-            if abs(diff) > 2**12-1:
+            maxoffset = depInfo[2]
+            if abs(diff) > maxoffset-1:
                 # Offset too big to be encoded as immediate
                 listErrors.append(("codeerror", line, "Accès à l'adresse identifiée par l'étiquette {} trop éloigné ({} octets d'écart) pour pouvoir être encodé".format(depInfo[1], diff)))
                 continue
             if diff >= 0:
                 instrInt |= 1 << 23
-            instrInt |= abs(diff)
+            if maxoffset == 4096:
+                # LDR/STR case
+                instrInt |= abs(diff)
+            else:
+                # LDRH/SB/SH case
+                diff = abs(diff)
+                instrInt |= diff & 0xF
+                instrInt |= ((diff >> 4) & 0xF) << 8
+
         elif depInfo[0] == 'addrbranch':
             # A branch on a given label
             # This is different than the previous case, since the offset is divided by 4

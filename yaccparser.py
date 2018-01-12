@@ -79,6 +79,7 @@ def p_linelabelinstr(p):
 def p_instruction(p):
     """instruction : datainstruction
                    | meminstruction
+                   | specialmeminstruction
                    | branchinstruction
                    | multiplememinstruction
                    | shiftinstruction
@@ -453,7 +454,7 @@ def p_shiftnoreg(p):
         # Shift by a constant if we are not in special modes
         p[0] |= plist[-1] << 7
 
-def p_memacesspost(p):
+def p_memaccesspost(p):
     """memaccesspost : OPENBRACKET REG CLOSEBRACKET COMMA REG
                      | OPENBRACKET REG CLOSEBRACKET COMMA REG COMMA shiftnoreg
                      | OPENBRACKET REG CLOSEBRACKET COMMA SHARP CONST"""
@@ -488,7 +489,7 @@ def p_memaccesslabel(p):
     b = 15 << 16
     # Pre-indexing
     b |= 1 << 24
-    p[0] = (b, ("addr", p[1]))     # This instruction cannot be assembled yet: we need to know the label's address
+    p[0] = (b, ("addr", p[1], 4096))     # This instruction cannot be assembled yet: we need to know the label's address
 
 def p_memaccesslabeladdr(p):
     """memaccesslabeladdr : EQUALS LABEL"""
@@ -496,7 +497,76 @@ def p_memaccesslabeladdr(p):
     b = 15 << 16
     # Pre-indexing
     b |= 1 << 24
-    p[0] = (b, ("addrptr", p[2]))     # This instruction cannot be assembled yet: we need to know the label's address
+    p[0] = (b, ("addrptr", p[2], 4096))     # This instruction cannot be assembled yet: we need to know the label's address
+
+
+def p_specialmeminstruction(p):
+    """specialmeminstruction : OPSPECIALMEM logmnemonic condandspace REG COMMA memaccess"""
+    global currentMnemonic
+    # We build the instruction bytecode
+    # Add the mnemonic and the bits signaling this as a special memory operation
+    # (half or signed access)
+    p[0] = (1 << 7) | (1 << 4)
+    p[0] |= (1 << 20 if currentMnemonic[:3] == "LDR" else 0)
+
+    # Add the source/destination register
+    p[0] |= p[4] << 12
+
+    # Add the half/signed info
+    if currentMnemonic == "LDRSH":
+        p[0] |= (1 << 6) | (1 << 5)
+    elif currentMnemonic == "LDRSB":
+        p[0] |= 1 << 6
+    elif currentMnemonic[-1] == "H":
+        p[0] |= 1 << 5
+    
+    # Add the memory access info
+    memaccessinfo = p[6]
+    # This is not exactly the same format as for normal memory operations,
+    # but it is still simpler to use it and change it a bit than rewrite
+    # every mem* rules for a few differences
+    access = memaccessinfo[0]
+    if access >> 25 & 1:
+        # Register
+        # The bit signaling this should be at position 22, not 25 (which should remain 0)
+        access -= 1 << 25
+        # Rm is at the same position than for normal memory operations,
+        # but shifting is not allowed
+        if (access >> 4) & 0xFF != 0:
+            raise YaccError("Une instruction {} n'accepte pas de décalage sur son registre d'offset".format(currentMnemonic))
+    else:
+        # Immediate
+        access |= 1 << 22
+        offset = access & 4095
+        access &= 2**32 - 4095
+        if offset > 2**8-1:
+            # Cannot encode the offset
+            raise YaccError("Le décalage de {} demandé dans l'instruction est trop grand pour pouvoir être encodé (il doit être inférieur à 256)".format(offset))
+        # Offset high and low nibbles are separated in these instructions
+        # (see Fig. 4-17)
+        access |= offset & 0xF
+        access |= ((offset >> 4) & 0xF) << 8
+
+    p[0] |= access
+
+    # Check if we ask for an address in combination with STR (forbidden)
+    if currentMnemonic == "STR" and memaccessinfo[1] is not None and memaccessinfo[1][0] == "addrptr":
+        raise YaccError("Il est interdit d'utiliser STR avec une adresse d'étiquette pour cible. Par exemple, 'STR R0, a' est valide, mais pas 'STR R0, =a'.")
+
+    # Add the condition
+    p[0] |= p[3]
+
+    if bool((p[0] >> 21) & 1) and ((p[0] >> 16) & 0xF) == 15:
+        raise YaccError("Il est interdit d'utiliser PC comme registre de base lorsque le writeback est activé.")
+    if ((p[0] >> 16) & 0xF) == ((p[0] >> 12) & 0xF) and (bool((p[0] >> 21) & 1) or not bool((p[0] >> 24) & 1)):
+        raise YaccError("En mode writeback, il est interdit d'utiliser le même registre comme destination et adresse de base.")
+
+    minfo = None
+    if memaccessinfo[1] is not None:
+        # We do not tolerate the same amount of offset in these instructions
+        minfo = (memaccessinfo[1][0], memaccessinfo[1][1], 256)
+    # We return the bytecode, with the eventual dependencies
+    p[0] = (struct.pack("<I", p[0]), minfo)
 
 
 def p_branchinstruction(p):
@@ -807,7 +877,7 @@ parser = yacc.yacc()
 
 
 if __name__ == '__main__':
-    a1 = parser.parse("MUL R1, R3, R2\n")
+    a1 = parser.parse("LDRH R7, [R2, R3]\n")
     print(a1)
     #print(a, hex(a['BYTECODE']))
     #a = parser.parse("\n")

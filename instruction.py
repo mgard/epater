@@ -39,6 +39,7 @@ class InstrType(Enum):
     nopop = 9
     otherop = 10
     multiplylong = 11
+    specialmemop = 12
     declareOp = 100
 
 
@@ -71,6 +72,13 @@ exportInstrInfo = {# DATA OPERATIONS
                     # MEMORY OPERATIONS
                    'LDR': InstrType.memop,
                    'STR': InstrType.memop,
+                    # SPECIAL MEMORY OPS (HALF WORDS, SIGNED, and SWP)
+                   'LDRH': InstrType.specialmemop,
+                   'STRH': InstrType.specialmemop,
+                   'LDRSH': InstrType.specialmemop,
+                   'LDRSB': InstrType.specialmemop,
+                   'SWP': InstrType.specialmemop,
+                   'SWPB': InstrType.specialmemop,
                     # MULTIPLE MEMORY OPERATIONS
                    'LDM': InstrType.multiplememop,
                    'STM': InstrType.multiplememop,

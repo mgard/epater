@@ -94,7 +94,7 @@
   TEQ R10, #0x22
 
   @ CONDITIONS
-  MOVEQ R0, R1
+  MOVEQS R0, R1
   MOVNE R0, R1
   MOVCS R0, R1
   MOVCC R0, R1
@@ -138,6 +138,19 @@ etiquette2:  BL etiquette2
   STR R0, [R1, #0xFFF]
 label:  LDR R0, label
 label2:  STR R1, label2
+
+  @ SPECIAL MEMORY TRANSFER (LDRH, LDRSH, LDRSB)
+  LDRH R7, [R2, R3]
+  LDRH R8, [R9, #42]
+  LDRH R9, [R10, #-0xA]
+  LDRH R6, [R0, #245]!
+  LDRSH R3, [R1]
+  LDRSH R8, [R1], R2
+  LDRSB R4, [R4, R6]
+  LDRSB R5, [R5, R7]
+  STRH R12, [R10]
+  STRH R8, [R2, R9]!
+  STRH R9, [R3], #-88
 
   @ BLOCK DATA TRANSFER (LDM/STM/PUSH/POP)
   @ GCC replace single PUSH with a single STR, so we should not test that here
