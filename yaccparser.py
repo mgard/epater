@@ -107,10 +107,12 @@ def p_condandspace(p):
     p[0] = cond
 
 def p_flagscondandspace(p):
-    """flagscondandspace : MODIFYFLAGS condandspace
-                         | condandspace"""
-    condandflags = p[1] if len(p) == 2 else p[2]
-    if len(p) == 3:
+    """flagscondandspace : CONDITION MODIFYFLAGS SPACEORTAB
+                         | CONDITION SPACEORTAB
+                         | MODIFYFLAGS SPACEORTAB
+                         | SPACEORTAB"""
+    condandflags = instruction.conditionMapping.get(p[1], instruction.conditionMapping['AL']) << 28
+    if len(p) == 4 or len(p) == 3 and p[1] == 'S':
         condandflags |= 1 << 20     # Set flags
     p[0] = condandflags
 
@@ -877,7 +879,7 @@ parser = yacc.yacc()
 
 
 if __name__ == '__main__':
-    a1 = parser.parse("LDRH R7, [R2, R3]\n")
+    a1 = parser.parse("MOV R0, R1\n")
     print(a1)
     #print(a, hex(a['BYTECODE']))
     #a = parser.parse("\n")
