@@ -121,11 +121,18 @@ def p_accessmodifiersandspace(p):
                                | BYTEONLY SPACEORTAB
                                | HALFONLY SPACEORTAB
                                | SIGNEDBYTE SPACEORTAB
-                               | SIGNEDHALF SPACEORTAB"""
+                               | SIGNEDHALF SPACEORTAB
+                               | MEMPRIVILEGED SPACEORTAB
+                               | BYTEONLY MEMPRIVILEGED SPACEORTAB"""
+    p[0] = 0
+    if len(p) == 4 or p[1] == "T":
+        # Privileged
+        # "if T is present the W bit will be set in a post-indexed instruction" (4.9.8)
+        p[0] |= 1 << 21
     if len(p) == 2:
-        p[0] = 1 << 26
+        p[0] |= 1 << 26
     elif p[1] == "B":
-        p[0] = (1 << 26) | (1 << 22) # Set byte mode
+        p[0] |= (1 << 26) | (1 << 22) # Set byte mode
     else:
         p[0] = (1 << 7) | (1 << 4)  # Set halfword/signed data transfer
         if p[1][0] == "S":
@@ -901,7 +908,7 @@ parser = yacc.yacc()
 
 
 if __name__ == '__main__':
-    a1 = parser.parse("SWP R0, R1, [R2]\n")
+    a1 = parser.parse("STRT R0, [R4]\n")
     print(a1)
     #print(a, hex(a['BYTECODE']))
     #a = parser.parse("\n")
