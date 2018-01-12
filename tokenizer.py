@@ -29,7 +29,6 @@ states = (
     ('cmpopcode', 'exclusive'),
     ('shiftopcode', 'exclusive'),
     ('memopcode', 'exclusive'),
-    ('specialmemopcode', 'exclusive'),
     ('multiplememopcode', 'exclusive'),
     ('branchopcode', 'exclusive'),
     ('psropcode', 'exclusive'),
@@ -79,6 +78,9 @@ tokens = (
    'EXCLAMATION',
    'CONDITION',
    'BYTEONLY',
+   'HALFONLY',
+   'SIGNEDBYTE',
+   'SIGNEDHALF',
    'MEMPRIVILEGED',
    'MODIFYFLAGS',
    'LDMSTMMODE',
@@ -251,23 +253,6 @@ def t_shiftopcode_SPACEORTAB(t):
     return t
 
 
-# A special memory operation (half or signed)
-@lex.TOKEN(r'(' + r'(?=[A-Z\t ])|'.join([k for k,v in instrInfos.exportInstrInfo.items() if v == instrInfos.InstrType.specialmemop])+r'(?=[A-Z\t ]))')
-def t_OPSPECIALMEM(t):
-    t.lexer.begin('specialmemopcode')
-    t.lexer.currentMnemonic = t.value
-    t.lexer.countArgs = 0
-    t.lexer.instrType = instrInfos.InstrType.specialmemop
-    t.lexer.expectedArgs = 2
-    return t
-
-# We transition into the instruction arguments
-def t_specialmemopcode_SPACEORTAB(t):
-    r'[ \t]+'
-    t.lexer.begin('meminstr')
-    return t
-
-
 # A memory operation
 @lex.TOKEN(r'(' + r'(?=[A-Z\t ])|'.join([k for k,v in instrInfos.exportInstrInfo.items() if v == instrInfos.InstrType.memop])+r'(?=[A-Z\t ]))')
 def t_OPMEM(t):
@@ -279,15 +264,36 @@ def t_OPMEM(t):
     t.lexer.suffixesSeen = set()
     return t
 
-def t_memopcode_BYTEONLY(t):
-    r'B'
+def t_memopcode_MEMPRIVILEGED(t):
+    r'T'
+    t.lexer.suffixesSeen.add(t.value)
+    return t
+
+def t_memopcode_SIGNEDBYTE(t):
+    r'SB'
     if 'B' in t.lexer.suffixesSeen or 'H' in t.lexer.suffixesSeen:
         assert False, "Only one byte/half mode!"
     t.lexer.suffixesSeen.add(t.value)
     return t
 
-def t_memopcode_MEMPRIVILEGED(t):
-    r'T'
+def t_memopcode_SIGNEDHALF(t):
+    r'SH'
+    if 'B' in t.lexer.suffixesSeen or 'H' in t.lexer.suffixesSeen:
+        assert False, "Only one byte/half mode!"
+    t.lexer.suffixesSeen.add(t.value)
+    return t
+
+def t_memopcode_HALFONLY(t):
+    r'H'
+    if 'B' in t.lexer.suffixesSeen or 'H' in t.lexer.suffixesSeen:
+        assert False, "Only one byte/half mode!"
+    t.lexer.suffixesSeen.add(t.value)
+    return t
+
+def t_memopcode_BYTEONLY(t):
+    r'B'
+    if 'B' in t.lexer.suffixesSeen or 'H' in t.lexer.suffixesSeen:
+        assert False, "Only one byte/half mode!"
     t.lexer.suffixesSeen.add(t.value)
     return t
 
@@ -430,7 +436,7 @@ def t_nopopcode_SPACEORTAB(t):
 
 # An instruction can be conditionnal
 @lex.TOKEN(r'(' + "|".join(instrInfos.conditionMapping.keys())+')')
-def t_dataopcode_shiftopcode_cmpopcode_memopcode_specialmemopcode_multiplememopcode_branchopcode_psropcode_mulopcode_svcopcode_nopopcode_generalopcode_CONDITION(t):
+def t_dataopcode_shiftopcode_cmpopcode_memopcode_multiplememopcode_branchopcode_psropcode_mulopcode_svcopcode_nopopcode_generalopcode_CONDITION(t):
     for elem in t.lexer.suffixesSeen:
         if elem in instrInfos.conditionMapping.keys():
             assert False, "Only one condition!"

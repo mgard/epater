@@ -132,7 +132,9 @@ etiquette2:  BL etiquette2
   LDR R0, [R1, R2, RRX]
   LDR R0, [R1, R2]!
   LDR R0, [R1], R2
+  LDRNE R0, [R1]
   LDRB R0, [R1], R2
+  LDRGTB R0, [R1], R2
   STR R0, [R1]
   STR R0, [R1, #16]
   STR R0, [R1, #18]
@@ -148,11 +150,15 @@ label2:  STR R1, label2
   LDRH R6, [R0, #245]!
   LDRSH R3, [R1]
   LDRSH R8, [R1], R2
+  LDRLESH R8, [R1], R2
   LDRSB R4, [R4, R6]
   LDRSB R5, [R5, R7]
   STRH R12, [R10]
   STRH R8, [R2, R9]!
+  STREQH R8, [R2, R4]!
   STRH R9, [R3], #-88
+label3:  LDRSB R0, label3
+label4:  STRH R1, label4
 
   @ BLOCK DATA TRANSFER (LDM/STM/PUSH/POP)
   @ GCC replace single PUSH with a single STR, so we should not test that here
