@@ -81,6 +81,7 @@ def p_instruction(p):
                    | meminstruction
                    | branchinstruction
                    | multiplememinstruction
+                   | swapinstruction
                    | shiftinstruction
                    | psrinstruction
                    | svcinstruction
@@ -545,6 +546,35 @@ def p_memaccesslabeladdr(p):
     p[0] = (b, ("addrptr", p[2], 4096))     # This instruction cannot be assembled yet: we need to know the label's address
 
 
+def p_swapinstruction(p):
+    """swapinstruction : OPSWP logmnemonic SPACEORTAB REG COMMA REG COMMA OPENBRACKET REG CLOSEBRACKET
+                       | OPSWP logmnemonic BYTEONLY SPACEORTAB REG COMMA REG COMMA OPENBRACKET REG CLOSEBRACKET
+                       | OPSWP logmnemonic CONDITION SPACEORTAB REG COMMA REG COMMA OPENBRACKET REG CLOSEBRACKET
+                       | OPSWP logmnemonic CONDITION BYTEONLY SPACEORTAB REG COMMA REG COMMA OPENBRACKET REG CLOSEBRACKET"""
+    global currentMnemonic
+    plist = list(p)
+    # Add the condition bits
+    p[0] = instruction.conditionMapping.get(p[3], instruction.conditionMapping['AL']) << 28
+
+    # Set the bits specific to SWP
+    p[0] |= (1 << 24) | (1 << 4) | (1 << 7)
+
+    # Set the byte mode if required
+    if p[3] == "B" or len(p) == 13:
+        p[0] |= 1 << 22
+
+    # Set destination register Rd
+    p[0] |= plist[-7] << 12
+    # Set source register Rm
+    p[0] |= plist[-5]
+    # Set base register Rn
+    p[0] |= plist[-2] << 16
+
+    # A swap instruction is always complete (e.g. it never depends on the location of a label),
+    # so we just pack it in a bytes object
+    p[0] = (struct.pack("<I", p[0]), None)
+
+
 def p_branchinstruction(p):
     """branchinstruction : OPBRANCH logmnemonic condandspace LABEL
                          | OPBRANCH logmnemonic condandspace REG"""
@@ -853,7 +883,7 @@ parser = yacc.yacc()
 
 
 if __name__ == '__main__':
-    a1 = parser.parse("MOV R0, R1\n")
+    a1 = parser.parse("SWP R0, R1, [R2]\n")
     print(a1)
     #print(a, hex(a['BYTECODE']))
     #a = parser.parse("\n")

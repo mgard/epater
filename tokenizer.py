@@ -30,6 +30,7 @@ states = (
     ('shiftopcode', 'exclusive'),
     ('memopcode', 'exclusive'),
     ('multiplememopcode', 'exclusive'),
+    ('swpopcode', 'exclusive'),
     ('branchopcode', 'exclusive'),
     ('psropcode', 'exclusive'),
     ('mulopcode', 'exclusive'),
@@ -42,6 +43,7 @@ states = (
     ('shiftinstr', 'exclusive'),
     ('meminstr', 'exclusive'),
     ('multiplememinstr', 'exclusive'),
+    ('swpinstr', 'exclusive'),
     ('branchinstr', 'exclusive'),
     ('psrinstr', 'exclusive'),
     ('mulinstr', 'exclusive'),
@@ -103,6 +105,7 @@ tokens = (
    'OPMUL',
    'OPMULL',
    'OPNOP',
+   'OPSWP',
    'LABEL',
    'EQUALS',
    'RANGE',
@@ -290,7 +293,7 @@ def t_memopcode_HALFONLY(t):
     t.lexer.suffixesSeen.add(t.value)
     return t
 
-def t_memopcode_BYTEONLY(t):
+def t_memopcode_swpopcode_BYTEONLY(t):
     r'B'
     if 'B' in t.lexer.suffixesSeen or 'H' in t.lexer.suffixesSeen:
         assert False, "Only one byte/half mode!"
@@ -327,6 +330,24 @@ def t_multiplememopcode_LDMSTMMODE(t):
 def t_multiplememopcode_SPACEORTAB(t):
     r'[ \t]+'
     t.lexer.begin('multiplememinstr')
+    return t
+
+
+# A swap operation
+@lex.TOKEN(r'(' + r'(?=[A-Z\t ])|'.join([k for k,v in instrInfos.exportInstrInfo.items() if v == instrInfos.InstrType.swap])+r'(?=[A-Z\t ]))')
+def t_OPSWP(t):
+    t.lexer.begin('swpopcode')
+    t.lexer.currentMnemonic = t.value
+    t.lexer.countArgs = 0
+    t.lexer.instrType = instrInfos.InstrType.swap
+    t.lexer.expectedArgs = 2
+    t.lexer.suffixesSeen = set()
+    return t
+
+# We transition into the instruction arguments
+def t_swpopcode_SPACEORTAB(t):
+    r'[ \t]+'
+    t.lexer.begin('swpinstr')
     return t
 
 
@@ -436,7 +457,7 @@ def t_nopopcode_SPACEORTAB(t):
 
 # An instruction can be conditionnal
 @lex.TOKEN(r'(' + "|".join(instrInfos.conditionMapping.keys())+')')
-def t_dataopcode_shiftopcode_cmpopcode_memopcode_multiplememopcode_branchopcode_psropcode_mulopcode_svcopcode_nopopcode_generalopcode_CONDITION(t):
+def t_dataopcode_shiftopcode_cmpopcode_memopcode_multiplememopcode_swpopcode_branchopcode_psropcode_mulopcode_svcopcode_nopopcode_generalopcode_CONDITION(t):
     for elem in t.lexer.suffixesSeen:
         if elem in instrInfos.conditionMapping.keys():
             assert False, "Only one condition!"
@@ -529,8 +550,8 @@ def t_datainstr_cmpinstr_meminstr_INNERSHIFT(t):
 t_ANY_COMMA = r'[\t ]*,[\t ]*'
 
 # Only memory instructions may have brackets
-t_meminstr_OPENBRACKET = r'\['
-t_meminstr_CLOSEBRACKET = r'\]'
+t_meminstr_swpinstr_OPENBRACKET = r'\['
+t_meminstr_swpinstr_CLOSEBRACKET = r'\]'
 t_meminstr_multiplememinstr_EXCLAMATION = r'!'
 t_meminstr_EQUALS = r'='
 
@@ -596,6 +617,9 @@ def t_nopopcode_error(t):
 def t_generalopcode_error(t):
     print("(13) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
 
+def t_swpopcode_error(t):
+    print("(07b) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
+
 
 def t_datainstr_error(t):
     print(t.lexer.countArgs)
@@ -630,6 +654,9 @@ def t_nopinstr_error(t):
 
 def t_generalinstr_error(t):
     print("(24) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
+
+def t_swpinstr_error(t):
+    print("(25) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
 
 # General handler
 def t_error(t):
