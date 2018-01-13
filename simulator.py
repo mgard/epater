@@ -121,6 +121,7 @@ class Simulator:
         if self.isStepDone():
             self.explainInstruction()
 
+
     def bytecodeToInstr(self):
         # Assumes that the instruction to decode is in self.fetchedInstr
         instrInt = struct.unpack("<I", self.fetchedInstr)[0]

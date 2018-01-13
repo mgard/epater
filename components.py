@@ -151,8 +151,8 @@ class Registers(Component):
         # Create SVC registers (used with software interrupts)
         regsSVC = regs[:13]  # R0-R12 are shared
         regsSVC.extend(_Register(i) for i in range(13, 15))  # R13-R14 are exclusive
-        regsIRQ[13].altname = "SP"
-        regsIRQ[14].altname = "LR"
+        regsSVC[13].altname = "SP"
+        regsSVC[14].altname = "LR"
         regsSVC.append(regs[15])  # PC is shared
         regsSVC.append(_Register(16))
         regsSVC[16].altname = "SPSR"
@@ -258,6 +258,12 @@ class Registers(Component):
             raise Breakpoint("register", 'r', idx)
         return self.banks[currentBank][idx].val
 
+    def getAllRegisters(self):
+        # Helper function to get all registers from all banks at once
+        # The result is returned as a dictionary of dictionary
+        return {bname: {reg.name: reg.val for reg in bank} for bname, bank in self.banks.items()}
+
+
     def getRegister(self, bank, reg):
         # Get a register with a specific bank
         if self.banks[bank][reg].breakpoint & 4:
@@ -323,12 +329,12 @@ class Registers(Component):
 
     def stepBack(self, state):
         # TODO what happens if we change mode at the same time we change a register?
-        for k, val in state:
+        for k, val in state.items():
             bank, reg = k
             if reg == "CPSR":
                 self.regCPSR = val[0]
             else:
-                self.banks[bank][reg] = val[0]
+                self.banks[bank][reg].val = val[0]
 
 
 class Memory(Component):
@@ -407,7 +413,7 @@ class Memory(Component):
 
         dictChanges = {}
         for of in range(size):
-            dictChanges[(sec, offset+of)] = (self.data[sec][offset+of], valBytes[of])
+            dictChanges[(sec, addr+offset+of)] = (self.data[sec][offset+of], valBytes[of])
         self.history.signalChange(self, dictChanges)
 
         self.data[sec][offset:offset+size] = valBytes
@@ -435,3 +441,5 @@ class Memory(Component):
         for k, val in state:
             sec, offset = k
             self.data[sec][offset] = val[0]
+
+
