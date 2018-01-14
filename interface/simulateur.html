@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr-CA">
+<html lang="{{_('langCode')}}">
     <head>
         <meta charset="UTF-8">
         <title>Simulateur ARM</title>
@@ -71,7 +71,7 @@
                                             <li class="tab-reg"><a href="#tabs1-SVC">SVC</a></li>
                                         </ul>
                                         <div id="tabs1-User" class="border_container_reg">
-                                            <h4 id="gp-user">Registre G&eacute;n&eacute;raux (User)</h4>
+                                            <h4 id="gp-user">{{_('simulator.generalPurposeRegisters')}}</h4>
                                             <table class="registers">
                                                 <thead>
                                                 <tr>
@@ -133,15 +133,15 @@
                                                 </tr>
                                                 <tr id="user_r13" class="register_row">
                                                     <td>R13<span class=smaller_font> (sp)</span></td>
-                                                    <td><input class="regVal formatted_value" id="r13" type="text" name="r13"/></td>
+                                                    <td><input class="regVal formatted_value" id="sp" type="text" name="r13"/></td>
                                                 </tr>
                                                 <tr id="user_r14" class="register_row">
                                                     <td>R14<span class=smaller_font> (lr)</span></td>
-                                                    <td><input class="regVal formatted_value" id="r14" type="text" name="r14"/></td>
+                                                    <td><input class="regVal formatted_value" id="lr" type="text" name="r14"/></td>
                                                 </tr>
                                                 <tr id="user_r15" class="register_row">
                                                     <td>R15<span class=smaller_font> (pc)</span></td>
-                                                    <td><input class="regVal formatted_value" id="r15" type="text" name="r15"/></td>
+                                                    <td><input class="regVal formatted_value" id="pc" type="text" name="r15"/></td>
                                                 </tr>
                                             </table>
                                         </div>
@@ -208,15 +208,15 @@
                                                 </tr>
                                                 <tr id="fiq_r13" class="register_row">
                                                     <td>R13<span class=smaller_font> FIQ (sp)</span></td>
-                                                    <td><input class="regVal formatted_value" id="FIQ_r13" type="text" name="r13"/></td>
+                                                    <td><input class="regVal formatted_value" id="FIQ_sp" type="text" name="r13"/></td>
                                                 </tr>
                                                 <tr id="fiq_r14" class="register_row">
                                                     <td>R14<span class=smaller_font> FIQ (lr)</span></td>
-                                                    <td><input class="regVal formatted_value" id="FIQ_r14" type="text" name="r14"/></td>
+                                                    <td><input class="regVal formatted_value" id="FIQ_lr" type="text" name="r14"/></td>
                                                 </tr>
                                                 <tr id="fiq_r15" class="register_row">
                                                     <td>R15<span class=smaller_font> (pc)</span></td>
-                                                    <td><input class="regVal formatted_value" id="FIQ_r15" type="text" name="r15"/></td>
+                                                    <td><input class="regVal formatted_value" id="FIQ_pc" type="text" name="r15"/></td>
                                                 </tr>
                                             </table>
                                         </div>
@@ -283,15 +283,15 @@
                                                 </tr>
                                                 <tr id="irq_r13" class="register_row">
                                                     <td>R13<span class=smaller_font> IRQ (sp)</span></td>
-                                                    <td><input class="regVal formatted_value" id="IRQ_r13" type="text" name="r13"/></td>
+                                                    <td><input class="regVal formatted_value" id="IRQ_sp" type="text" name="r13"/></td>
                                                 </tr>
                                                 <tr id="irq_r14" class="register_row">
                                                     <td>R14<span class=smaller_font> IRQ (lr)</span></td>
-                                                    <td><input class="regVal formatted_value" id="IRQ_r14" type="text" name="r14"/></td>
+                                                    <td><input class="regVal formatted_value" id="IRQ_lr" type="text" name="r14"/></td>
                                                 </tr>
                                                 <tr id="irq_r15" class="register_row">
                                                     <td>R15<span class=smaller_font> (pc)</span></td>
-                                                    <td><input class="regVal formatted_value" id="IRQ_r15" type="text" name="r15"/></td>
+                                                    <td><input class="regVal formatted_value" id="IRQ_pc" type="text" name="r15"/></td>
                                                 </tr>
                                             </table>
                                         </div>
@@ -358,15 +358,15 @@
                                                 </tr>
                                                 <tr id="svc_r13" class="register_row">
                                                     <td>R13<span class=smaller_font> SVC (sp)</span></td>
-                                                    <td><input class="regVal formatted_value" id="SVC_r13" type="text" name="r13"/></td>
+                                                    <td><input class="regVal formatted_value" id="SVC_sp" type="text" name="r13"/></td>
                                                 </tr>
                                                 <tr id="svc_r14" class="register_row">
                                                     <td>R14<span class=smaller_font> SVC (lr)</span></td>
-                                                    <td><input class="regVal formatted_value" id="SVC_r14" type="text" name="r14"/></td>
+                                                    <td><input class="regVal formatted_value" id="SVC_lr" type="text" name="r14"/></td>
                                                 </tr>
                                                 <tr id="svc_r15" class="register_row">
                                                     <td>R15<span class=smaller_font> (pc)</span></td>
-                                                    <td><input class="regVal formatted_value" id="SVC_r15" type="text" name="r15"/></td>
+                                                    <td><input class="regVal formatted_value" id="SVC_pc" type="text" name="r15"/></td>
                                                 </tr>
                                             </table>
                                         </div>
@@ -433,6 +433,13 @@
                                             <hr/>
                                             Vitesse d'ex&eacute;cution : &nbsp;<input class="config_input" id="animate_speed" type="text" value="100"/>ms<br/>
                                             <hr/>
+                                            Langage : &nbsp;
+                                            <select id='language'>
+                                                  <option value="fr">Français</option>
+                                                  <option value="en">English</option>
+                                            </select>
+                                            <br/>
+                                            <hr/>
                                             <button id="lightmode">Modifier l'arrière-plan</button>
                                             <div style="height: 3em;"></div>
                                         </div>
@@ -440,19 +447,20 @@
                                 </td>
                                 <td id="editorPanel">
                                     <div id="debugger_buttons">
-                                        <button onclick="assemble()" id="assemble" class="top_buttons">D&eacute;marrer</button>
-                                        <button onclick="reset()" id="reset" class="top_buttons">R&eacute;initialiser</button>
+                                        <button onclick="assemble('{{ lang }}')" id="assemble" class="top_buttons">D&eacute;marrer</button>
+                                        <button onclick="reset()" id="reset" class="top_buttons" disable="disabled">R&eacute;initialiser</button>
                                         <button id="run" onclick="simulate('run')" disable="disabled" class="top_buttons"><img src="static/image/run.png" alt="run"/></button>
                                         <button id="stepin" onclick="simulate('stepinto')" disable="disabled" class="top_buttons"><img src="static/image/into.png" alt="step into"/></button>
                                         <button id="stepforward" onclick="simulate('stepforward')" disable="disabled" class="top_buttons"><img src="static/image/over.png" alt="step forward"/></button>
                                         <button id="stepout" onclick="simulate('stepout')" disable="disabled" class="top_buttons"><img src="static/image/out.png" alt="step out"/></button>
+                                        <button id="stepback" onclick="simulate('stepback')" disable="disabled" class="top_buttons"><img src="static/image/back.png" alt="step back"/></button>
                                     </div>
                                     <div id="editor">{{ code }}</div>
                                     <br>
                                 </td>
                                 <td id="dashboard">
                                     <div class="border_container">
-                                        <h4>Instruction courante</h4>
+                                        <h4>{{_('simulator.currentInstruction')}}</h4>
                                         <div id="disassembly"></div>
                                     </div>
                                     <div class="border_container">
@@ -469,7 +477,7 @@
                                         <div id="help_w" class="mem_r help">Lecture (R) : Shift + Clic</div>
                                         <div id="help_rw" class="mem_rw help">Lecture et &Eacute;criture (RW) : Ctrl/Cmd + Shift + Clic</div>
                                         <div id="help_e" class="mem_e help">Ex&eacute;cution (E) : Alt + Clic</div>
-                                        <div id="help_instr" class="mem_instr help">Instruction courante</div><br/>
+                                        <div id="help_instr" class="mem_instr help">{{_('simulator.currentInstruction')}}</div><br/>
                                     </div>
                                     <div>
                                         <div style="float: left;">
@@ -511,6 +519,7 @@
     <script src="static/js/jquery.easing.min.js" type="text/javascript" charset="utf-8"></script>
     <link rel="stylesheet" type="text/css" href="static/js/tooltipster/css/tooltipster.css" />
     <script src="static/js/comm.js" type="text/javascript" charset="utf-8"></script>
+    <script src="static/js/helpers.js" type="text/javascript" charset="utf-8"></script>
 
     <script type="text/javascript">
         var blockSelect = 0;
@@ -563,8 +572,19 @@
                 autoOpen: false,
                 modal: true,
                 width: 700,
-                buttons: []
+                buttons: [],
+                open: function(){
+                    $('#language option').each(function (index, option){
+                        if(option.value == getLang()){
+                            option.selected = true;
+                        }
+                    });
+                },
+                close: function(){
+                    setLang($('#language').val());
+                }
             });
+
             $("#configurations").click(function() {
                 $("#config_diag").dialog("open");
             });
@@ -773,7 +793,6 @@
 
     </script>
     <script src="static/js/memory_viewer.js" type="text/javascript" charset="utf-8"></script>
-    <script src="static/js/helpers.js" type="text/javascript" charset="utf-8"></script>
     <script src="static/js/sessionSidePanel.js" type="text/javascript" charset="utf-8"></script>
     <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

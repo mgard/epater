@@ -27,6 +27,10 @@
   MOV R8, R9, ASR #32
   MOV R4, R5, ROR #14
   MOV R5, R6, RRX
+  MOV R6, R7, LSL R8
+  MOV R7, R8, LSR R9
+  MOV R9, R9, ASR R1
+  MOV R10, R11, ROR R12
 
   @ PSEUDO INSTRUCTIONS SHIFTS
   LSR R0, R1, R1
@@ -40,6 +44,7 @@
   @ DATA OP (ARITHMETIC)
   ADD R0, R0, R1
   ADD R2, R3, R4, LSL #2
+  ADD R5, R6, R7, LSR R8
   ADD R2, R0, #4
   ADD R2, R0, #-8
   SUB R6, R6, R5
@@ -51,6 +56,7 @@
   ADC R10, R11, #10
   RSB R8, R9, R10
   RSB R8, R9, #0x4F
+  RSB R10, R11, R12, ASR R13
   RSB R10, R9, #8
   SBC R2, R0, R1
   SBC R2, R3, #4
@@ -134,6 +140,8 @@ label:  LDR R0, label
 label2:  STR R1, label2
 
   @ BLOCK DATA TRANSFER (LDM/STM/PUSH/POP)
+  @ GCC replace single PUSH with a single STR, so we should not test that here
+  PUSH {R0,R14}
   PUSH {R2, R3,R4}
   PUSH {R2-R7}
   PUSH {R8-R10, R12, LR, PC}

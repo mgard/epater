@@ -12,6 +12,7 @@ import re
 import binascii
 import signal
 import base64
+import i18n
 from urllib.parse import quote, unquote
 from copy import copy
 from collections import OrderedDict, defaultdict
@@ -27,11 +28,12 @@ import websockets
 from gevent import monkey; monkey.patch_all()
 import bottle
 from bottle import route, static_file, get, post, request, template, response
+from bottle_i18n import I18NPlugin, I18NMiddleware, i18n_defaults, i18n_view, i18n_template
 from bs4 import BeautifulSoup
 
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
-from procsimulator import Simulator, Register
+from components import Memory, Registers
 
 with open("emailpass.txt") as fhdl:
     email_password = fhdl.read().strip()
@@ -45,6 +47,9 @@ connected = set()
 
 DEBUG = 'DEBUG' in sys.argv
 
+default_lang = 'fr'
+i18n_defaults(bottle.SimpleTemplate, bottle.request)
+i18NPlugin = I18NPlugin(domain='interface', default=default_lang, locale_dir='./locale')
 
 async def producer(ws, data_list):
     while True:
@@ -132,19 +137,19 @@ async def handler(websocket, path):
                 continue
 
             # Continue executions of "run", "step out" and "step forward"
-            if to_run_task in done:
-                steps_to_do = 50 if interpreters[websocket].animate_speed__ == 0 else 1
-                for i in range(steps_to_do):
-                    interpreters[websocket].step()
-                    interpreters[websocket].last_step__ = time.time()
-                    interpreters[websocket].num_exec__ += 1
-
-                    ui_update_queue.extend(updateDisplay(interpreters[websocket]))
-
-                    if interpreters[websocket].shouldStop:
-                        break
-
-                to_run_task = asyncio.ensure_future(run_instance(websocket))
+            # if to_run_task in done:
+            #     steps_to_do = 50 if interpreters[websocket].animate_speed__ == 0 else 1
+            #     for i in range(steps_to_do):
+            #         interpreters[websocket].step()
+            #         interpreters[websocket].last_step__ = time.time()
+            #         interpreters[websocket].num_exec__ += 1
+            #
+            #         if interpreters[websocket].shouldStop:
+            #             break
+            #
+            #     ui_update_queue.extend(updateDisplay(interpreters[websocket]))
+            #
+            #     to_run_task = asyncio.ensure_future(run_instance(websocket))
 
             if update_ui_task in done:
                 if DEBUG:
@@ -248,11 +253,8 @@ def generateUpdate(inter):
     retval.extend(tuple({"IRQ_{}".format(k.lower()): "{:08x}".format(v) for k,v in registers_types['IRQ'].items()}.items()))
     retval.extend(tuple({"SVC_{}".format(k.lower()): "{:08x}".format(v) for k,v in registers_types['SVC'].items()}.items()))
 
-    flags = inter.getFlags()
-    retval.extend(tuple({k.lower(): "{}".format(v) for k,v in flags.items()}.items()))
-    if 'SN' not in flags:
-        flags = ("sn", "sz", "sc", "sv", "si", "sf")
-        retval.extend([["disable", f] for f in flags])
+    # Flags
+    retval.extend(inter.getFlagsFormatted())
 
     # Breakpoints
     retval.append(["asm_breakpoints", inter.getBreakpointInstr()])
@@ -282,23 +284,8 @@ def updateDisplay(interp, force_all=False):
         retval.extend(generateUpdate(interp))
         retval.append(["banking", interp.getProcessorMode()])
     else:
-        changed_vals = interp.getChanges()
-        if changed_vals:
-            if "register" in changed_vals:
-                for k,v in changed_vals["register"].items():
-                    if k.lower()[-1] in ('v', 'c', 'z', 'n', 'i', 'f'):
-                        v = str(bool(v))
-                        k = k.lower()
-                    else:
-                        v = "{:08x}".format(v)
-                    k = k.replace("_R", "_r")
-                    if k[0] == "R":
-                        k = "r" + k[1:]
-                    retval.append([k, v])
-            if "memory" in changed_vals:
-                retval.append(["mempartial", [[k, "{:02x}".format(v).upper()] for k, v in changed_vals["memory"]]])
-            if "bank" in changed_vals:
-                retval.append(["banking", changed_vals["bank"]])
+        retval.append(["banking", interp.getProcessorMode()]) # TODO : Should be include in getChanges()
+        retval.extend(interp.getChangesFormatted())
 
     diff_bp = interp.getBreakpointInstr(diff=True)
     if diff_bp:
@@ -310,15 +297,15 @@ def updateDisplay(interp, force_all=False):
     retval.append(["cycles_count", interp.getCycleCount() + 1])
 
     # Check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
-    if interp.currentBreakpoint:
-        for this_breakpoint in interp.currentBreakpoint:
-            if this_breakpoint.source == 'memory' and bool(this_breakpoint.mode & 8):
-                retval.append(["error", """Un accès à l'extérieur de la mémoire initialisée a été effectué ({}).""".format(this_breakpoint.infos)])
-            elif this_breakpoint.source == 'pc':
-                retval.append(["error", this_breakpoint.infos])
-            elif this_breakpoint.source == 'assert':
-                retval.append(["codeerror", this_breakpoint.infos[0] + 1, this_breakpoint.infos[1]])
-    return retval
+    # if interp.currentBreakpoint:
+    #     for this_breakpoint in interp.currentBreakpoint:
+    #         if this_breakpoint.source == 'memory' and bool(this_breakpoint.mode & 8):
+    #             retval.append(["error", """Un accès à l'extérieur de la mémoire initialisée a été effectué ({}).""".format(this_breakpoint.infos)])
+    #         elif this_breakpoint.source == 'pc':
+    #             retval.append(["error", this_breakpoint.infos])
+    #         elif this_breakpoint.source == 'assert':
+    #             retval.append(["codeerror", this_breakpoint.infos[0] + 1, this_breakpoint.infos[1]])
+    return translate_retval(interp.lang, retval)
 
 
 def process(ws, msg_in):
@@ -338,9 +325,11 @@ def process(ws, msg_in):
                 interpreters[ws].history__.append(data)
 
             if data[0] != 'assemble' and ws not in interpreters:
+                lang = default_lang
                 if data[0] != "interrupt":
                     retval.append(["error", "Veuillez assembler le code avant d'effectuer cette opération."])
             elif data[0] == 'assemble':
+                lang = data[2]
                 code = ''.join(s for s in data[1].replace("\t", " ") if s in string.printable)
                 if ws in interpreters:
                     del interpreters[ws]
@@ -359,103 +348,106 @@ def process(ws, msg_in):
                     interpreters[ws].num_exec__ = 0
                     interpreters[ws].user_asked_stop__ = False
                     retval.append(["line2addr", line2addr])
-            elif data[0] == 'stepback':
-                interpreters[ws].stepBack()
-                force_update_all = True
-            elif data[0] == 'stepinto':
-                interpreters[ws].step('into')
-            elif data[0] == 'stepforward':
-                interpreters[ws].step('forward')
-                interpreters[ws].user_asked_stop__ = False
-                interpreters[ws].last_step__ = time.time()
-                try:
-                    interpreters[ws].animate_speed__ = int(data[1]) / 1000
-                except (ValueError, TypeError):
-                    interpreters[ws].animate_speed__ = 0
-                    retval.append(["animate_speed", str(interpreters[ws].animate_speed__)])
-            elif data[0] == 'stepout':
-                interpreters[ws].step('out')
-                interpreters[ws].user_asked_stop__ = False
-                interpreters[ws].last_step__ = time.time()
-                try:
-                    interpreters[ws].animate_speed__ = int(data[1]) / 1000
-                except (ValueError, TypeError):
-                    interpreters[ws].animate_speed__ = 0
-                    retval.append(["animate_speed", str(interpreters[ws].animate_speed__)])
-            elif data[0] == 'run':
-                if interpreters[ws].shouldStop == False and (interpreters[ws].user_asked_stop__ == False):
-                    interpreters[ws].user_asked_stop__ = True
-                else:
+                    interpreters[ws].lang = lang
+            else:
+                lang = interpreters[ws].lang
+                if data[0] == 'stepback':
+                    interpreters[ws].stepBack()
+                    force_update_all = True
+                elif data[0] == 'stepinto':
+                    interpreters[ws].execute('into')
+                elif data[0] == 'stepforward':
+                    interpreters[ws].execute('forward')
                     interpreters[ws].user_asked_stop__ = False
-                    interpreters[ws].step('run')
                     interpreters[ws].last_step__ = time.time()
                     try:
-                        anim_speed = int(data[1]) / 1000
+                        interpreters[ws].animate_speed__ = int(data[1]) / 1000
                     except (ValueError, TypeError):
-                        anim_speed = 0
-                        retval.append(["animate_speed", str(anim_speed)])
-                    interpreters[ws].animate_speed__ = anim_speed
-            elif data[0] == 'stop':
-                del interpreters[ws]
-            elif data[0] == 'reset':
-                interpreters[ws].reset()
-            elif data[0] == 'breakpointsinstr':
-                interpreters[ws].setBreakpointInstr(data[1])
-                force_update_all = True
-            elif data[0] == 'breakpointsmem':
-                try:
-                    interpreters[ws].toggleBreakpointMem(int(data[1], 16), data[2])
-                except ValueError:
-                    retval.append(["error", "Adresse mémoire invalide"])
-                else:
-                    bpm = interpreters[ws].getBreakpointsMem()
-                    retval.extend([["membp_r", ["0x{:08x}".format(x) for x in bpm['r']]],
-                                   ["membp_w", ["0x{:08x}".format(x) for x in bpm['w']]],
-                                   ["membp_rw", ["0x{:08x}".format(x) for x in bpm['rw']]],
-                                   ["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]]])
-            elif data[0] == 'update':
-                if data[1][0].upper() == 'R':
-                    reg_id = int(data[1][1:])
+                        interpreters[ws].animate_speed__ = 0
+                        retval.append(["animate_speed", str(interpreters[ws].animate_speed__)])
+                elif data[0] == 'stepout':
+                    interpreters[ws].execute('out')
+                    interpreters[ws].user_asked_stop__ = False
+                    interpreters[ws].last_step__ = time.time()
                     try:
-                        interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
+                        interpreters[ws].animate_speed__ = int(data[1]) / 1000
+                    except (ValueError, TypeError):
+                        interpreters[ws].animate_speed__ = 0
+                        retval.append(["animate_speed", str(interpreters[ws].animate_speed__)])
+                elif data[0] == 'run':
+                    if interpreters[ws].shouldStop == False and (interpreters[ws].user_asked_stop__ == False):
+                        interpreters[ws].user_asked_stop__ = True
+                    else:
+                        interpreters[ws].user_asked_stop__ = False
+                        interpreters[ws].execute('run')
+                        interpreters[ws].last_step__ = time.time()
+                        try:
+                            anim_speed = int(data[1]) / 1000
+                        except (ValueError, TypeError):
+                            anim_speed = 0
+                            retval.append(["animate_speed", str(anim_speed)])
+                        interpreters[ws].animate_speed__ = anim_speed
+                elif data[0] == 'stop':
+                    del interpreters[ws]
+                elif data[0] == 'reset':
+                    interpreters[ws].reset()
+                elif data[0] == 'breakpointsinstr':
+                    interpreters[ws].setBreakpointInstr(data[1])
+                    force_update_all = True
+                elif data[0] == 'breakpointsmem':
+                    try:
+                        interpreters[ws].toggleBreakpointMem(int(data[1], 16), data[2])
+                    except ValueError:
+                        retval.append(["error", "Adresse mémoire invalide"])
+                    else:
+                        bpm = interpreters[ws].getBreakpointsMem()
+                        retval.extend([["membp_r", ["0x{:08x}".format(x) for x in bpm['r']]],
+                                       ["membp_w", ["0x{:08x}".format(x) for x in bpm['w']]],
+                                       ["membp_rw", ["0x{:08x}".format(x) for x in bpm['rw']]],
+                                       ["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]]])
+                elif data[0] == 'update':
+                    if data[1][0].upper() == 'R':
+                        reg_id = int(data[1][1:])
+                        try:
+                            interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
+                        except (ValueError, TypeError):
+                            retval.append(["error", "Valeur invalide: {}".format(repr(data[2]))])
+                    elif data[1].upper() in ('N', 'Z', 'C', 'V', 'I', 'F', 'SN', 'SZ', 'SC', 'SV', 'SI', 'SF'):
+                        flag_id = data[1].upper()
+                        try:
+                            val = not interpreters[ws].getFlags()[flag_id]
+                        except KeyError:
+                            pass
+                        else:
+                            interpreters[ws].setFlags({flag_id: val})
+                    elif data[1][:2].upper() == 'BP':
+                        _, mode, bank, reg_id = data[1].split('_')
+                        try:
+                            reg_id = int(reg_id[1:])
+                        except (ValueError, TypeError):
+                            retval.append(["error", "Registre invalide: {}".format(repr(reg_id[1:]))])
+                        # bank, reg name, mode [r,w,rw]
+                        interpreters[ws].setBreakpointRegister(bank.lower(), reg_id, mode)
+                elif data[0] == "interrupt":
+                    mode = ["FIQ", "IRQ"][data[2] == "IRQ"] # FIQ/IRQ
+                    try: cycles_premier = int(data[4])
+                    except (TypeError, ValueError): cycles_premier = 50; retval.append(['interrupt_cycles_first', 50])
+                    try: cycles = int(data[3])
+                    except (TypeError, ValueError): cycles = 50; retval.append(['interrupt_cycles', 50])
+                    try: notactive = bool(data[1])
+                    except (TypeError, ValueError): notactive = 0; retval.append(['interrupt_active', 0])
+                    interpreters[ws].setInterrupt(mode, not notactive, cycles_premier, cycles, 0)
+                elif data[0] == 'memchange':
+                    try:
+                        val = bytearray([int(data[2], 16)])
                     except (ValueError, TypeError):
                         retval.append(["error", "Valeur invalide: {}".format(repr(data[2]))])
-                elif data[1].upper() in ('N', 'Z', 'C', 'V', 'I', 'F', 'SN', 'SZ', 'SC', 'SV', 'SI', 'SF'):
-                    flag_id = data[1].upper()
-                    try:
-                        val = not interpreters[ws].getFlags()[flag_id]
-                    except KeyError:
-                        pass
+                        val = interpreters[ws].getMemory(data[1])
+                        retval.append(["mempartial", [[data[1], val]]])
                     else:
-                        interpreters[ws].setFlags({flag_id: val})
-                elif data[1][:2].upper() == 'BP':
-                    _, mode, bank, reg_id = data[1].split('_')
-                    try:
-                        reg_id = int(reg_id[1:])
-                    except (ValueError, TypeError):
-                        retval.append(["error", "Registre invalide: {}".format(repr(reg_id[1:]))])
-                    # bank, reg name, mode [r,w,rw]
-                    interpreters[ws].setBreakpointRegister(bank.lower(), reg_id, mode)
-            elif data[0] == "interrupt":
-                mode = ["FIQ", "IRQ"][data[2] == "IRQ"] # FIQ/IRQ
-                try: cycles_premier = int(data[4])
-                except (TypeError, ValueError): cycles_premier = 50; retval.append(['interrupt_cycles_first', 50])
-                try: cycles = int(data[3])
-                except (TypeError, ValueError): cycles = 50; retval.append(['interrupt_cycles', 50])
-                try: notactive = bool(data[1])
-                except (TypeError, ValueError): notactive = 0; retval.append(['interrupt_active', 0])
-                interpreters[ws].setInterrupt(mode, not notactive, cycles_premier, cycles, 0)
-            elif data[0] == 'memchange':
-                try:
-                    val = bytearray([int(data[2], 16)])
-                except (ValueError, TypeError):
-                    retval.append(["error", "Valeur invalide: {}".format(repr(data[2]))])
-                    val = interpreters[ws].getMemory(data[1])
-                    retval.append(["mempartial", [[data[1], val]]])
+                        interpreters[ws].setMemory(data[1], val)
                 else:
-                    interpreters[ws].setMemory(data[1], val)
-            else:
-                print("<{}> Unknown message: {}".format(ws, data))
+                    print("<{}> Unknown message: {}".format(ws, data))
     except Exception as e:
         traceback.print_exc()
         retval.append(["error", str(e)])
@@ -490,6 +482,10 @@ def process(ws, msg_in):
             print("Email sent!")
 
     del msg_in[:]
+
+    if None == lang:
+        lang = interpreters[ws].lang
+    retval = translate_retval(lang, retval)
 
     if ws in interpreters:
         retval.extend(updateDisplay(interpreters[ws], force_update_all))
@@ -601,140 +597,147 @@ else:
     index_template = open('./interface/index.html', 'r').read()
     simulator_template = open('./interface/simulateur.html', 'r').read()
 
-@get('/')
-def index():
-    page = request.query.get("page", "accueil")
+def get():
+    app = bottle.Bottle()
 
-    code = default_code
-    enonce = ""
-    solution = ""
-    title = ""
-    sections = {}
-    identifier = ""
+    @app.route('/')
+    def index():
+        page = request.query.get("page", "accueil")
 
-    if "sim" in request.query:
-        this_template = simulator_template
-        if request.query["sim"] == "debug":
-            code = debug_code
+        code = default_code
+        enonce = ""
+        solution = ""
+        title = ""
+        sections = {}
+        identifier = ""
 
-        elif not request.query["sim"] == "nouveau":
-            try:
-                request.query["sim"] = base64.b64decode(unquote(request.query["sim"]))
-                # YAHOG -- When in WSGI, we must add 0xdc00 to every extended (e.g. accentuated) character in order for the
-                # open() call to understand correctly the path
+        if "sim" in request.query:
+            this_template = simulator_template
+            if request.query["sim"] == "debug":
+                code = debug_code
+
+            elif not request.query["sim"] == "nouveau":
+                try:
+                    request.query["sim"] = base64.b64decode(unquote(request.query["sim"]))
+                    # YAHOG -- When in WSGI, we must add 0xdc00 to every extended (e.g. accentuated) character in order for the
+                    # open() call to understand correctly the path
+                    if locale.getdefaultlocale() == (None, None):
+                        request.query["sim"] = decodeWSGI(request.query["sim"])
+                        with open(os.path.join("exercices", request.query["sim"]), 'rb') as fhdl:
+                            exercice_html = fhdl.read()
+                        exercice_html = encodeWSGIb(exercice_html)
+                    else:
+                        request.query["sim"] = request.query["sim"].decode("utf-8")
+
+                        with open(os.path.join("exercices", request.query["sim"]), 'r') as fhdl:
+                            exercice_html = fhdl.read()
+                    soup = BeautifulSoup(exercice_html, "html.parser")
+                    enonce = soup.find("div", {"id": "enonce"})
+                    code = soup.find("div", {"id": "code"}).text
+                    solution = soup.find("div", {"id": "solution"})
+                    if not code:
+                        code = ""
+                    if not enonce:
+                        enonce = ""
+                    if not solution:
+                        solution = ""
+                except (FileNotFoundError, binascii.Error):
+                    pass
+        else:
+            this_template = index_template
+            files = []
+            if page in ("demo", "exo", "tp"):
+                tomatch = "exercices/{}/*/*.html"
+                if page == "tp":
+                    tomatch = "exercices/{}/*.html"
+                files = glob.glob(tomatch.format(page), recursive=True)
+                files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
+            elif page == "accueil":
+                try:
+                    enonce = readFileBrokenEncoding(os.path.join("exercices", "accueil.html"))
+                except FileNotFoundError:
+                    enonce = "<h1>Bienvenue!</h1>"
+
+            sections = OrderedDict()
+            sections_names = {}
+            for f in sorted(files):
+                # YAHOG -- When in WSGI, Python adds 0xdc00 to every extended (e.g. accentuated) character, leading to
+                # errors in utf-8 re-interpretation.
                 if locale.getdefaultlocale() == (None, None):
-                    request.query["sim"] = decodeWSGI(request.query["sim"])
-                    with open(os.path.join("exercices", request.query["sim"]), 'rb') as fhdl:
-                        exercice_html = fhdl.read()
-                    exercice_html = encodeWSGIb(exercice_html)
-                else:
-                    request.query["sim"] = request.query["sim"].decode("utf-8")
+                    f = encodeWSGI(f)
 
-                    with open(os.path.join("exercices", request.query["sim"]), 'r') as fhdl:
-                        exercice_html = fhdl.read()
-                soup = BeautifulSoup(exercice_html, "html.parser")
-                enonce = soup.find("div", {"id": "enonce"})
-                code = soup.find("div", {"id": "code"}).text
-                solution = soup.find("div", {"id": "solution"})
-                if not code:
-                    code = ""
-                if not enonce:
-                    enonce = ""
-                if not solution:
-                    solution = ""
-            except (FileNotFoundError, binascii.Error):
-                pass
-    else:
-        this_template = index_template
-        files = []
-        if page in ("demo", "exo", "tp"):
-            tomatch = "exercices/{}/*/*.html"
-            if page == "tp":
-                tomatch = "exercices/{}/*.html"
-            files = glob.glob(tomatch.format(page), recursive=True)
-            files = [os.sep.join(re.split("\\/", x)[1:]) for x in files]
-        elif page == "accueil":
-            try:
-                enonce = readFileBrokenEncoding(os.path.join("exercices", "accueil.html"))
-            except FileNotFoundError:
-                enonce = "<h1>Bienvenue!</h1>"
-
-        sections = OrderedDict()
-        sections_names = {}
-        for f in sorted(files):
-            # YAHOG -- When in WSGI, Python adds 0xdc00 to every extended (e.g. accentuated) character, leading to
-            # errors in utf-8 re-interpretation.
-            if locale.getdefaultlocale() == (None, None):
-                f = encodeWSGI(f)
-
-            fs = f.split(os.sep)
-            soup = BeautifulSoup(readFileBrokenEncoding(os.path.join("exercices", f)), "html.parser")
-            title = soup.find("h1")
-            if title:
-                title = title.text
-
-            if page == "tp":
+                fs = f.split(os.sep)
+                soup = BeautifulSoup(readFileBrokenEncoding(os.path.join("exercices", f)), "html.parser")
+                title = soup.find("h1")
                 if title:
-                    k1 = title
+                    title = title.text
+
+                if page == "tp":
+                    if title:
+                        k1 = title
+                    else:
+                        k1 = fs[1].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')
+                    sections[k1] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
                 else:
-                    k1 = fs[1].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')
-                sections[k1] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
-            else:
-                k1r = fs[1].replace("_", " ").encode('utf-8', 'replace')
-                if k1r not in sections_names:
-                    try:
-                        k1 = readFileBrokenEncoding(os.path.join("exercices", page, fs[1], 'nom.txt'))
-                    except FileNotFoundError:
-                        k1 = fs[1].replace("_", " ").encode('utf-8', 'replace')
-                    sections_names[k1r] = k1
+                    k1r = fs[1].replace("_", " ").encode('utf-8', 'replace')
+                    if k1r not in sections_names:
+                        try:
+                            k1 = readFileBrokenEncoding(os.path.join("exercices", page, fs[1], 'nom.txt'))
+                        except FileNotFoundError:
+                            k1 = fs[1].replace("_", " ").encode('utf-8', 'replace')
+                        sections_names[k1r] = k1
 
-                if sections_names[k1r] not in sections:
-                    sections[sections_names[k1r]] = OrderedDict()
+                    if sections_names[k1r] not in sections:
+                        sections[sections_names[k1r]] = OrderedDict()
 
-                if title:
-                    k2 = title
-                else:
-                    k2 = fs[2].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')
+                    if title:
+                        k2 = title
+                    else:
+                        k2 = fs[2].replace(".html", "").replace("_", " ").encode('utf-8', 'replace')
 
-                sections[sections_names[k1r]][k2] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
+                    sections[sections_names[k1r]][k2] = quote(base64.b64encode(f.encode('utf-8', 'replace')), safe='')
 
-        if page != "accueil" and len(sections) == 0:
-            sections = {"Aucune section n'est disponible en ce moment.": {}}
+            if page != "accueil" and len(sections) == 0:
+                sections = {"Aucune section n'est disponible en ce moment.": {}}
 
-        if page == "exo":
-            title = "Exercices formatifs"
-        elif page == "tp":
-            title = "Travaux pratiques"
-        elif page == "demo":
-            title = "Démonstrations"
+            if page == "exo":
+                title = "Exercices formatifs"
+            elif page == "tp":
+                title = "Travaux pratiques"
+            elif page == "demo":
+                title = "Démonstrations"
+        lang = request.get_cookie("lang")
+        if None == lang:
+            lang = default_lang
+        i18NPlugin.set_lang(lang)
 
-    return template(this_template, code=code, enonce=enonce, solution=solution,
-                    page=page, title=title, sections=sections, identifier=identifier,
-                    rand=random.randint(0, 2**16))
-
-
-@route('/static/<filename:path>')
-def static_serve(filename):
-    return static_file(filename, root='./interface/static/')
+        return template(this_template, code=code, lang=lang, enonce=enonce, solution=solution,
+                        page=page, title=title, sections=sections, identifier=identifier, rand=random.randint(0, 2**16))
 
 
-@post('/download/')
-def download():
-    simParameter = unquote(request.forms.get('sim'))
-    try:
-        filename = base64.b64decode(simParameter).decode("utf-8")
-        filename = os.path.splitext(os.path.basename(filename))[0]
-    except binascii.Error:
-        filename = 'source'
-    data = request.forms.get('data')
-    data = encodeWSGI(data)
-    response.headers['Content-Type'] = 'text/plain; charset=UTF-8'
-    response.headers['Content-Disposition'] = 'attachment; filename="%s.txt"' % filename
-    return data
+    @app.route('/static/<filename:path>')
+    def static_serve(filename):
+        return static_file(filename, root='./interface/static/')
+
+
+    @app.post('/download/')
+    def download():
+        simParameter = unquote(request.forms.get('sim'))
+        try:
+            filename = base64.b64decode(simParameter).decode("utf-8")
+            filename = os.path.splitext(os.path.basename(filename))[0]
+        except binascii.Error:
+            filename = 'source'
+        data = request.forms.get('data')
+        data = encodeWSGI(data)
+        response.headers['Content-Type'] = 'text/plain; charset=UTF-8'
+        response.headers['Content-Disposition'] = 'attachment; filename="%s.txt"' % filename
+        return data
+    return I18NMiddleware(app, i18NPlugin)
 
 
 def http_server():
-    bottle.run(host='0.0.0.0', port=8000, server="gevent")
+    bottle.run(app=get(), host='0.0.0.0', port=8000, server="gevent", debug=True)
 
 
 def display_amount_users(signum, stack):
@@ -743,6 +746,17 @@ def display_amount_users(signum, stack):
     print("Number of interpreters:", len(interpreters))
     print(interpreters)
     sys.stdout.flush()
+
+def translate_retval(lang, values):
+    for i in range(len(values)):
+        # Verification if message support i18n
+        if values[i][0] == 'codeerror':
+            if type(values[i][2]) == i18n.I18n:
+                values[i] = (values[i][0], values[i][1], values[i][2].getText(lang))
+        elif values[i][0] == 'disassembly':
+            if type(values[i][1]) == i18n.I18n:
+                values[i][1] = values[i][1].getText(lang)
+    return values
 
 
 if hasattr(signal, 'SIGUSR1'):
