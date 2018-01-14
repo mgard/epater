@@ -1,7 +1,9 @@
 from struct import unpack
 
 from settings import getSetting
-from procsimulator import Simulator, Memory, Register
+from simulator import Simulator
+import operator
+from components import Breakpoint
 
 
 class BCInterpreter:
@@ -188,6 +190,14 @@ class BCInterpreter:
         """
         return self.sim.sysHandle.breakpointInfo if self.sim.sysHandle.breakpointTrigged else None
 
+    def execute(self, mode="into"):
+        """
+        Run the simulator in a given mode.
+        :param stepMode: can be "into" | "forward" | "out" | "run"
+        """
+        self.sim.setStepCondition(mode)
+        print(self.sim.loop())
+
     def step(self, stepMode=None):
         """
         Run the simulator in a given mode.
@@ -226,7 +236,14 @@ class BCInterpreter:
         """
         Return the content of the memory, serialized in a way that can be read by the UI.
         """
-        return self.sim.mem.serializeFormatted()
+        sorted_mem = sorted(self.sim.mem.startAddr.items(), key=operator.itemgetter(1))
+        retList = []
+        data = self.sim.mem.getContext()
+        for sec, start in sorted_mem:
+            padding_size = start - len(retList)
+            retList += ["--"] * padding_size
+            retList += ["{:02X}".format(d) for d in data[sec]]
+        return retList
 
     def setMemory(self, addr, val):
         """
@@ -283,15 +300,28 @@ class BCInterpreter:
         # Changing the registers may change some infos in the prediction (for instance, memory cells affected by a mem access)
         self.sim.decodeInstr()
 
+    def getFlagsFormatted(self):
+        result = []
+        flags = self.getFlags()
+        result.extend(tuple({k.lower(): "{}".format(v) for k,v in flags.items()}.items()))
+        if 'SN' not in flags:
+            flags = ("sn", "sz", "sc", "sv", "si", "sf")
+            result.extend([("disable", f) for f in flags])
+        return result
+
     def getFlags(self):
         """
         Return a dictionnary of the flags; if the current mode has a SPSR, then this method also returns
         its flags, with their name prepended with 'S', in the same dictionnary
         """
-        d = self.sim.flags.getAllFlags()
-        if self.sim.regs.getSPSR() is not None:
-            d.update({"S{}".format(k): v for k,v in self.sim.regs.getSPSR().getAllFlags().items()})
-        return d
+        cpsr = self.sim.regs.CPSR
+        try:
+            spsr = self.sim.regs.SPSR
+            flags = self.__parseFlags(cpsr=cpsr, spsr=spsr)
+        except Breakpoint:
+            # Currently in user mode
+            flags = self.__parseFlags(cpsr=cpsr)
+        return flags
 
     def setFlags(self, flagsDict):
         """
@@ -315,35 +345,48 @@ class BCInterpreter:
         """
         Return the current processor mode (user, FIQ, IRQ, SVC)
         """
-        return self.sim.flags.getMode()
+        return self.sim.regs.mode
 
     def getCycleCount(self):
         """
         Return the current number of cycles (the number of instructions executed since the beginning of the simulation)
         """
-        return self.sim.sysHandle.countCycles
+        return self.sim.history.cyclesCount
+
+    def getChangesFormatted(self):
+        """
+        Return all the changes since the last checkpoint, serialized in a way that can be read by the UI.
+        """
+        result = []
+        changes = self.sim.history.getDiffFromCheckpoint()
+
+        registers_changes =  changes.get(self.sim.regs.__class__)
+        for reg, value in registers_changes.items():
+            if reg[0] == 'User':
+                if reg[1] == 'CPSR':
+                    result.extend(tuple({k.lower(): "{}".format(v)
+                                         for k,v in self.__parseFlags(cpsr=value[1]).items()}.items()))
+                else:
+                    result.append(['r{}'.format(reg[1]), '{:08x}'.format(value[1])])
+            else:
+                result.append(['{}_r{}'.format(reg[0], reg[1]), '{:08x}'.format(value[1])])
+
+        memory_changes = changes.get(self.sim.mem.__class__)
+        result.append(["mempartial", [[k[1], "{:02x}".format(v[1]).upper()] for k, v in memory_changes.items()]])
+
+        return result
+
 
     def getChanges(self):
-        """
-        Return the modified registers, memory, flags. See the interface for an explanation of this syntax.
-        """
-        d = {}
-        dRegsAndFlags, dBank = self.sim.regs.getRegistersAndFlagsChanges()
-        if dBank is not None:
-            d["bank"] = dBank
-        if len(dRegsAndFlags) > 0:
-            d["register"] = dRegsAndFlags
-
-        lMem = self.sim.mem.getMemoryChanges()
-        if len(lMem) > 0:
-            d["memory"] = lMem
-        return d
+        return self.sim.history.getDiffFromCheckpoint()
 
     def getCurrentLine(self):
         """
         Return the number of the line currently accessed.
         """
-        pc = self.sim.regs[15].get(mayTriggerBkpt=False)
+        self.sim.regs.deactivateBreakpoints()
+        pc = self.sim.regs[15]
+        self.sim.regs.reactivateBreakpoints()
         pc -= 8 if getSetting("PCbehavior") == "+8" else 0
         assert pc in self.addr2line, "Line outside of linked memory!"
         assert len(self.addr2line[pc]) > 0, "Line outside of linked memory!"
@@ -353,8 +396,19 @@ class BCInterpreter:
         """
         Return the address of the instruction being executed
         """
-        pc = self.sim.regs[15].get(mayTriggerBkpt=False)
+        self.sim.regs.deactivateBreakpoints()
+        pc = self.sim.regs[15]
+        self.sim.regs.reactivateBreakpoints()
         pc -= 8 if getSetting("PCbehavior") == "+8" else 0
         return pc
+
+    def __parseFlags(self, cpsr=None, spsr=None):
+        d = {}
+        if cpsr:
+            d.update({flag: bool((cpsr >> self.sim.regs.flag2index[flag]) & 0x1) for flag in self.sim.regs.flag2index.keys()})
+        if spsr:
+            d.update({"S{}".format(flag): bool((spsr >> self.sim.regs.flag2index[flag]) & 0x1)
+                      for flag in self.sim.regs.flag2index.keys()})
+        return d
 
 

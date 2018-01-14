@@ -216,6 +216,7 @@ function disableSim() {
     $("#stepin").prop('disabled', true);
     $("#stepout").prop('disabled', true);
     $("#stepforward").prop('disabled', true);
+    $("#stepback").prop('disabled', true);
     $("input[type=text]").prop('disabled', true);
     $(".config_input").prop('disabled', false);
 }
@@ -237,6 +238,7 @@ function assemble(lang) {
         $("#stepin").prop('disabled', false);
         $("#stepout").prop('disabled', false);
         $("#stepforward").prop('disabled', false);
+        $("#stepback").prop('disabled', false);
         $("#assemble").text("Arrêter").addClass("assemble_edit");
         sendCmd(['assemble', editor.getValue(), lang]);
         if ($("#interrupt_active").is(":checked")) {

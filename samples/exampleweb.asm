@@ -15,7 +15,7 @@ MOV R0,  #0
 MOV R1,  #0xA
 MOV R2,  R1, LSL #1
 MOV R3,  #0xF0000000
-MOV R4,  #0x1000
+MOV R4,  #0x10
 MOV R5,  PC
 
 testop

@@ -227,7 +227,7 @@ def immediateToBytecode(imm, mode=None, alreadyinverted=False, gccMode=True):
                         rotReal += 1
                     else:
                         return None
-                    
+
             immBinRot = [str(b) for b in _rotLeftBin(immBin, rotReal)]
             val = int("".join(immBinRot), 2) & 0xFF
             rot = rotReal // 2
