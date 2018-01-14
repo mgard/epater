@@ -35,6 +35,7 @@ class Simulator:
         # Initialize decoders
         self.decoders = {'BranchOp': BranchOp(), 'DataOp': DataOp(), 
                             'MemOp': MemOp(), 'MultipleMemOp': MultipleMemOp(),
+                            'HalfSignedMemOp': HalfSignedMemOp(),
                             'PSROp': PSROp(),
                             'MulOp': MulOp(), 'MulLongOp': MulLongOp(), 
                             'SoftInterruptOp': SoftInterruptOp(), 'NopOp': NopOp()}
@@ -131,6 +132,10 @@ class Simulator:
             return
 
         # Select the right data type to handle the decoding
+        # We have to be extra careful here and go from the specific to
+        # the general. For instance, dataOp check should NOT be the first, since
+        # we can only check for 0's at positions 27-26, but this characteristic is
+        # shared with many other instruction types
         if checkMask(instrInt, (19, 24), (27, 26, 23, 20)):       # MRS or MSR
             # This one is tricky
             # The signature looks like a data processing operation, BUT
@@ -140,6 +145,31 @@ class Simulator:
             # With MSR and MRS, the bit representing the S flag is always 0, 
             # so we can differentiate these instructions...
             self.currentInstr = self.decoders['PSROp']
+        elif checkMask(instrInt, (7, 4, 24), (27, 26, 25, 23, 21, 20, 11, 10, 9, 8, 6, 5)):
+            # Swap
+            # This one _must_ be before Data processing check, since it overlaps
+            self.currentInstr = self.decoders['SwapOp']
+        elif checkMask(instrInt, (7, 4), (27, 26, 25)):
+            # Half/signed data transfer
+            # This one _must_ be before Data processing check, since it overlaps,
+            # but also _must_ be _after_ Swap check, because swap is a specialized case of this one
+            self.currentInstr = self.decoders['HalfSignedMemOp']
+        elif checkMask(instrInt, (24, 21, 4) + tuple(range(8, 20)), (27, 26, 25, 23, 22, 20, 7, 6, 5)):
+            # BX
+            # This one _must_ be before Data processing check, since it overlaps
+            self.currentInstr = self.decoders['BranchOp']
+        elif checkMask(instrInt, (7, 4), tuple(range(22, 28)) + (5, 6)):
+            # MUL or MLA
+            # This one _must_ be before Data processing check, since it overlaps
+            self.currentInstr = self.decoders['MulOp']
+        elif checkMask(instrInt, (7, 4, 23), tuple(range(24, 28)) + (5, 6)):
+            # UMULL, SMULL, UMLAL or SMLAL
+            # This one _must_ be before Data processing check, since it overlaps
+            self.currentInstr = self.decoders['MulLongOp']
+        elif checkMask(instrInt, (25, 24, 21), (27, 26, 23, 22, 20, 19, 18, 17, 16)):
+            # NOP
+            # This one _must_ be before Data processing check, since it overlaps
+            self.currentInstr = self.decoders['NopOp']
         elif checkMask(instrInt, (), (27, 26)):
             # Data processing
             self.currentInstr = self.decoders['DataOp']
@@ -152,24 +182,9 @@ class Simulator:
         elif checkMask(instrInt, (27,), (26, 25)):
             # Block data transfer
             self.currentInstr = self.decoders['MultipleMemOp']
-        elif checkMask(instrInt, (24, 21, 4) + tuple(range(8, 20)), (27, 26, 25, 23, 22, 20, 7, 6, 5)):
-            # BX
-            self.currentInstr = self.decoders['BranchOp']
-        elif checkMask(instrInt, (7, 4), tuple(range(22, 28)) + (5, 6)):
-            # MUL or MLA
-            self.currentInstr = self.decoders['MulOp']
-        elif checkMask(instrInt, (7, 4, 23), tuple(range(24, 28)) + (5, 6)):
-            # UMULL, SMULL, UMLAL or SMLAL
-            self.currentInstr = self.decoders['MulLongOp']
         elif checkMask(instrInt, (24, 25, 26, 27), ()):
             # Software interrupt
             self.currentInstr = self.decoders['SoftInterruptOp']
-        elif checkMask(instrInt, (25, 24, 21), (27, 26, 23, 22, 20, 19, 18, 17, 16)):
-            # NOP
-            self.currentInstr = self.decoders['NopOp']
-        elif checkMask(instrInt, (7, 4, 24), (27, 26, 25, 23, 21, 20, 11, 10, 9, 8, 6, 5)):
-            # Swap
-            self.currentInstr = self.decoders['SwapOp']
         else:
             # Undefined instruction
             self.currentInstr = None

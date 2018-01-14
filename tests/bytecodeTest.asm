@@ -16,7 +16,7 @@
   MVN R0, #-2
   MVN R1, #0xf
 
-  ; SHIFTS
+  @ SHIFTS
   MOV R0, R0, LSL #10
   MOV R1, R2, LSL #1
   MOV R1, R2, LSL #0
@@ -28,7 +28,7 @@
   MOV R4, R5, ROR #14
   MOV R5, R6, RRX
 
-  ; PSEUDO INSTRUCTIONS SHIFTS
+  @ PSEUDO INSTRUCTIONS SHIFTS
   LSR R0, R1, R1
   LSR R0, R1, #1
   LSL R0, R1, #20
@@ -37,7 +37,7 @@
   ROR R0, R1, #0xe
   RRX R3, R2
 
-  ; DATA OP (ARITHMETIC)
+  @ DATA OP (ARITHMETIC)
   ADD R0, R0, R1
   ADD R2, R3, R4, LSL #2
   ADD R2, R0, #4
@@ -57,7 +57,7 @@
   SBC R2, R3, #0xFF
   ADDS R0, R0, R1
 
-  ; DATA OP (LOGICAL)
+  @ DATA OP (LOGICAL)
   AND R0, R1, R2
   AND R0, R1, #0xFF000000
   AND R0, R1, #0xFFFFFFFF
@@ -71,7 +71,7 @@
   ORR R6, R7, #11
   ORRS R7, R8, R9
 
-  ; DATA OP (conditions)
+  @ DATA OP (conditions)
   CMP R3, R4
   CMP R3, #4
   CMP R3, #-1
@@ -87,7 +87,7 @@
   TEQ R9, R10
   TEQ R10, #0x22
 
-  ; CONDITIONS
+  @ CONDITIONS
   MOVEQ R0, R1
   MOVNE R0, R1
   MOVCS R0, R1
@@ -104,13 +104,13 @@
   MOVLE R0, R1
   MOVAL R0, R1
 
-  ; BRANCH
+  @ BRANCH
   BX LR
   BX R2
-etiquette  B etiquette
-etiquette2  BL etiquette2
+etiquette:  B etiquette
+etiquette2:  BL etiquette2
 
-  ; LDR / STR
+  @ LDR / STR
   LDR R0, [R1]
   LDR R0, [R1, R2]
   LDR R0, [R1, #8]
@@ -130,11 +130,10 @@ etiquette2  BL etiquette2
   STR R0, [R1, #18]
   STR R0, [R1, #-16]
   STR R0, [R1, #0xFFF]
-label  LDR R0, label
-label2  STR R1, label2
+label:  LDR R0, label
+label2:  STR R1, label2
 
-  ; BLOCK DATA TRANSFER (LDM/STM/PUSH/POP)
-  PUSH {R1}
+  @ BLOCK DATA TRANSFER (LDM/STM/PUSH/POP)
   PUSH {R2, R3,R4}
   PUSH {R2-R7}
   PUSH {R8-R10, R12, LR, PC}
@@ -159,17 +158,17 @@ label2  STR R1, label2
   STMED R1, {R2-R8,R9}
   STMDA R1, {R2-R8, R9}
 
-  ; SOFTWARE INTERRUPT
+  @ SOFTWARE INTERRUPT
   SWI #0xFF1422
   SWI 0xFF1422
   SVC 0xFF1422
 
-  ; MULTIPLICATION
+  @ MULTIPLICATION
   MUL R1, R2, R3
   MUL R2, R3, LR
   MLA R3, R4, R5, R6
 
-  ; MSR/MRS
+  @ MSR/MRS
   MRS R0, CPSR
   MRS R0, SPSR
   MSR CPSR, R4
@@ -177,7 +176,7 @@ label2  STR R1, label2
   MSR CPSR_flg, R4
   MSR SPSR_flg, R1
   
-  ; MULTIPLICATION LONG
+  @ MULTIPLICATION LONG
   UMULL R1, R2, R3, R4
   SMULL R2, R3, LR, R0
   UMLAL R3, R4, R5, R6
