@@ -195,7 +195,7 @@ class Simulator:
             self.currentInstr.decode()
             # Once decoded, we add the instruction to the cache
             self.decoderCache[instrInt] = (self.currentInstr, self.currentInstr.saveState())
-            if len(self.decoderCache) > 5000:
+            if len(self.decoderCache) > 2000:
                 # Fail-safe, we should never get there with programs < 2000 lines, but just in case,
                 # we do not want to bust the RAM with our cache
                 self.decoderCache = {}
