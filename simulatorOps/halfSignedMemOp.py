@@ -8,8 +8,8 @@ from simulatorOps.abstractOp import AbstractOp, ExecutionException
 
 class HalfSignedMemOp(AbstractOp):
     saveStateKeys = frozenset(("condition", 
-                                "imm", "pre", "sign", "byte", "writeback", "mode", "nonprivileged",
-                                "basereg", "rd", "offsetImm", "offsetReg", "offsetRegShift"))
+                                "imm", "pre", "sign", "byte", "writeback", "mode", "signed",
+                                "basereg", "rd", "offsetImm", "offsetReg"))
 
     def __init__(self):
         super().__init__()
@@ -29,36 +29,34 @@ class HalfSignedMemOp(AbstractOp):
         self.pre = bool(instrInt & (1 << 24))
         self.sign = 1 if instrInt & (1 << 23) else -1
         self.byte = not bool(instrInt & (1 << 5))
-        # See 4.9.1 (with post, writeback is redundant and always on)
+        self.signed = bool(instrInt & (1 << 6))
+        # See 4.9.1 (with post, writeback is redundant and always implicitely on)
         self.writeback = bool(instrInt & (1 << 21)) or not self.pre
         self.mode = "LDR" if instrInt & (1 << 20) else "STR"
 
         self.basereg = (instrInt >> 16) & 0xF
         self.rd = (instrInt >> 12) & 0xF
 
-        # TODO FINISH
-
-
-        #if self.imm:
-        #    self.offsetImm = instrInt & 0xFFF
-        #else:
-        #    self.offsetReg = instrInt & 0xF
-        #    # Cannot be a register shift
-        #    self.offsetRegShift = utils.shiftInfo(type=utils.shiftMappingR[(instrInt >> 5) & 0x3],
-        #                                            immediate=True,
-        #                                            value=(instrInt >> 7) & 0x1F)
+        if self.imm:
+            # The immediate offset is divided in 2 nibbles:
+            # the 4 LSB are at positions [3, 2, 1, 0]
+            # the 4 MSB are at positions [11, 10, 9, 8]
+            self.offsetImm = instrInt & 0xF + ((instrInt >> 4) & 0xF0)
+        else:
+            # No shift allowed with these instructions
+            self.offsetReg = instrInt & 0xF
 
 
     def explain(self, simulatorContext):
         self.resetAccessStates()
         bank = simulatorContext.regs.mode
         simulatorContext.regs.deactivateBreakpoints()
-        # TODO FINISH
         
         disassembly = self.mode
         description = "<ol>\n"
         disCond, descCond = self._explainCondition()
         description += descCond
+        disassembly += disCond
 
         self._readregs = utils.registerWithCurrentBank(self.basereg, bank)
         addr = baseval = simulatorContext.regs[self.basereg]
@@ -73,26 +71,22 @@ class HalfSignedMemOp(AbstractOp):
                 else:
                     descoffset = "<li>Soustrait la constante {} à l'adresse de base</li>\n".format(self.offsetImm)
         else:
-            shiftDesc = utils.shiftToDescription(self.offsetRegShift, bank)
             regDesc = utils.regSuffixWithBank(self.offsetReg, bank)
             if self.sign > 0:
-                descoffset = "<li>Additionne le registre {} {} à l'adresse de base</li>\n".format(regDesc, shiftDesc)
+                descoffset = "<li>Additionne le registre {} à l'adresse de base</li>\n".format(regDesc)
             else:
-                descoffset = "<li>Soustrait le registre {} {} à l'adresse de base</li>\n".format(regDesc, shiftDesc)
+                descoffset = "<li>Soustrait le registre {} à l'adresse de base</li>\n".format(regDesc)
 
-            _, sval = utils.applyShift(simulatorContext.regs[self.offsetReg], self.offsetRegShift, simulatorContext.regs.C)
-            addr += self.sign * sval
+            addr += self.sign * simulatorContext.regs[self.offsetReg]
             self._readregs |= utils.registerWithCurrentBank(self.offsetReg, bank)
 
         realAddr = addr if self.pre else baseval
-        sizeaccess = 1 if self.byte else 4
+        sizeaccess = 1 if self.byte else 2
         sizedesc = "1 octet" if sizeaccess == 1 else "{} octets".format(sizeaccess)
 
+        disassembly += "S" if self.signed else ""
         disassembly += "B" if sizeaccess == 1 else "H" if sizeaccess == 2 else ""
-        if self.nonprivileged:
-            disassembly += "T"
-        disassembly += disCond
-        disassembly += "R{}, [R{}".format(self.rd, self.basereg)
+        disassembly += " R{}, [R{}".format(self.rd, self.basereg)
 
         if self.mode == 'LDR':
             if self.pre:
@@ -102,21 +96,25 @@ class HalfSignedMemOp(AbstractOp):
                 description += "<li>Lit {} à partir de l'adresse de base et stocke le résultat dans {} (LDR)</li>\n".format(sizedesc, utils.regSuffixWithBank(self.rd, bank))
                 description += descoffset
             
+            if self.signed:
+                description += "<li>Copie la valeur du bit {} sur les bits {} à 31 du registre de destination</li>\n".format(7 if self.byte else 15, 8 if self.byte else 16)
+            
             self._readmem = set(range(realAddr, realAddr+sizeaccess))
             self._writeregs |= utils.registerWithCurrentBank(self.rd, bank)
 
             if self.rd == simulatorContext.PC:
                 m = simulatorContext.mem.get(realAddr, size=sizeaccess, mayTriggerBkpt=False)
                 if m is not None:
-                    res = struct.unpack("<B" if self.byte else "<I", m)[0]
+                    res = struct.unpack("<B" if self.byte else "<H", m)[0]
                     self._nextInstrAddr = res
 
         else:       # STR
+            descRange = " de l'octet le moins significatif" if self.byte else " des 2 octets les moins significatifs"
             if self.pre:
                 description += descoffset
-                description += "<li>Copie la valeur du registre {} dans la mémoire, à l'adresse obtenue à l'étape précédente (pré-incrément), sur {} (STR)</li>\n".format(utils.regSuffixWithBank(self.rd, bank), sizedesc)
+                description += "<li>Copie la valeur" + descRange + " registre {} dans la mémoire, à l'adresse obtenue à l'étape précédente (pré-incrément), sur {} (STR)</li>\n".format(utils.regSuffixWithBank(self.rd, bank), sizedesc)
             else:
-                description += "<li>Copie la valeur du registre {} dans la mémoire, à l'adresse de base, sur {} (STR)</li>\n".format(utils.regSuffixWithBank(self.rd, bank), sizedesc)
+                description += "<li>Copie la valeur" + descRange + " registre {} dans la mémoire, à l'adresse de base, sur {} (STR)</li>\n".format(utils.regSuffixWithBank(self.rd, bank), sizedesc)
                 description += descoffset
 
             self._writemem = set(range(realAddr, realAddr+sizeaccess))
@@ -129,8 +127,7 @@ class HalfSignedMemOp(AbstractOp):
                 else:
                     disassembly += ", {}]".format(hex(self.sign * self.offsetImm))
             else:
-                disassembly += ", R{}".format(self.offsetReg)
-                disassembly += utils.shiftToInstruction(self.offsetRegShift) + "]"
+                disassembly += ", R{}".format(self.offsetReg) + "]"
         else:
             # Post (a post-incrementation of 0 is useless)
             disassembly += "]"
@@ -138,7 +135,6 @@ class HalfSignedMemOp(AbstractOp):
                 disassembly += ", {}".format(hex(self.sign * self.offsetImm))
             elif not self.imm:
                 disassembly += ", R{}".format(self.offsetReg)
-                disassembly += utils.shiftToInstruction(self.offsetRegShift)
         #else:
             # Weird case, would happen if we combine post-incrementation and immediate offset of 0
         #    disassembly += "]"
@@ -159,31 +155,33 @@ class HalfSignedMemOp(AbstractOp):
         if not self._checkCondition(simulatorContext.regs):
             # Nothing to do, instruction not executed
             return
-        # TODO FINISH
 
         addr = baseval = simulatorContext.regs[self.basereg]
         if self.imm:
             addr += self.sign * self.offsetImm
         else:
-            _, sval = utils.applyShift(simulatorContext.regs[self.offsetReg], self.offsetRegShift, simulatorContext.regs.C)
-            addr += self.sign * sval
+            addr += self.sign * simulatorContext.regs[self.offsetReg]
 
         realAddr = addr if self.pre else baseval
-        s = 1 if self.byte else 4
+        s = 1 if self.byte else 2
         if self.mode == 'LDR':
             m = simulatorContext.mem.get(realAddr, size=s)
             if m is None:       # No such address in the mapped memory, we cannot continue
                 raise ExecutionException("Tentative de lecture de {} octets à partir de l'adresse {} invalide : mémoire non initialisée".format(s, realAddr))
-            res = struct.unpack("<B" if self.byte else "<I", m)[0]
+            res = struct.unpack("<B" if self.byte else "<H", m)[0]
 
             simulatorContext.regs[self.rd] = res
+            if self.signed:
+                simulatorContext.regs[self.rd] |= 0xFF000000 * ((res >> 7) & 1) if self.byte else 0xFFFF0000 * ((res >> 15) & 1)
+                
             if self.rd == simulatorContext.PC:
                 self.pcmodified = True
         else:       # STR
             valWrite = simulatorContext.regs[self.rd]
             if self.rd == simulatorContext.PC and simulatorContext.PCSpecialBehavior:
                 valWrite += 4       # Special case for PC (see ARM datasheet, 4.9.4)
-            simulatorContext.mem.set(realAddr, valWrite, size=1 if self.byte else 4)
+            valWrite &= 0xFFFF
+            simulatorContext.mem.set(realAddr, valWrite, size=1 if self.byte else 2)
 
         if self.writeback:
             simulatorContext.regs[self.basereg] = addr
