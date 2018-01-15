@@ -165,7 +165,7 @@ shiftMapping = {'LSL': 0,
 shiftMappingR = {0: 'LSL', 1: 'LSR', 2: 'ASR', 3: 'ROR'}
 
 def shiftToDescription(shift, bank):
-    if shift.value == 0 and shift.type == "LSL" and not shift.immediate:
+    if shift.value == 0 and shift.type == "LSL" and shift.immediate:
         # No shift
         return ""
 
@@ -191,7 +191,7 @@ def shiftToDescription(shift, bank):
     return desc
 
 def shiftToInstruction(shift):
-    if shift.value == 0 and shift.type == "LSL" and not shift.immediate:
+    if shift.value == 0 and shift.type == "LSL" and shift.immediate:
         # No shift
         return ""
 
@@ -213,6 +213,8 @@ def applyShift(val, shift, cflag):
     """
     carryOut = 0
     if shift.type == "LSL":
+        if shift.value == 0:            # If there is no shift
+            return carryOut, val
         carryOut = (val << (32-shift.value)) & 2**31
         val = (val << shift.value) & 0xFFFFFFFF
     elif shift.type == "LSR":
