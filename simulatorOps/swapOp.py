@@ -42,6 +42,10 @@ class SwapOp(AbstractOp):
         description += descCond
         sizedesc = "1 octet" if self.byte else "4 octets"
 
+        self._readregs |= utils.registerWithCurrentBank(self.rn, bank)
+        self._readregs |= utils.registerWithCurrentBank(self.rm, bank)
+        self._writeregs |= utils.registerWithCurrentBank(self.rd, bank)
+
         description += "<li>Lit {} à partir de l'adresse contenue dans {}</li>\n".format(sizedesc, utils.regSuffixWithBank(self.rn, bank))
         if self.byte:
             disassembly += "B"
