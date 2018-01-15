@@ -9,7 +9,7 @@ from simulatorOps.abstractOp import AbstractOp, ExecutionException
 class DataOp(AbstractOp):
     saveStateKeys = frozenset(("condition", 
                                 "opcodeNum", "opcode", 
-                                "imm", "modifiyFlags", 
+                                "imm", "modifyFlags", 
                                 "rd", "rn", 
                                 "shiftedVal", "shift", "op2reg"))
 
