@@ -120,8 +120,12 @@ if __name__ == "__main__":
     parser.add_argument('-c', "--count", default=10, type=int, help="Number of steps")
     args = parser.parse_args()
 
+    lines = []
     with open(args.inputfile) as f:
         bytecode, bcinfos, assertInfos, errors, _ = ASMparser(f, memLayout="test")
+    with open(args.inputfile) as f:
+        for line in f:
+            lines.append(line)
     
     # Setting up the QEMU reference ARM simulator
     armRef = unicorn.Uc(unicorn.UC_ARCH_ARM, unicorn.UC_MODE_ARM)
@@ -157,6 +161,8 @@ if __name__ == "__main__":
         contextEpater.update()
 
         if contextRef != contextEpater:
+            currentLine = armEpater.getCurrentLine()
+            print(lines[currentLine])
             print(concatenateReports(str(contextRef), str(contextEpater)))
             print(contextRef.reason)
         cycle += 1
