@@ -111,7 +111,6 @@ class Registers(Component):
 
     def __init__(self, history):
         super().__init__(history)
-        #import pdb; pdb.set_trace()
         self.history.registerObject(self)
         self.bkptActive = True
 

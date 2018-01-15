@@ -18,7 +18,7 @@ class Simulator:
     """
     PC = 15     # Helpful shorthand to get a reference on PC
 
-    def __init__(self, memorycontent, assertionTriggers, addr2line):
+    def __init__(self, memorycontent, assertionTriggers, addr2line, pcInitValue=0):
         # Parameters
         self.pcoffset = 8 if getSetting("PCbehavior") == "+8" else 0
         self.PCSpecialBehavior = getSetting("PCspecialbehavior")
@@ -31,6 +31,7 @@ class Simulator:
         # Initialize components
         self.mem = Memory(self.history, memorycontent)
         self.regs = Registers(self.history)
+        self.pcInitVal = pcInitValue
 
         # Initialize decoders
         self.decoders = {'BranchOp': BranchOp(), 'DataOp': DataOp(), 
@@ -58,12 +59,11 @@ class Simulator:
         self.stepCondition = 0
         # Used to stop the simulator after n iterations in run mode
         self.runIteration = 0
-
-        self.reset()
+        self.history.clear()
 
     def reset(self):
         self.history.clear()
-        self.regs.banks['User'][15].val = self.pcoffset
+        self.regs.banks['User'][15].val = self.pcInitVal + self.pcoffset
         self.fetchAndDecode()
 
     def getContext(self):

@@ -29,7 +29,7 @@ class Context:
         self.spsr = None
         self.mem = None
         self.lengths = lengths
-        self.sim = sim
+        self.emulator = sim
         self.type = type_
 
         self.reason = {}
@@ -56,24 +56,24 @@ class Context:
             self.from_simulator()
 
     def from_qemu(self):
-        self.regs = [self.sim.reg_read(reg) for reg in regs_arm]
-        self.cpsr = self.sim.reg_read(ARM.UC_ARM_REG_CPSR)
-        self.spsr = self.sim.reg_read(ARM.UC_ARM_REG_SPSR)
-        self.mem = {"INTVEC": self.sim.mem_read(CODE_START_ADDR, self.lengths["INTVEC"]),
-                    "CODE": self.sim.mem_read(CODE_START_ADDR + 0x80, self.lengths["CODE"]),
-                    "DATA": self.sim.mem_read(CODE_START_ADDR + 4096, self.lengths["DATA"])}
+        self.regs = [self.emulator.reg_read(reg) for reg in regs_arm]
+        self.cpsr = self.emulator.reg_read(ARM.UC_ARM_REG_CPSR)
+        self.spsr = self.emulator.reg_read(ARM.UC_ARM_REG_SPSR)
+        self.mem = {"INTVEC": self.emulator.mem_read(CODE_START_ADDR, self.lengths["INTVEC"]),
+                    "CODE": self.emulator.mem_read(CODE_START_ADDR + 0x80, self.lengths["CODE"]),
+                    "DATA": self.emulator.mem_read(CODE_START_ADDR + 4096, self.lengths["DATA"])}
 
     def from_simulator(self):
-        self.regsStr = self.sim.getRegisters()['User']
+        self.regsStr = self.emulator.getRegisters()['User']
         self.regs = []
         for i in range(16):
-            self.regs.append(self.regsStr["R"+str(i)])
+            self.regs.append(self.emulator.sim.regs[i])
         self.regs[15] -= 8
-        self.cpsr = self.sim.sim.regs.getCPSR().val
+        self.cpsr = self.emulator.sim.regs.CPSR
         self.spsr = 0 # self.sim.sim.regs.getSPSR()
-        self.mem = {"INTVEC": self.sim.sim.mem.data["INTVEC"],
-                    "CODE": self.sim.sim.mem.data["CODE"],
-                    "DATA": self.sim.sim.mem.data["DATA"]}
+        self.mem = {"INTVEC": self.emulator.sim.mem.data["INTVEC"],
+                    "CODE": self.emulator.sim.mem.data["CODE"],
+                    "DATA": self.emulator.sim.mem.data["DATA"]}
 
     def __str__(self):
         s = " " + "_"*88 + " " + "\n"
@@ -135,8 +135,7 @@ if __name__ == "__main__":
     initializeQemu(armRef)
 
     # Setting up epater simulator
-    armEpater = BCInterpreter(bytecode, bcinfos, assertInfos)
-    armEpater.setRegisters({15: CODE_START_ADDR+8})      # Set PC at the entrypoint
+    armEpater = BCInterpreter(bytecode, bcinfos, assertInfos, pcInitAddr=CODE_START_ADDR)
     armEpater.sim.fetchAndDecode()                       # Fetch the first instruction
 
     memLengths = {"INTVEC": len(bytecode['INTVEC']), "CODE": len(bytecode['CODE']), "DATA": len(bytecode['DATA'])}

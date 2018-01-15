@@ -13,13 +13,14 @@ class BCInterpreter:
     should go through this class.
     """
 
-    def __init__(self, bytecode, mappingInfo, assertInfo={}):
+    def __init__(self, bytecode, mappingInfo, assertInfo={}, pcInitAddr=0):
         """
         Initialize the bytecode interpreter (simulator).
 
         :param bytecode: an bytes/bytearray object containing the bytecode to execute
         :param mappingInfo: the line/address mapping dictionnary produced by the assembler
         :param assertInfo: the assertion dictionnary produced by the assembler
+        :param pcInitAddr: the address at which PC should start (default 0)
         """
         self.bc = bytecode
         self.addr2line = mappingInfo
@@ -30,7 +31,7 @@ class BCInterpreter:
             for line in lines:
                 self.line2addr[line] = addr
         self.lineBreakpoints = []
-        self.sim = Simulator(bytecode, self.assertInfo, self.addr2line)
+        self.sim = Simulator(bytecode, self.assertInfo, self.addr2line, pcInitAddr)
         self.reset()
 
     def reset(self):
@@ -206,7 +207,7 @@ class BCInterpreter:
         """
         if stepMode is not None:
             self.sim.setStepCondition(stepMode)
-        self.sim.nextInstr()
+        self.sim.loop()
 
     def stepBack(self, count=1):
         """
@@ -296,7 +297,7 @@ class BCInterpreter:
         :param regsDict: a dictionnary containing a mapping between register (an integer) and a value
         """
         for r,v in regsDict.items():
-            self.sim.regs[r].set(v, mayTriggerBkpt=False)
+            self.sim.regs[r] = v
         # Changing the registers may change some infos in the prediction (for instance, memory cells affected by a mem access)
         self.sim.decodeInstr()
 
