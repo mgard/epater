@@ -96,7 +96,6 @@ tokens = (
    'OPDATA3OP',
    'OPDATATEST',
    'OPMEM',
-   'OPSPECIALMEM',
    'OPMULTIPLEMEM',
    'OPSHIFT',
    'OPBRANCH',
