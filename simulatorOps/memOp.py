@@ -56,6 +56,7 @@ class MemOp(AbstractOp):
         description = "<ol>\n"
         disCond, descCond = self._explainCondition()
         description += descCond
+        disassembly += disCond
 
         self._readregs = utils.registerWithCurrentBank(self.basereg, bank)
         addr = baseval = simulatorContext.regs[self.basereg]
@@ -85,11 +86,10 @@ class MemOp(AbstractOp):
         sizeaccess = 1 if self.byte else 4
         sizedesc = "1 octet" if sizeaccess == 1 else "{} octets".format(sizeaccess)
 
-        disassembly += "B" if sizeaccess == 1 else "H" if sizeaccess == 2 else ""
+        disassembly += "B" if sizeaccess == 1 else ""
         if self.nonprivileged:
             disassembly += "T"
-        disassembly += disCond
-        disassembly += "R{}, [R{}".format(self.rd, self.basereg)
+        disassembly += " R{}, [R{}".format(self.rd, self.basereg)
 
         if self.mode == 'LDR':
             if self.pre:
