@@ -33,7 +33,6 @@ from bs4 import BeautifulSoup
 
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
-from components import Memory, Registers
 
 with open("emailpass.txt") as fhdl:
     email_password = fhdl.read().strip()
@@ -83,7 +82,7 @@ async def update_ui(ws, to_send):
             break
         if ws in interpreters:
             interp = interpreters[ws]
-            if (interp.next_report__ < time.time() and len(to_send) < 10 and interp.num_exec__ > 0):
+            if (interp.next_report__ < time.time() and interp.num_exec__ > 0):
                 return
         await asyncio.sleep(0.02)
 
@@ -137,19 +136,22 @@ async def handler(websocket, path):
                 continue
 
             # Continue executions of "run", "step out" and "step forward"
-            # if to_run_task in done:
-            #     steps_to_do = 50 if interpreters[websocket].animate_speed__ == 0 else 1
-            #     for i in range(steps_to_do):
-            #         interpreters[websocket].step()
-            #         interpreters[websocket].last_step__ = time.time()
-            #         interpreters[websocket].num_exec__ += 1
-            #
-            #         if interpreters[websocket].shouldStop:
-            #             break
-            #
-            #     ui_update_queue.extend(updateDisplay(interpreters[websocket]))
-            #
-            #     to_run_task = asyncio.ensure_future(run_instance(websocket))
+            if to_run_task in done:
+                if interpreters[websocket].animate_speed__:
+                    interpreters[websocket].step()
+                    interpreters[websocket].last_step__ = time.time()
+                    interpreters[websocket].num_exec__ += 1
+                    ui_update_queue.extend(updateDisplay(interpreters[websocket]))
+
+                else:
+                    interpreters[websocket].num_exec__ -= interpreters[websocket].getCycleCount()
+                    interpreters[websocket].execute()
+                    interpreters[websocket].last_step__ = time.time()
+                    interpreters[websocket].num_exec__ += interpreters[websocket].getCycleCount()
+                    ui_update_queue.extend(updateDisplay(interpreters[websocket]))
+
+                to_run_task = asyncio.ensure_future(run_instance(websocket))
+
 
             if update_ui_task in done:
                 if DEBUG:
@@ -157,24 +159,11 @@ async def handler(websocket, path):
                 interpreters[websocket].num_exec__ = 0
 
                 interpreters[websocket].next_report__ = time.time() + UPDATE_THROTTLE_SEC
-                ui_update_dict = OrderedDict()
-                mem_update = OrderedDict()
 
-                for el in ui_update_queue:
-                    if el[0] == "mempartial":
-                        for k,v in el[1]:
-                            mem_update[k] = v
-                    else:
-                        ui_update_dict[el[0]] = el[1:]
-                        ui_update_dict.move_to_end(el[0])
-
-                if mem_update:
-                    ui_update_dict["mempartial"] = [[[k,v] for k,v in mem_update.items()]]
-
-                for k,v in ui_update_dict.items():
-                    to_send.append([k] + v)
+                to_send.extend(ui_update_queue)
                 ui_update_queue = []
                 update_ui_task = asyncio.ensure_future(update_ui(websocket, to_send))
+
 
     except Exception as e:
         ex = traceback.format_exc()
@@ -248,10 +237,10 @@ def generateUpdate(inter):
 
     # Registers
     registers_types = inter.getRegisters()
-    retval.extend(tuple({k.lower(): "{:08x}".format(v) for k,v in registers_types['User'].items()}.items()))
-    retval.extend(tuple({"FIQ_{}".format(k.lower()): "{:08x}".format(v) for k,v in registers_types['FIQ'].items()}.items()))
-    retval.extend(tuple({"IRQ_{}".format(k.lower()): "{:08x}".format(v) for k,v in registers_types['IRQ'].items()}.items()))
-    retval.extend(tuple({"SVC_{}".format(k.lower()): "{:08x}".format(v) for k,v in registers_types['SVC'].items()}.items()))
+    retval.extend(tuple({"r{}".format(k): "{:08x}".format(v) for k,v in registers_types['User'].items()}.items()))
+    retval.extend(tuple({"FIQ_r{}".format(k): "{:08x}".format(v) for k,v in registers_types['FIQ'].items()}.items()))
+    retval.extend(tuple({"IRQ_r{}".format(k): "{:08x}".format(v) for k,v in registers_types['IRQ'].items()}.items()))
+    retval.extend(tuple({"SVC_r{}".format(k): "{:08x}".format(v) for k,v in registers_types['SVC'].items()}.items()))
 
     # Flags
     retval.extend(inter.getFlagsFormatted())
@@ -284,8 +273,7 @@ def updateDisplay(interp, force_all=False):
         retval.extend(generateUpdate(interp))
         retval.append(["banking", interp.getProcessorMode()])
     else:
-        retval.append(["banking", interp.getProcessorMode()]) # TODO : Should be include in getChanges()
-        retval.extend(interp.getChangesFormatted())
+        retval.extend(interp.getChangesFormatted(setCheckpoint=True))
 
     diff_bp = interp.getBreakpointInstr(diff=True)
     if diff_bp:
@@ -296,15 +284,6 @@ def updateDisplay(interp, force_all=False):
 
     retval.append(["cycles_count", interp.getCycleCount() + 1])
 
-    # Check currentBreakpoint if == 8, ça veut dire qu'on est à l'extérieur de la mémoire exécutable.
-    # if interp.currentBreakpoint:
-    #     for this_breakpoint in interp.currentBreakpoint:
-    #         if this_breakpoint.source == 'memory' and bool(this_breakpoint.mode & 8):
-    #             retval.append(["error", """Un accès à l'extérieur de la mémoire initialisée a été effectué ({}).""".format(this_breakpoint.infos)])
-    #         elif this_breakpoint.source == 'pc':
-    #             retval.append(["error", this_breakpoint.infos])
-    #         elif this_breakpoint.source == 'assert':
-    #             retval.append(["codeerror", this_breakpoint.infos[0] + 1, this_breakpoint.infos[1]])
     return translate_retval(interp.lang, retval)
 
 
@@ -357,7 +336,7 @@ def process(ws, msg_in):
                 elif data[0] == 'stepinto':
                     interpreters[ws].execute('into')
                 elif data[0] == 'stepforward':
-                    interpreters[ws].execute('forward')
+                    interpreters[ws].setStepMode('forward')
                     interpreters[ws].user_asked_stop__ = False
                     interpreters[ws].last_step__ = time.time()
                     try:
@@ -366,7 +345,7 @@ def process(ws, msg_in):
                         interpreters[ws].animate_speed__ = 0
                         retval.append(["animate_speed", str(interpreters[ws].animate_speed__)])
                 elif data[0] == 'stepout':
-                    interpreters[ws].execute('out')
+                    interpreters[ws].setStepMode('out')
                     interpreters[ws].user_asked_stop__ = False
                     interpreters[ws].last_step__ = time.time()
                     try:
@@ -379,7 +358,7 @@ def process(ws, msg_in):
                         interpreters[ws].user_asked_stop__ = True
                     else:
                         interpreters[ws].user_asked_stop__ = False
-                        interpreters[ws].execute('run')
+                        interpreters[ws].setStepMode('run')
                         interpreters[ws].last_step__ = time.time()
                         try:
                             anim_speed = int(data[1]) / 1000

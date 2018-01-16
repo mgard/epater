@@ -279,7 +279,7 @@ class Registers(Component):
     def getAllRegisters(self):
         # Helper function to get all registers from all banks at once
         # The result is returned as a dictionary of dictionary
-        return {bname: {reg.name: reg.val for reg in bank} for bname, bank in self.banks.items()}
+        return {bname: {reg.id: reg.val for reg in bank} for bname, bank in self.banks.items()}
 
     def getRegister(self, bank, reg):
         # Get a register with a specific bank
@@ -475,7 +475,7 @@ class Memory(Component):
             self.removeBreakpoint(addr)
     
     def stepBack(self, state):
-        for k, val in state:
+        for k, val in state.items():
             sec, offset = k
             self.data[sec][offset] = val[0]
 

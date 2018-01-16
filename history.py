@@ -40,8 +40,15 @@ class History:
         Called by a component to signal a change. The name identifier must be
         the same as the one used with `registerObject`.
         """
-        self.history[-1][obj.__class__].update(change)
-        self.ckpt[obj.__class__].update(change)
+        for name, val in change.items():
+            previousVal = self.history[-1][obj.__class__].get(name)
+            if previousVal:
+                # If the object is present in the same cycle, we keep the first value
+                newVal = (previousVal[0], val[1])
+                self.history[-1][obj.__class__][name] = newVal
+            else:
+                self.history[-1][obj.__class__].update(change)
+                self.ckpt[obj.__class__].update(change)
 
     def stepBack(self):
         """
@@ -69,4 +76,4 @@ class History:
         """
         Return all the aggregated changes since the last checkpoint
         """
-        return self.ckpt        # TODO : format for the UI
+        return self.ckpt

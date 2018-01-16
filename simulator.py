@@ -25,6 +25,7 @@ class Simulator:
         self.PCSpecialBehavior = getSetting("PCspecialbehavior")
         self.allowSwitchModeInUserMode = getSetting("allowuserswitchmode")
         self.maxit = getSetting("runmaxit")
+        self.breakpointInstruction = False
 
         # Initialize history
         self.history = History()
@@ -115,14 +116,31 @@ class Simulator:
     def stepBack(self, count=1):
         for c in range(count):
             self.history.stepBack()
+        self.fetchAndDecode()
 
-    def fetchAndDecode(self):
+    def fetchAndDecode(self, forceExplain=False):
         # Check if PC is valid (multiple of 4)
         if (self.regs[15] - self.pcoffset) % 4 != 0:
             raise Breakpoint("register", 8, 15, "Erreur : la valeur de PC ({}) est invalide (ce doit être un multiple de 4)!".format(hex(self.regs[15].get())))
-        # Retrieve instruction from memory
-        self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, execMode=True))
+
+        try:
+            # Retrieve instruction from memory
+            self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, execMode=True))
+            self.breakpointInstruction = False
+        except Breakpoint as bp:
+            # We hit a breakpoint, or there is an execution error
+            if bp.mode == 8:
+                # Error! We report it to the UI
+                pass    # TODO
+                return
+            else:
+                # Get memory instruction again, without trigger breakpoint
+                self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, mayTriggerBkpt=False))
+                self.breakpointInstruction = True
+
         self.bytecodeToInstr()
+        if forceExplain or self.isStepDone():
+            self.explainInstruction()
 
 
     def bytecodeToInstr(self):
@@ -220,7 +238,7 @@ class Simulator:
         # TODO
         pass
 
-    def nextInstr(self):
+    def nextInstr(self, forceExplain=False):
         # One more cycle to do!
         self.history.newCycle()
 
@@ -231,6 +249,12 @@ class Simulator:
         keeppc = self.regs[15] - self.pcoffset
 
         currentCallStackLen = len(self.callStack)
+
+        if self.breakpointInstruction and self.stepMode in ("out", "forward", "run"):
+            # We hit a breakpoint on the last decoded instruction
+            self.breakpointInstruction = False
+            self.stepMode = None
+            return
 
         try:
             self.currentInstr.execute(self)
@@ -292,7 +316,7 @@ class Simulator:
                 self.lastInterruptCycle = self.history.cyclesCount
 
         # We fetch and decode the next instruction
-        self.fetchAndDecode()
+        self.fetchAndDecode(forceExplain)
 
         # Question : if we hit a breakpoint for the _next_ instruction, should we enter the interrupt anyway?
         # Did we hit a breakpoint?

@@ -191,23 +191,30 @@ class BCInterpreter:
         """
         return self.sim.sysHandle.breakpointInfo if self.sim.sysHandle.breakpointTrigged else None
 
-    def execute(self, mode="into"):
+    def setStepMode(self, stepMode):
+        assert stepMode in ("into", "out", "forward", "run")
+        self.sim.setStepCondition(stepMode)
+        self.sim.history.setCheckpoint()
+
+    def execute(self, mode=None):
         """
-        Run the simulator in a given mode.
-        :param stepMode: can be "into" | "forward" | "out" | "run"
+        Loop the simulator in a given mode.
+        :param stepMode: can be "into" | "forward" | "out" | "run" or None, which means to
+                keep the current mode, whatever it is
         """
-        self.sim.setStepCondition(mode)
+        if mode is not None:
+            self.sim.setStepCondition(mode)
         self.sim.loop()
 
     def step(self, stepMode=None):
         """
-        Run the simulator in a given mode.
+        Run the simulator in a given mode for one step only.
         :param stepMode: can be "into" | "forward" | "out" | "run" or None, which means to
                 keep the current mode, whatever it is
         """
         if stepMode is not None:
             self.sim.setStepCondition(stepMode)
-        self.sim.loop()
+        self.sim.nextInstr(forceExplain=True)
 
     def stepBack(self, count=1):
         """
@@ -355,32 +362,37 @@ class BCInterpreter:
         """
         return self.sim.history.cyclesCount
 
-    def getChangesFormatted(self):
+    def getChangesFormatted(self, setCheckpoint=False):
         """
         Return all the changes since the last checkpoint, serialized in a way that can be read by the UI.
+        :param setCheckpoint: set checkpoint on current instruction in history
         """
         result = []
         changes = self.sim.history.getDiffFromCheckpoint()
+        if setCheckpoint:
+            self.sim.history.setCheckpoint()
 
         registers_changes =  changes.get(self.sim.regs.__class__)
-        for reg, value in registers_changes.items():
-            if reg[0] == 'User':
-                if reg[1] == 'CPSR':
-                    result.extend(tuple({k.lower(): "{}".format(v)
-                                         for k,v in self.__parseFlags(cpsr=value[1]).items()}.items()))
+        if registers_changes:
+            for reg, value in registers_changes.items():
+                if reg[0] == 'User':
+                    if reg[1] == 'CPSR':
+                        result.extend(tuple({k.lower(): "{}".format(v)
+                                             for k,v in self.__parseFlags(cpsr=value[1]).items()}.items()))
+                        result.append(['banking', 'User'])
+                    else:
+                        result.append(['r{}'.format(reg[1]), '{:08x}'.format(value[1])])
                 else:
-                    result.append(['r{}'.format(reg[1]), '{:08x}'.format(value[1])])
-            else:
-                result.append(['{}_r{}'.format(reg[0], reg[1]), '{:08x}'.format(value[1])])
+                    result.append(['{}_r{}'.format(reg[0], reg[1]), '{:08x}'.format(value[1])])
+                    if reg[1] == 'CPSR':
+                        result.append(['banking', reg[0]])
+
 
         memory_changes = changes.get(self.sim.mem.__class__)
-        result.append(["mempartial", [[k[1], "{:02x}".format(v[1]).upper()] for k, v in memory_changes.items()]])
+        if memory_changes:
+            result.append(["mempartial", [[k[1], "{:02x}".format(v[1]).upper()] for k, v in memory_changes.items()]])
 
         return result
-
-
-    def getChanges(self):
-        return self.sim.history.getDiffFromCheckpoint()
 
     def getCurrentLine(self):
         """
