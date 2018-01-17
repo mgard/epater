@@ -79,18 +79,20 @@ class Simulator:
         self.runIteration = self.history.cyclesCount
 
     def isStepDone(self):
+        maxCyclesReached = self.history.cyclesCount - self.runIteration >= self.maxit
         if self.stepMode == "forward":
             if self.stepCondition == 2:
                 # The instruction was a function call
                 # Now the step forward becomes a step out
                 self.stepMode = "out"
                 self.stepCondition = 1
+                return False
             else:
-                return True
+                return maxCyclesReached
         if self.stepMode == "out":
-            return self.stepCondition == 0
+            return self.stepCondition == 0 or maxCyclesReached
         if self.stepMode == "run":
-            return self.history.cyclesCount - self.runIteration >= self.maxit
+            return maxCyclesReached
 
         # We are doing a step into, we always stop
         return True
