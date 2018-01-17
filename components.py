@@ -89,7 +89,6 @@ class Registers(Component):
     A flag value can be set or retrieved using the attribute notation. That is,
     thisObject.C returns (or sets) the state of the carry flag. Valid flag
     values are "C" (carry), "Z" (zero), "N" (negative), and "V" (overflow).
-    This is also case insensitive (so thisObject.z == thisObject.Z).
 
     The IRQ and FIQ flags can be retrieved or set using IRQ and FIQ properties.
     Remember that such flag set (=1) means that interrupts are _disabled_!
