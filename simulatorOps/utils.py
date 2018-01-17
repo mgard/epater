@@ -221,8 +221,8 @@ def applyShift(val, shift, cflag):
         if shift.value == 0:
             # Special case : "The form of the shift field which might be expected to correspond to LSR #0 is used to
             # encode LSR #32, which has a zero result with bit 31 of Rm as the carry output."
-            val = 0
             carryOut = (val >> 31) & 1
+            val = 0
         else:
             carryOut = (val >> (shift.value-1)) & 1
             val = (val >> shift.value) & 0xFFFFFFFF
