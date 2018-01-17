@@ -243,9 +243,11 @@ class Simulator:
             return
 
         if self.currentInstr.pcmodified:
-            self.regs[15] = self.regs[15] + self.pcoffset
+            # We don't want this to be logged in the history since this
+            # was just a transitioning value
+            self.regs.setRegister("User", 15, self.regs[15] + self.pcoffset, logToHistory=False) 
         else:
-            self.regs[15] = self.regs[15] + 4       # PC = PC + 4
+            self.regs[15] += 4       # PC = PC + 4
 
         newpc = self.regs[15] - self.pcoffset
 

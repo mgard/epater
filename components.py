@@ -288,25 +288,29 @@ class Registers(Component):
     def __setitem__(self, idx, val):
         self.setRegister(self.mode, idx, val)
 
-    def setRegister(self, bank, reg, val):
+    def setRegister(self, bank, reg, val, logToHistory=True):
         # In some cases, we want to set the register of a specific bank
         # The [] operator always uses the current bank, so this method
-        # can be used in this specific case
+        # can be used in this specific case.
+        # This may also be used if we don't want the change to be logged
+        # in the history of the register (just set logToHistory to False).
         if self.banks[bank][reg].breakpoint & 2:
             raise Breakpoint("register", 'w', reg)
         oldValue, newValue = self.banks[bank][reg].val, val & 0xFFFFFFFF
-        
-        if reg < 8 or reg == 15:
-            # Always aliased
-            dchanges = {(b, reg): (oldValue, newValue) for b in self.banks}
-        elif reg >= 13 or bank == "FIQ":
-            # Never aliased
-            dchanges = {(bank, reg): (oldValue, newValue)}
-        else:
-            # Aliased with everyone but FIQ
-            dchanges = {(b, reg): (oldValue, newValue) for b in self.banks if b != "FIQ"}
 
-        self.history.signalChange(self, dchanges)
+        if logToHistory:
+            if reg < 8 or reg == 15:
+                # Always aliased
+                dchanges = {(b, reg): (oldValue, newValue) for b in self.banks}
+            elif reg >= 13 or bank == "FIQ":
+                # Never aliased
+                dchanges = {(bank, reg): (oldValue, newValue)}
+            else:
+                # Aliased with everyone but FIQ
+                dchanges = {(b, reg): (oldValue, newValue) for b in self.banks if b != "FIQ"}
+
+            self.history.signalChange(self, dchanges)
+
         self.banks[bank][reg].val = newValue
     
     def setFlag(self, flag, value, mayTriggerBkpt=True):

@@ -215,6 +215,7 @@ class BCInterpreter:
         :param count: number of cycles to step back
         """
         self.sim.stepBack(count)
+        self.sim.fetchAndDecode()
 
     def getMemory(self, addr, returnHexaStr=True):
         """
