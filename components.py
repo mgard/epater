@@ -236,19 +236,37 @@ class Registers(Component):
             self.regCPSR &= 0xFFFFFFFF - (1 << 6)
         self.history.signalChange(self, {(currentBank, "CPSR"): (oldCPSR, self.regCPSR)})
 
-    def __getattr__(self, attr):
-        attrU = attr.upper()
-        if attrU in self.flag2index:
-            # Flag
-            return bool((self.regCPSR >> self.flag2index[attrU]) & 0x1)
-        raise AttributeError("Class Registers has no attribute {}".format(attr))
+    @property
+    def N(self):
+        return bool(self.regCPSR & 0x80000000)
+
+    @N.setter
+    def N(self, val):
+        self.setFlag("N", val)
+
+    @property
+    def Z(self):
+        return bool(self.regCPSR & 0x40000000)
+
+    @Z.setter
+    def Z(self, val):
+        self.setFlag("Z", val)
+
+    @property
+    def C(self):
+        return bool(self.regCPSR & 0x20000000)
+
+    @C.setter
+    def C(self, val):
+        self.setFlag("C", val)
     
-    def __setattr__(self, attr, val):
-        attrU = attr.upper()
-        if attrU in self.flag2index:
-            # Flag
-            self.setFlag(attrU, val)
-        self.__dict__[attr] = val
+    @property
+    def V(self):
+        return bool(self.regCPSR & 0x10000000)
+
+    @V.setter
+    def V(self, val):
+        self.setFlag("V", val)
 
     def __getitem__(self, idx):
         currentBank = self.mode
@@ -261,7 +279,6 @@ class Registers(Component):
         # Helper function to get all registers from all banks at once
         # The result is returned as a dictionary of dictionary
         return {bname: {reg.name: reg.val for reg in bank} for bname, bank in self.banks.items()}
-
 
     def getRegister(self, bank, reg):
         # Get a register with a specific bank
