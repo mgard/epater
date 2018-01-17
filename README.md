@@ -2,19 +2,31 @@
 
 ### An ARM emulator in Python for educational purposes
 
-**epater** (*Environnement de Programmation ARM Téléopéré pour l'Éducation et la Recherche*) is an ARM emulator targeted for academic and learning purposes. It is a three parts project, consisting of:
+**epater** (*Environnement de Programmation ARM Téléopéré pour l'Éducation et la Recherche*) is an ARM assembler and emulator targeted for academic and learning purposes. It is composed of three independant parts:
 
-1. An assembler program able to translate ARM assembly to ARMv4 bytecode
+1. An assembler translating ARM assembly to ARMv4 bytecode
 2. An emulator running ARMv4 bytecode
-3. A web interface to display the emulator state and various debug information
+3. A web interface to display the emulator state along with various debug information and allow the user to easily interact with the emulator
 
-Unlike many other ARM emulators which *interpret* ARM assembly, **epater** is actually emulating an ARM CPU. This means that one can see (and change) the bytecode in memory and let the emulator run with the modified bytecode.
+Unlike many other ARM emulators which *interpret* ARM assembly, **epater** is actually emulating an ARM CPU. This means that one can observe the bytecode in memory, change it on the fly and let the emulator run with the modified bytecode.
+
+## Usage
+
+First ensure that you have installed all the required dependencies (see below) and clone the repository. Then, generate the i18n resource files:
+
+    python utils/po2mo.py
+
+Thereafter, launch a local version of the system using this command:
+
+    python mainweb.py DEBUG
+
+The system will then be available at http://127.0.0.1:8000/.
 
 ## Dependencies
 
 ### Simulator
 
-**epater** may run in CLI mode, in which case it does not need web server components.
+**epater** may run in CLI mode (use main.py instead of mainweb.py), in which case it does not need web server components.
 
 * Python >= 3.4
 * PLY (Python Lex-Yacc), BSD-licensed. Might be included at some point in this project.
@@ -26,6 +38,7 @@ Unlike many other ARM emulators which *interpret* ARM assembly, **epater** is ac
 * gevent >= 1.0
 * beautifulsoup >= 4 and bs4
 * bottle >= 0.12
+* bottle_i18n
 * python-websockets >= 3.2
 * uvloop (optional)
 * polib (optional)
@@ -41,10 +54,12 @@ Other configurations may work as well, but have not been tested.
 
 ## Currently supported features
 
-* Most ARMv4 instructions (data processing, branch, memory operations), including condition codes (see *Missing instructions* further)
+* All ARMv4 instructions, except for coprocessor instructions
 * Interrupts (software interrupt using SWI or timer interrupt on either IRQ or FIQ handler)
 * Assertion system, which allows to check for various conditions at runtime
-* Comprehensive web interface with a lot of educational features. For instance, the effect of each memory operation can be visualized, as conditionnal branch targets.
+* Comprehensive web interface with a lot of educational features. For instance, the effect of each memory operation can be visualized, as conditionnal branch targets
+* Integrated debugger, including reverse-debugging
+* I18n support (currently, most of the UI is in French, but we are gradually improving English translations)
 
 ## Performances
 
@@ -59,49 +74,24 @@ This emulator was not designed with portability and ease of use in mode rather t
 
 *Test configuration* : Core i7 6800K, 64 GB RAM, Python 3.6
 
-## Missing ARMv4 Instructions
-
-These instructions are currently unsupported, but will be added in order to fully support ARMv4 architecture :
-
-* Single data swap (*SWP* and *SWPB*)
-* Multiply long instruction (*UMLAL*, *UMULL*, *SMULL*, and *SMLAL*)
-* Load and store half-word (*LDRH* and *STRH*)
-* Load and store sign extended (*LDRSB*, *STRSB*, *LDRSH*, *STRSH*)
-* Load and store with translation (*STRT*, *STRBT*, *LDRT*, and *LDRBT*), although they won't have any special effect in the context of the simulator
-
-All other ARMv4 instructions (mnemonic and bytecode) are supported, except for coprocessor instructions.
-
 ## Currently unsupported, but planned features
 
 These features are currently unsupported, but might be included in a future release.
 
-* Prefetch Abort, Data Abort, and Undefined instruction interrupts
+* Prefetch Abort, Data Abort, and Undefined instruction exceptions and CPU modes
 * Hardware interrupts, except for a timer interrupt, e.g. one cannot simulate a keyboard with this emulator
 * Interrupt integration with load multiple / store multiple instructions: these instructions are special because they may be interrupted in the middle of their execution (whereas all other instructions are atomic regarding the interrupt handling). Currently, LDM and STM are not interrupted.
-* Reverse-debugging
 
 ## Unsupported features
 
-These features are not of great use in a simulation context and/or for academic purposes. Also, a feature may be in this list if the implementation burden would be too high regarding the benefits it might bring. There is currently no plan to implement them, nor to merge a pull request doing that, except some special circumstances.
+These features are not of great use in a simulation context and/or for academic purposes. Also, a feature may be in this list if the implementation burden would be too high regarding the benefits it might bring. There is currently no plan to implement them, nor to merge a pull request doing so, except some special circumstances.
 
 * Thumb mode
 * Jazelle mode
 * Accurate processor cycles simulation
 * Coprocessor instructions
 * Vectorized / Neon / SIMD instructions
-* Privileged mode
-
-## How to develop
-
-Once the repository is pulled, `.mo` files need to be generated from `.po` using this command (polib is required):
-
-    python utils/po2mo.py
-
-Thereafter, it is possible to launch a local version of the system using this command:
-
-    python mainweb.py DEBUG
-
-The system will then be available at http://127.0.0.1:8000/.
+* Privileged mode (STRT and LDRT are supported, but behave exactly the same as LDR and STR)
 
 ## License
 
