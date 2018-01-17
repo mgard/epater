@@ -6,11 +6,12 @@ import argparse
 import time
 import math
 import sys
+import glob
 
 sys.path.append("..")
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
-from procsimulator import Simulator
+from components import Breakpoint
 
 
 CODE_START_ADDR = 0x100000
@@ -76,28 +77,28 @@ class Context:
                     "DATA": self.emulator.sim.mem.data["DATA"]}
 
     def __str__(self):
-        s = " " + "_"*88 + " " + "\n"
+        s = " " + "_"*96 + " " + "\n"
         if self.type == "qemu":
-            s += "|{:^88}|".format("QEMU REFERENCE EMULATOR") + "\n"
+            s += "|{:^96}|".format("QEMU REFERENCE EMULATOR") + "\n"
         else:
-            s += "|{:^88}|".format("EPATER EMULATOR") + "\n"
-        s += "|" + "-"*88 + "|" + "\n"
-        s += "| " + " |".join(["{:^9}".format("R"+str(i)) for i in range(8)]) + " |" + "\n"
-        s += "| " + " |".join(["{:>9}".format(self.regs[i]) for i in range(8)]) + " |" + "\n"
-        s += "| " + " |".join(["{:>9}".format(hex(self.regs[i])) for i in range(8)]) + " |" + "\n"
-        s += "|" + "-"*88 + "|" + "\n"
-        s += "| " + " |".join(["{:^9}".format("R"+str(i)) for i in range(8, 16)]) + " |" + "\n"
-        s += "| " + " |".join(["{:>9}".format(self.regs[i]) for i in range(8,16)]) + " |" + "\n"
-        s += "| " + " |".join(["{:>9}".format(hex(self.regs[i])) for i in range(8,16)]) + " |" + "\n"
-        s += "|" + "-"*88 + "|" + "\n"
+            s += "|{:^96}|".format("EPATER EMULATOR") + "\n"
+        s += "|" + "-"*96 + "|" + "\n"
+        s += "| " + " |".join(["{:^10}".format("R"+str(i)) for i in range(8)]) + " |" + "\n"
+        s += "| " + " |".join(["{:>10}".format(self.regs[i]) for i in range(8)]) + " |" + "\n"
+        s += "| " + " |".join(["{:>10}".format(hex(self.regs[i])) for i in range(8)]) + " |" + "\n"
+        s += "|" + "-"*96 + "|" + "\n"
+        s += "| " + " |".join(["{:^10}".format("R"+str(i)) for i in range(8, 16)]) + " |" + "\n"
+        s += "| " + " |".join(["{:>10}".format(self.regs[i]) for i in range(8,16)]) + " |" + "\n"
+        s += "| " + " |".join(["{:>10}".format(hex(self.regs[i])) for i in range(8,16)]) + " |" + "\n"
+        s += "|" + "-"*96 + "|" + "\n"
         cpsr = "| CPSR : {} (N={}, Z={}, C={}, V={}) / Mode = {}".format(hex(self.cpsr), 
                                                                         int(self.cpsr>>31), 
                                                                         int(self.cpsr>>30&0x1), 
                                                                         int(self.cpsr>>29&0x1), 
                                                                         int(self.cpsr>>28&0x1),
                                                                         self.bits2mode[self.cpsr & 0x1F])
-        s += "{:<89}".format(cpsr) + "|\n"
-        s += "|" + "-"*88 + "|" + "\n"
+        s += "{:<97}".format(cpsr) + "|\n"
+        s += "|" + "-"*96 + "|" + "\n"
         return s
 
 
@@ -115,55 +116,81 @@ def initializeQemu(machine):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='EPATER simulator test suite')
-    parser.add_argument('inputfile', help="Fichier assembleur")
-    parser.add_argument('-c', "--count", default=10, type=int, help="Number of steps")
-    args = parser.parse_args()
+    for inputfile in glob.glob("simulatorTests/*.asm"):
 
-    lines = []
-    with open(args.inputfile) as f:
-        bytecode, bcinfos, assertInfos, errors, _ = ASMparser(f, memLayout="test")
-    with open(args.inputfile) as f:
-        for line in f:
-            lines.append(line)
+        lines = []
+        with open(inputfile) as f:
+            bytecode, bcinfos, assertInfos, errors, _ = ASMparser(f, memLayout="test")
+        with open(inputfile) as f:
+            for line in f:
+                lines.append(line)
     
-    # Setting up the QEMU reference ARM simulator
-    armRef = unicorn.Uc(unicorn.UC_ARCH_ARM, unicorn.UC_MODE_ARM)
+        # Setting up the QEMU reference ARM simulator
+        armRef = unicorn.Uc(unicorn.UC_ARCH_ARM, unicorn.UC_MODE_ARM)
 
-    armRef.mem_map(CODE_START_ADDR, 1024*(4 + 2 + 1))       # 4 KB for code, 2 KB for data, 1 KB buffer (just in case)
-    contiguousMem = bytearray([0]) * (1024*(4 + 2))
-    contiguousMem[0:len(bytecode['INTVEC'])] = bytecode['INTVEC']
-    contiguousMem[0x80:0x80+len(bytecode['CODE'])] = bytecode['CODE']
-    contiguousMem[4096:4096+len(bytecode['DATA'])] = bytecode['DATA']
-    armRef.mem_write(CODE_START_ADDR, bytes(contiguousMem))
-    initializeQemu(armRef)
+        armRef.mem_map(CODE_START_ADDR, 1024*(4 + 2 + 1))       # 4 KB for code, 2 KB for data, 1 KB buffer (just in case)
+        contiguousMem = bytearray([0]) * (1024*(4 + 2))
+        contiguousMem[0:len(bytecode['INTVEC'])] = bytecode['INTVEC']
+        contiguousMem[0x80:0x80+len(bytecode['CODE'])] = bytecode['CODE']
+        contiguousMem[4096:4096+len(bytecode['DATA'])] = bytecode['DATA']
+        armRef.mem_write(CODE_START_ADDR, bytes(contiguousMem))
+        initializeQemu(armRef)
 
-    # Setting up epater simulator
-    armEpater = BCInterpreter(bytecode, bcinfos, assertInfos, pcInitAddr=CODE_START_ADDR)
-    armEpater.sim.fetchAndDecode()                       # Fetch the first instruction
+        # Setting up epater simulator
+        armEpater = BCInterpreter(bytecode, bcinfos, assertInfos, pcInitAddr=CODE_START_ADDR)
+        armEpater.sim.fetchAndDecode()                       # Fetch the first instruction
 
-    memLengths = {"INTVEC": len(bytecode['INTVEC']), "CODE": len(bytecode['CODE']), "DATA": len(bytecode['DATA'])}
-    contextRef = Context("qemu", armRef, memLengths)
-    contextEpater = Context("epater", armEpater, memLengths)
+        memLengths = {"INTVEC": len(bytecode['INTVEC']), "CODE": len(bytecode['CODE']), "DATA": len(bytecode['DATA'])}
+        contextRef = Context("qemu", armRef, memLengths)
+        contextEpater = Context("epater", armEpater, memLengths)
 
-    cycle = 0
-    pcRef = CODE_START_ADDR
-    while cycle < args.count:
-        # One step on the reference emulator
-        armRef.emu_start(pcRef, CODE_START_ADDR+4096, count=1)
-        pcRef = armRef.reg_read(ARM.UC_ARM_REG_R15)
-
-        # One step on epater
-        armEpater.step("into")
-
-        # Update contexts
+        cycle = 0
+        errorCount = 0
+        pcRef = CODE_START_ADDR
         contextRef.update()
         contextEpater.update()
+        previousContextRef = str(contextRef)
+        previousContextEpater = str(contextEpater)
+        tBegin = time.time()
+        while cycle < 20000:
+            # One step on the reference emulator
+            armRef.emu_start(pcRef, CODE_START_ADDR+4096, count=1)
+            pcRef = armRef.reg_read(ARM.UC_ARM_REG_R15)
 
-        if contextRef != contextEpater:
-            currentLine = armEpater.getCurrentLine()
-            print(lines[currentLine])
-            print(concatenateReports(str(contextRef), str(contextEpater)))
-            print(contextRef.reason)
-        cycle += 1
+            # One step on epater
+            try:
+                currentLine = armEpater.getCurrentLine()
+            except:
+                currentLine = None
+            try:
+                armEpater.step("into")
+            except Breakpoint as e:
+                if e.cmp == "memory" and e.mode == 8:
+                    break
+                else:
+                    raise e
+
+            # Update contexts
+            contextRef.update()
+            contextEpater.update()
+
+            #print(lines[currentLine].strip())
+            if contextRef != contextEpater:
+                print("MISMATCH while executing the above instruction!")
+                print("\tPrevious CPU context :")
+                print(concatenateReports(previousContextRef, previousContextEpater))
+                print("\tCPU context after executing {} :".format(lines[currentLine].strip()))
+                print(concatenateReports(str(contextRef), str(contextEpater)))
+                print("\tDifferences:")
+                print(contextRef.reason)
+                errorCount += 1
+            previousContextRef = str(contextRef)
+            previousContextEpater = str(contextEpater)
+            cycle += 1
+        
+        duration = time.time()-tBegin
+        if errorCount:
+            print("File {} done in {:.4f} seconds ({:.0f} instr/sec), {} error(s) reported".format(inputfile, duration, cycle/duration, errorCount))
+        else:
+            print("File {} done in {:.4f} seconds ({:.0f} instr/sec), no errors reported".format(inputfile, duration, cycle/duration))
     
