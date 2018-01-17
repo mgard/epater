@@ -11,7 +11,7 @@ class DataOp(AbstractOp):
                                 "opcodeNum", "opcode", 
                                 "imm", "modifyFlags", 
                                 "rd", "rn", 
-                                "shiftedVal", "shift", "op2reg"))
+                                "shiftedVal", "shift", "carryOutImmShift", "op2reg"))
 
     def __init__(self):
         super().__init__()
@@ -43,9 +43,12 @@ class DataOp(AbstractOp):
             self.shift = utils.shiftInfo(type="ROR", 
                                             immediate=True, 
                                             value=((instrInt >> 8) & 0xF) * 2)
+            self.carryOutImmShift = 0
             if self.shift.value != 0:
                 # If it is a constant, we shift as we decode
-                _u, self.shiftedVal = utils.applyShift(self.shiftedVal, self.shift, False)
+                self.carryOutImmShift, self.shiftedVal = utils.applyShift(self.shiftedVal, 
+                                                                            self.shift, 
+                                                                            False)
         else:
             self.op2reg = instrInt & 0xF
             if instrInt & (1 << 4):
@@ -192,6 +195,7 @@ class DataOp(AbstractOp):
         # Get second operand value
         if self.imm:
             op2 = self.shiftedVal
+            workingFlags['C'] = self.carryOutImmShift
         else:
             op2 = simulatorContext.regs[self.op2reg]
             if self.op2reg == simulatorContext.PC and not self.shift.immediate and simulatorContext.PCSpecialBehavior:
