@@ -329,7 +329,7 @@ class Registers(Component):
     def deactivateBreakpoints(self):
         # Without removing them, do not trig on breakpoint until `reactivateBreakpoints`
         # is called. Useful for the decoding state, where we want to check the value of
-        # a register or a flag without possiblity trigging a breakpoint.
+        # a register or a flag without possibly trigging a breakpoint.
         self.bkptActive = False
 
     def reactivateBreakpoints(self):

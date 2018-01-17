@@ -91,7 +91,7 @@ class DataOp(AbstractOp):
 
             shiftDesc = utils.shiftToDescription(self.shift, bank)
             shiftinstr = utils.shiftToInstruction(self.shift)
-            op2desc = "Le registre {} {}".format(utils.regSuffixWithBank(self.shift.value, bank), shiftDesc)
+            op2desc = "Le registre {} {}".format(utils.regSuffixWithBank(self.op2reg, bank), shiftDesc)
             op2dis = "R{}{}".format(self.op2reg, shiftinstr)
             if not self.shift.immediate:
                 self._readregs |= utils.registerWithCurrentBank(self.shift.value, bank)
