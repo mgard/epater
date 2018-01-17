@@ -286,14 +286,7 @@ class Registers(Component):
         return self.banks[bank][reg].val
 
     def __setitem__(self, idx, val):
-        currentBank = self.mode
-        # Register
-        if self.banks[currentBank][idx].breakpoint & 2:
-            raise Breakpoint("register", 'w', idx)
-        
-        oldValue, newValue = self.banks[currentBank][idx].val, val & 0xFFFFFFFF
-        self.history.signalChange(self, {(currentBank, idx): (oldValue, newValue)})
-        self.banks[currentBank][idx].val = newValue
+        self.setRegister(self.mode, idx, val)
 
     def setRegister(self, bank, reg, val):
         # In some cases, we want to set the register of a specific bank
@@ -302,7 +295,18 @@ class Registers(Component):
         if self.banks[bank][reg].breakpoint & 2:
             raise Breakpoint("register", 'w', reg)
         oldValue, newValue = self.banks[bank][reg].val, val & 0xFFFFFFFF
-        self.history.signalChange(self, {(bank, reg): (oldValue, newValue)})
+        
+        if reg < 8 or reg == 15:
+            # Always aliased
+            dchanges = {(b, reg): (oldValue, newValue) for b in self.banks}
+        elif reg >= 13 or bank == "FIQ":
+            # Never aliased
+            dchanges = {(bank, reg): (oldValue, newValue)}
+        else:
+            # Aliased with everyone but FIQ
+            dchanges = {(b, reg): (oldValue, newValue) for b in self.banks if b != "FIQ"}
+
+        self.history.signalChange(self, dchanges)
         self.banks[bank][reg].val = newValue
     
     def setFlag(self, flag, value, mayTriggerBkpt=True):
