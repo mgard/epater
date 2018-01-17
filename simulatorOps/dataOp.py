@@ -189,7 +189,10 @@ class DataOp(AbstractOp):
         
         workingFlags = {}
         workingFlags['C'] = 0
-        workingFlags['V'] = 0
+        # "On logical operations, if the S bit is set (and Rd is not R15)
+        # the V flag in the CPSR will be unaffected"
+        # (ARM Reference 4.5.1)
+        workingFlags['V'] = simulatorContext.regs.V
         # Get first operand value
         op1 = simulatorContext.regs[self.rn]
         # Get second operand value

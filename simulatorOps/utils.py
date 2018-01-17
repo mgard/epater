@@ -214,7 +214,9 @@ def applyShift(val, shift, cflag):
     carryOut = 0
     if shift.type == "LSL":
         if shift.value == 0:            # If there is no shift
-            return carryOut, val
+            # "LSL #0 is a special case, where the shifter carry out is the old value of the CPSR C flag."
+            # (ARM Ref 4.5.2)
+            return cflag, val
         carryOut = (val << (32-shift.value)) & 2**31
         val = (val << shift.value) & 0xFFFFFFFF
     elif shift.type == "LSR":
