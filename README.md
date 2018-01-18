@@ -2,7 +2,7 @@
 
 ### An ARM emulator in Python for educational purposes
 
-**epater** (*Environnement de Programmation ARM Téléopéré pour l'Éducation et la Recherche*) is an ARM assembler and emulator targeted for academic and learning purposes. It is composed of three independant parts:
+**epater** (*Environnement de Programmation ARM Téléopéré pour l'Éducation et la Recherche*) is an ARM assembler and emulator targeted for academic and learning purposes. It is composed of three independent parts:
 
 1. An assembler translating ARM assembly to ARMv4 bytecode
 2. An emulator running ARMv4 bytecode
@@ -72,7 +72,7 @@ This emulator was not designed with portability and ease of use in mode rather t
 | Simulator + web server | 48K |
 | Simulator + web server + step by step | 5K | 
 
-*Test configuration* : Core i7 6800K, 64 GB RAM, Python 3.6 (using uvloop for the web server)
+*Test configuration* : Core i7 6800K, 64 GB RAM, Python 3.6 (using uvloop for the web server) / Pypy3 5.10
 
 ## Currently unsupported, but planned features
 
