@@ -107,6 +107,7 @@ class Simulator:
         self.nextInstr()                # We always execute at least one instruction
         while not self.isStepDone():    # We repeat until the stopping criterion is met
             self.nextInstr()
+        self.explainInstruction()       # We only have to explain the last instruction executed before we stop
         return self.history.getDiffFromCheckpoint()
 
     def stepBack(self, count=1):
@@ -118,11 +119,8 @@ class Simulator:
         if (self.regs[15] - self.pcoffset) % 4 != 0:
             raise Breakpoint("register", 8, 15, "Erreur : la valeur de PC ({}) est invalide (ce doit être un multiple de 4)!".format(hex(self.regs[15].get())))
         # Retrieve instruction from memory
-        self.fetchedInstr = self.mem.get(self.regs[15] - self.pcoffset, execMode=True)
-        self.fetchedInstr = bytes(self.fetchedInstr)
+        self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, execMode=True))
         self.bytecodeToInstr()
-        if self.isStepDone():
-            self.explainInstruction()
 
 
     def bytecodeToInstr(self):
@@ -130,7 +128,7 @@ class Simulator:
         instrInt = struct.unpack("<I", self.fetchedInstr)[0]
         if instrInt in self.decoderCache:
             self.currentInstr = self.decoderCache[instrInt][0]
-            self.currentInstr.setBytecode(self.fetchedInstr)
+            self.currentInstr.setBytecode(instrInt)
             self.currentInstr.restoreState(self.decoderCache[instrInt][1])
             return
 
@@ -193,7 +191,7 @@ class Simulator:
             self.currentInstr = None
 
         if self.currentInstr is not None:
-            self.currentInstr.setBytecode(self.fetchedInstr)
+            self.currentInstr.setBytecode(instrInt)
             self.currentInstr.decode()
             # Once decoded, we add the instruction to the cache
             self.decoderCache[instrInt] = (self.currentInstr, self.currentInstr.saveState())

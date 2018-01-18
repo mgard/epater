@@ -171,7 +171,6 @@ class Registers(Component):
     @property
     def mode(self):
         k = self.regCPSR & 0x1F
-        assert k in self.bits2mode, "Invalid processor mode : {}".format(k)
         return self.bits2mode[k]
 
     @mode.setter
@@ -315,12 +314,14 @@ class Registers(Component):
     
     def setFlag(self, flag, value, mayTriggerBkpt=True):
         currentBank = self.mode
-        flag = flag.upper()
-        if flag not in self.flag2index:
-            raise KeyError
 
-        if mayTriggerBkpt and self.bkptFlags[flag] & 2:
-            raise Breakpoint("flags", 'w', flag)
+        try:
+            bkptFlag = self.bkptFlags[flag]
+        except KeyError:
+            raise Breakpoint("flags", 8, flag)
+
+        if mayTriggerBkpt and bkptFlag & 2:
+            raise Breakpoint("flags", 2, flag)
         
         oldCPSR = self.regCPSR
         if value:   # We set the flag
@@ -330,9 +331,18 @@ class Registers(Component):
 
         self.history.signalChange(self, {(currentBank, "CPSR"): (oldCPSR, self.regCPSR)})
 
-    def setAllFlags(self, flagsDict):
-        for flag, val in flagsDict.items():
-            self.setFlag(flag, val)
+    def setAllFlags(self, flagsDict, mayTriggerBkpt=True):
+        oldCPSR = self.regCPSR
+        for flag, value in flagsDict.items():
+
+            if mayTriggerBkpt and self.bkptFlags[flag] & 2:
+                raise Breakpoint("flags", 2, flag)
+
+            if value:   # We set the flag
+                self.regCPSR |= 1 << self.flag2index[flag]
+            else:       # We clear the flag
+                self.regCPSR &= 0xFFFFFFFF - (1 << self.flag2index[flag])
+        self.history.signalChange(self, {(self.mode, "CPSR"): (oldCPSR, self.regCPSR)})
 
     def deactivateBreakpoints(self):
         # Without removing them, do not trig on breakpoint until `reactivateBreakpoints`

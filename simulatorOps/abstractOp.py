@@ -34,11 +34,8 @@ class AbstractOp:
         self.pcmodified = False
 
     def setBytecode(self, bytecode):
-        assert len(bytecode) == 4 # 32 bits
-        self.bc = bytecode
-
         # It's easier to work with integer objects when it comes to bit manipulation
-        self.instrInt = struct.unpack("<I", bytecode)[0]
+        self.instrInt = bytecode # struct.unpack("<I", bytecode)[0]
 
     def decode(self):
         raise NotImplementedError()
