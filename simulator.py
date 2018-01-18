@@ -1,5 +1,6 @@
 import operator
 import struct
+import time
 
 from enum import Enum
 from collections import defaultdict, namedtuple, deque
@@ -65,6 +66,7 @@ class Simulator:
         self.history.clear()
         self.regs.banks['User'][15].val = self.pcInitVal + self.pcoffset
         self.fetchAndDecode()
+        self.explainInstruction()
 
     def getContext(self):
         context = {"regs": self.regs.getContext(),
@@ -103,11 +105,13 @@ class Simulator:
         of changes since the beginning of the simulation loop.
         Stopping criterion can be set using `setStepCondition`.
         """
+        a = time.time()
         self.history.setCheckpoint()
         self.nextInstr()                # We always execute at least one instruction
         while not self.isStepDone():    # We repeat until the stopping criterion is met
             self.nextInstr()
         self.explainInstruction()       # We only have to explain the last instruction executed before we stop
+        print("TIME TAKEN ", time.time() - a)
         return self.history.getDiffFromCheckpoint()
 
     def stepBack(self, count=1):

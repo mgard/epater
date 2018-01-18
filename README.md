@@ -67,12 +67,12 @@ This emulator was not designed with portability and ease of use in mode rather t
 
 | Details | Performance (instr/sec) |
 | ------- |:-----------------------:|
-| Simulator only | 60K |
-| Simulator only with pypy | 70K |
-| Simulator + web server | 12K |
-| Simulator + web server + step by step | 4K | 
+| Simulator only | 50K |
+| Simulator only with pypy | 140K |
+| Simulator + web server | 48K |
+| Simulator + web server + step by step | 5K | 
 
-*Test configuration* : Core i7 6800K, 64 GB RAM, Python 3.6
+*Test configuration* : Core i7 6800K, 64 GB RAM, Python 3.6 (using uvloop for the web server)
 
 ## Currently unsupported, but planned features
 
