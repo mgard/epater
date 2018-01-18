@@ -159,6 +159,7 @@ class Registers(Component):
         # CPSR is always used, so we keep it apart
         # By default, we start in user mode, with no flags
         self.regCPSR = self.mode2bits['User']
+        self.currentMode = "User"
 
         # Keep the breakpoints on the flags
         self.bkptFlags = {k:0 for k in self.flag2index.keys()}
@@ -170,8 +171,7 @@ class Registers(Component):
 
     @property
     def mode(self):
-        k = self.regCPSR & 0x1F
-        return self.bits2mode[k]
+        return self.currentMode
 
     @mode.setter
     def mode(self, val):
@@ -181,6 +181,7 @@ class Registers(Component):
         valCPSR = self.regCPSR | self.mode2bits[val]
         self.history.signalChange(self, {(self.mode, "CPSR"): (self.regCPSR, valCPSR)})
         self.regCPSR = valCPSR
+        self.currentMode = val
 
     @property
     def CPSR(self):
@@ -191,17 +192,18 @@ class Registers(Component):
         oldValue, newValue = self.regCPSR, val & 0xFFFFFFFF
         self.history.signalChange(self, {(self.mode, "CPSR"): (oldValue, newValue)})
         self.regCPSR = val
+        self.currentMode = self.bits2mode[self.regCPSR & 0x1F]
 
     @property
     def SPSR(self):
-        currentBank = self.mode
+        currentBank = self.currentMode
         if currentBank == "User":
             raise Breakpoint("register", 8, None, "Le registre SPSR n'existe pas en mode 'User'!")
         return self.banks[currentBank][16].val
 
     @SPSR.setter
     def SPSR(self, val):
-        currentBank = self.mode
+        currentBank = self.currentMode
         if currentBank == "User":
             raise Breakpoint("register", 8, None, "Le registre SPSR n'existe pas en mode 'User'!")
         self[16] = val
@@ -213,7 +215,7 @@ class Registers(Component):
     @IRQ.setter
     def IRQ(self, val):
         oldCPSR = self.regCPSR
-        currentBank = self.mode
+        currentBank = self.currentMode
         if val:
             self.regCPSR |= 1 << 7
         else:
@@ -227,7 +229,7 @@ class Registers(Component):
     @FIQ.setter
     def FIQ(self, val):
         oldCPSR = self.regCPSR
-        currentBank = self.mode
+        currentBank = self.currentMode
         if val:
             self.regCPSR |= 1 << 6
         else:
@@ -267,11 +269,12 @@ class Registers(Component):
         self.setFlag("V", val)
 
     def __getitem__(self, idx):
-        currentBank = self.mode
+        currentBank = self.currentMode
+        regHandle = self.banks[currentBank][idx]
         # Register
-        if self.banks[currentBank][idx].breakpoint & 4:
+        if regHandle.breakpoint & 4:
             raise Breakpoint("register", 'r', idx)
-        return self.banks[currentBank][idx].val
+        return regHandle.val
 
     def getAllRegisters(self):
         # Helper function to get all registers from all banks at once
@@ -285,7 +288,7 @@ class Registers(Component):
         return self.banks[bank][reg].val
 
     def __setitem__(self, idx, val):
-        self.setRegister(self.mode, idx, val)
+        self.setRegister(self.currentMode, idx, val)
 
     def setRegister(self, bank, reg, val, logToHistory=True):
         # In some cases, we want to set the register of a specific bank
@@ -293,7 +296,8 @@ class Registers(Component):
         # can be used in this specific case.
         # This may also be used if we don't want the change to be logged
         # in the history of the register (just set logToHistory to False).
-        if self.banks[bank][reg].breakpoint & 2:
+        regHandle = self.banks[bank][reg]
+        if regHandle.breakpoint & 2:
             raise Breakpoint("register", 'w', reg)
         oldValue, newValue = self.banks[bank][reg].val, val & 0xFFFFFFFF
 
@@ -310,10 +314,10 @@ class Registers(Component):
 
             self.history.signalChange(self, dchanges)
 
-        self.banks[bank][reg].val = newValue
+        regHandle.val = newValue
     
     def setFlag(self, flag, value, mayTriggerBkpt=True):
-        currentBank = self.mode
+        currentBank = self.currentMode
 
         try:
             bkptFlag = self.bkptFlags[flag]
@@ -342,7 +346,7 @@ class Registers(Component):
                 self.regCPSR |= 1 << self.flag2index[flag]
             else:       # We clear the flag
                 self.regCPSR &= 0xFFFFFFFF - (1 << self.flag2index[flag])
-        self.history.signalChange(self, {(self.mode, "CPSR"): (oldCPSR, self.regCPSR)})
+        self.history.signalChange(self, {(self.currentMode, "CPSR"): (oldCPSR, self.regCPSR)})
 
     def deactivateBreakpoints(self):
         # Without removing them, do not trig on breakpoint until `reactivateBreakpoints`

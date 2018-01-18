@@ -7,7 +7,7 @@ _settings = {"PCbehavior": "+8",            # Can be "+0", "+8"
              "allowuserswitchmode": True,   # True or False, indicates if the user can change the LSB bits of the CPSR
                                             # (that is, changing the mode of the processor). Technically forbidden
                                             # if we strictly follow ARMv4 specs, but it might be handy in some cases.
-             "runmaxit": 2500,              # Maximum number of non-stop iterations
+             "runmaxit": 10000,             # Maximum number of non-stop iterations
              "maxhistorylength": 1000,      # Maximum history depth
              "fillValue": 0xFF,             # Value used to fill non-initialized (but declared) memory
              "maxtotalmem": 0x10000,        # Maximum amount of memory per simulator
