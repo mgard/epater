@@ -272,7 +272,7 @@ class Registers(Component):
         currentBank = self.currentMode
         regHandle = self.banks[currentBank][idx]
         # Register
-        if regHandle.breakpoint & 4:
+        if self.bkptActive and regHandle.breakpoint & 4:
             raise Breakpoint("register", 'r', idx)
         return regHandle.val
 
@@ -283,7 +283,7 @@ class Registers(Component):
 
     def getRegister(self, bank, reg):
         # Get a register with a specific bank
-        if self.banks[bank][reg].breakpoint & 4:
+        if self.bkptActive and self.banks[bank][reg].breakpoint & 4:
             raise Breakpoint("register", 'r', reg)
         return self.banks[bank][reg].val
 
@@ -297,7 +297,7 @@ class Registers(Component):
         # This may also be used if we don't want the change to be logged
         # in the history of the register (just set logToHistory to False).
         regHandle = self.banks[bank][reg]
-        if regHandle.breakpoint & 2:
+        if self.bkptActive and regHandle.breakpoint & 2:
             raise Breakpoint("register", 'w', reg)
         oldValue, newValue = self.banks[bank][reg].val, val & 0xFFFFFFFF
 
@@ -324,7 +324,7 @@ class Registers(Component):
         except KeyError:
             raise Breakpoint("flags", 8, flag)
 
-        if mayTriggerBkpt and bkptFlag & 2:
+        if self.bkptActive and mayTriggerBkpt and bkptFlag & 2:
             raise Breakpoint("flags", 2, flag)
         
         oldCPSR = self.regCPSR
@@ -339,7 +339,7 @@ class Registers(Component):
         oldCPSR = self.regCPSR
         for flag, value in flagsDict.items():
 
-            if mayTriggerBkpt and self.bkptFlags[flag] & 2:
+            if self.bkptActive and mayTriggerBkpt and self.bkptFlags[flag] & 2:
                 raise Breakpoint("flags", 2, flag)
 
             if value:   # We set the flag
@@ -391,6 +391,7 @@ class Memory(Component):
 
         self.data = {k:bytearray(memcontent[k]) for k in self.startAddr.keys()}
         self.initdata = self.data.copy()
+        self.bkptActive = True
 
         # Maps address to an integer 'n'. The integer n allows to determine if the breakpoint should be
         # used or not, in the same way of Unix permissions.
@@ -427,9 +428,9 @@ class Memory(Component):
             raise Breakpoint("memory", 8, addr, desc)
 
         for offset in range(size):
-            if execMode and self.breakpoints[addr+offset] & 1:
+            if self.bkptActive and execMode and self.breakpoints[addr+offset] & 1:
                 raise Breakpoint("memory", 1, addr + offset)
-            if mayTriggerBkpt and self.breakpoints[addr+offset] & 4:
+            if self.bkptActive and mayTriggerBkpt and self.breakpoints[addr+offset] & 4:
                 raise Breakpoint("memory", 4, addr + offset)
 
         sec, offset = resolvedAddr
@@ -441,7 +442,7 @@ class Memory(Component):
             raise Breakpoint("memory", 8, addr, "Accès invalide pour une écriture de taille {} à l'adresse {}".format(size, hex(addr)))
 
         for offset in range(size):
-            if mayTriggerBkpt and self.breakpoints[addr+offset] & 2:
+            if self.bkptActive and mayTriggerBkpt and self.breakpoints[addr+offset] & 2:
                 raise Breakpoint("memory", 2, addr + offset)
 
         sec, offset = resolvedAddr
@@ -465,6 +466,15 @@ class Memory(Component):
             # Toggle the value
             self.breakpoints[addr] ^= modeOctal
         return self.breakpoints[addr]
+
+    def deactivateBreakpoints(self):
+        # Without removing them, do not trig on breakpoint until `reactivateBreakpoints`
+        # is called. Useful to temporary disable breakpoints of memory
+        self.bkptActive = False
+
+    def reactivateBreakpoints(self):
+        # See `deactivateBreakpoints`
+        self.bkptActive = True
 
     def removeBreakpoint(self, addr):
         self.breakpoints[addr] = 0

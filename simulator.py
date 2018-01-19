@@ -322,3 +322,13 @@ class Simulator:
         # Did we hit a breakpoint?
         # A breakpoint always stop the simulator
 
+    def deactivateAllBreakpoints(self):
+        # Without removing them, do not trig on breakpoint until `reactivateAllBreakpoints`
+        # is called. Useful to temporary disable breakpoints of Memory and Registers
+        self.regs.deactivateBreakpoints()
+        self.mem.deactivateBreakpoints()
+
+    def reactivateAllBreakpoints(self):
+        # See `deactivateAllBreakpoints`
+        self.regs.reactivateBreakpoints()
+        self.mem.reactivateBreakpoints()
