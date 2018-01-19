@@ -137,7 +137,7 @@ class BCInterpreter:
         # Mode = 'r' | 'w' | 'rw' | '' (passing an empty string removes the breakpoint)
         modeOctal = 4*('r' in mode) + 2*('w' in mode)
         bank = "User" if bank == "user" else bank.upper()
-        self.sim.regs.getRegisterFromBank(bank, reg).breakpoint = modeOctal
+        self.sim.regs.setBreakpointOnRegister(bank, reg, modeOctal)
 
     def setBreakpointFlag(self, flag, mode):
         """

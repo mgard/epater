@@ -259,7 +259,7 @@ class Simulator:
         try:
             self.currentInstr.execute(self)
         except Breakpoint as bp:
-            # We hit a breakpoint, or there is an execution error
+            # We hit a breakpoint on READ/WRITE, or there is an execution error
             if bp.mode == 8:
                 # Error! We report it to the UI
                 pass    # TODO
