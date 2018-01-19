@@ -273,7 +273,7 @@ class Registers(Component):
         regHandle = self.banks[currentBank][idx]
         # Register
         if self.bkptActive and regHandle.breakpoint & 4:
-            raise Breakpoint("register", 'r', idx)
+            raise Breakpoint("register", 4, (currentBank, idx))
         return regHandle.val
 
     def getAllRegisters(self):
@@ -284,7 +284,7 @@ class Registers(Component):
     def getRegister(self, bank, reg):
         # Get a register with a specific bank
         if self.bkptActive and self.banks[bank][reg].breakpoint & 4:
-            raise Breakpoint("register", 'r', reg)
+            raise Breakpoint("register", 4, (bank, reg))
         return self.banks[bank][reg].val
 
     def __setitem__(self, idx, val):
@@ -298,7 +298,7 @@ class Registers(Component):
         # in the history of the register (just set logToHistory to False).
         regHandle = self.banks[bank][reg]
         if self.bkptActive and regHandle.breakpoint & 2:
-            raise Breakpoint("register", 'w', reg)
+            raise Breakpoint("register", 2, (bank, reg))
         oldValue, newValue = self.banks[bank][reg].val, val & 0xFFFFFFFF
 
         if logToHistory:
@@ -357,6 +357,14 @@ class Registers(Component):
     def reactivateBreakpoints(self):
         # See `deactivateBreakpoints`
         self.bkptActive = True
+
+    def toggleBreakpointOnRegister(self, bank, regidx, modeOctal):
+        # Toggle the value
+        self.banks[bank][regidx].breakpoint ^= modeOctal
+
+    def toggleBreakpointOnFlag(self, flag, modeOctal):
+        # Toggle the value
+        self.bkptFlags[flag] ^= modeOctal
 
     def setBreakpointOnRegister(self, bank, regidx, breakpointType):
         self.banks[bank][regidx].breakpoint = breakpointType

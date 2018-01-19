@@ -25,7 +25,8 @@ class Simulator:
         self.PCSpecialBehavior = getSetting("PCspecialbehavior")
         self.allowSwitchModeInUserMode = getSetting("allowuserswitchmode")
         self.maxit = getSetting("runmaxit")
-        self.breakpointInstruction = False
+        self.bkptLastFetch = False
+        self.deactivatedBkpts = []
 
         # Initialize history
         self.history = History()
@@ -73,7 +74,6 @@ class Simulator:
         context = {"regs": self.regs.getContext(),
                     "mem": self.mem.getContext()}
         return context
-
 
     def setStepCondition(self, stepMode):
         assert stepMode in ("into", "out", "forward", "run")
@@ -126,7 +126,7 @@ class Simulator:
         try:
             # Retrieve instruction from memory
             self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, execMode=True))
-            self.breakpointInstruction = False
+            self.bkptLastFetch = False
         except Breakpoint as bp:
             # We hit a breakpoint, or there is an execution error
             if bp.mode == 8:
@@ -136,7 +136,7 @@ class Simulator:
             else:
                 # Get memory instruction again, without trigger breakpoint
                 self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, mayTriggerBkpt=False))
-                self.breakpointInstruction = True
+                self.bkptLastFetch = True
 
         self.bytecodeToInstr()
         if forceExplain or self.isStepDone():
@@ -250,21 +250,45 @@ class Simulator:
 
         currentCallStackLen = len(self.callStack)
 
-        if self.breakpointInstruction and self.stepMode in ("out", "forward", "run"):
-            # We hit a breakpoint on the last decoded instruction
-            self.breakpointInstruction = False
-            self.stepMode = None
-            return
+        if self.stepMode in ("out", "forward", "run"):
+            if self.bkptLastFetch:
+                # We hit a breakpoint on the last decoded instruction
+                self.bkptLastFetch = False
+                self.stepMode = None
+                return
 
-        try:
-            self.currentInstr.execute(self)
-        except Breakpoint as bp:
-            # We hit a breakpoint on READ/WRITE, or there is an execution error
-            if bp.mode == 8:
+            try:
+                self.currentInstr.execute(self)
+            except Breakpoint as bp:
+                # We hit a breakpoint on READ/WRITE, or there is an execution error
+                if bp.mode == 8:
+                    # Error! We report it to the UI
+                    pass    # TODO
+                self.stepMode = None
+                # Disable raised breakpoint
+                self.deactivatedBkpts.append(bp)
+                self._toggleBreakpoint(bp)
+                return
+
+        else:
+            # In stepIn mode, breakpoints are temporary deactivate
+            try:
+                self.deactivateAllBreakpoints()
+                self.currentInstr.execute(self)
+            except Breakpoint as bp:
+                self.reactivateAllBreakpoints()
+                # There is an execution error
+                assert bp.mode == 8
                 # Error! We report it to the UI
                 pass    # TODO
-            self.stepMode = None
-            return
+                self.stepMode = None
+                return
+            self.reactivateAllBreakpoints()
+
+        # After instruction execution, restore all breakpoints
+        for bp in self.deactivatedBkpts:
+            self._toggleBreakpoint(bp)
+        self.deactivatedBkpts = []
 
         if self.currentInstr.pcmodified:
             # We don't want this to be logged in the history since this
@@ -332,3 +356,11 @@ class Simulator:
         # See `deactivateAllBreakpoints`
         self.regs.reactivateBreakpoints()
         self.mem.reactivateBreakpoints()
+
+    def _toggleBreakpoint(self, bkptException):
+        if bkptException.cmp == "memory":
+            self.mem.toggleBreakpoint(bkptException.info, bkptException.mode)
+        elif bkptException.cmp == "register":
+            self.regs.toggleBreakpointOnRegister(bkptException.info[0], bkptException.info[1], bkptException.mode)
+        elif bkptException.cmp == "flags":
+            self.regs.toggleBreakpointOnFlag(bkptException.info, bkptException.mode)
