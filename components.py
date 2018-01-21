@@ -206,6 +206,7 @@ class Registers(Component):
         currentBank = self.currentMode
         if currentBank == "User":
             raise Breakpoint("register", 8, None, "Le registre SPSR n'existe pas en mode 'User'!")
+        self.history.signalChange(self, {(self.mode, "SPSR"): (self[16], val)})
         self[16] = val
 
     @property

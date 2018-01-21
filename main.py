@@ -23,7 +23,6 @@ if __name__ == '__main__':
         a = time.time()
         print(interpreter.getChanges())
         print(interpreter.getRegisters())
-        print(interpreter.getFlags())
         for i in range(2):
             if i < 37:
                 pass

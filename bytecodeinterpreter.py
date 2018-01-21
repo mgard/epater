@@ -372,17 +372,18 @@ class BCInterpreter:
         registers_changes =  changes.get(self.sim.regs.__class__)
         if registers_changes:
             for reg, value in registers_changes.items():
-                if reg[0] == 'User':
-                    if reg[1] == 'CPSR':
-                        result.extend(tuple({k.lower(): "{}".format(v)
-                                             for k,v in self.__parseFlags(cpsr=value[1]).items()}.items()))
-                        result.append(['banking', 'User'])
-                    else:
+                if isinstance(reg[1], int):
+                    if reg[0] == 'User':
                         result.append(['r{}'.format(reg[1]), '{:08x}'.format(value[1])])
-                else:
-                    result.append(['{}_r{}'.format(reg[0], reg[1]), '{:08x}'.format(value[1])])
-                    if reg[1] == 'CPSR':
-                        result.append(['banking', reg[0]])
+                    else:
+                        result.append(['{}_r{}'.format(reg[0], reg[1]), '{:08x}'.format(value[1])])
+                elif reg[1] == 'CPSR':
+                    result.extend(tuple({k.lower(): "{}".format(v)
+                                         for k,v in self.__parseFlags(cpsr=value[1]).items()}.items()))
+                    result.append(['banking', reg[0]])
+                elif reg[1] == 'SPSR':
+                    result.extend(tuple({k.lower(): "{}".format(v)
+                                         for k,v in self.__parseFlags(spsr=value[1]).items()}.items()))
 
         memory_changes = changes.get(self.sim.mem.__class__)
         if memory_changes:
