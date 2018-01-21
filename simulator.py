@@ -130,9 +130,7 @@ class Simulator:
         except Breakpoint as bp:
             # We hit a breakpoint, or there is an execution error
             if bp.mode == 8:
-                # Error! We report it to the UI
-                pass    # TODO
-                return
+                raise bp
             else:
                 # Get memory instruction again, without trigger breakpoint
                 self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, mayTriggerBkpt=False))

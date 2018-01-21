@@ -23,7 +23,7 @@ regs_arm = [ARM.UC_ARM_REG_R0, ARM.UC_ARM_REG_R1, ARM.UC_ARM_REG_R2, ARM.UC_ARM_
 class Context:
     mode2bits = {'User': 16, 'FIQ': 17, 'IRQ': 18, 'SVC': 19}       # Other modes are not supported
     bits2mode = {v:k for k,v in mode2bits.items()}
-    
+
     def __init__(self, type_, sim, lengths):
         self.regs = [0 for i in range(16)]
         self.cpsr = 0
@@ -45,7 +45,7 @@ class Context:
             self.reason["status"] = ("SPSR", self.spsr, other.spsr)
         if self.mem != other.mem:
             self.reason["mem"] = 0
-            
+
         if len(self.reason) > 0:
             return False
         return True
@@ -91,10 +91,10 @@ class Context:
         s += "| " + " |".join(["{:>10}".format(self.regs[i]) for i in range(8,16)]) + " |" + "\n"
         s += "| " + " |".join(["{:>10}".format(hex(self.regs[i])) for i in range(8,16)]) + " |" + "\n"
         s += "|" + "-"*96 + "|" + "\n"
-        cpsr = "| CPSR : {} (N={}, Z={}, C={}, V={}) / Mode = {}".format(hex(self.cpsr), 
-                                                                        int(self.cpsr>>31), 
-                                                                        int(self.cpsr>>30&0x1), 
-                                                                        int(self.cpsr>>29&0x1), 
+        cpsr = "| CPSR : {} (N={}, Z={}, C={}, V={}) / Mode = {}".format(hex(self.cpsr),
+                                                                        int(self.cpsr>>31),
+                                                                        int(self.cpsr>>30&0x1),
+                                                                        int(self.cpsr>>29&0x1),
                                                                         int(self.cpsr>>28&0x1),
                                                                         self.bits2mode[self.cpsr & 0x1F])
         s += "{:<97}".format(cpsr) + "|\n"
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         with open(inputfile) as f:
             for line in f:
                 lines.append(line)
-    
+
         # Setting up the QEMU reference ARM simulator
         armRef = unicorn.Uc(unicorn.UC_ARCH_ARM, unicorn.UC_MODE_ARM)
 
@@ -163,7 +163,7 @@ if __name__ == "__main__":
             except:
                 currentLine = None
             try:
-                armEpater.step("into")
+                armEpater.execute("into")
             except Breakpoint as e:
                 if e.cmp == "memory" and e.mode == 8:
                     break
@@ -174,7 +174,7 @@ if __name__ == "__main__":
             contextRef.update()
             contextEpater.update()
 
-            #print(lines[currentLine].strip())
+            # print(lines[currentLine].strip())
             if contextRef != contextEpater:
                 print("MISMATCH while executing the above instruction!")
                 print("\tPrevious CPU context :")
@@ -187,10 +187,10 @@ if __name__ == "__main__":
             previousContextRef = str(contextRef)
             previousContextEpater = str(contextEpater)
             cycle += 1
-        
+
         duration = time.time()-tBegin
         if errorCount:
             print("File {} done in {:.4f} seconds ({:.0f} instr/sec), {} error(s) reported".format(inputfile, duration, cycle/duration, errorCount))
         else:
             print("File {} done in {:.4f} seconds ({:.0f} instr/sec), no errors reported".format(inputfile, duration, cycle/duration))
-    
+
