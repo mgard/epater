@@ -323,10 +323,10 @@ class BCInterpreter:
         cpsr = self.sim.regs.CPSR
         try:
             spsr = self.sim.regs.SPSR
-            flags = self.__parseFlags(cpsr=cpsr, spsr=spsr)
         except Breakpoint:
             # Currently in user mode
-            flags = self.__parseFlags(cpsr=cpsr)
+            spsr = None
+        flags = self.__parseFlags(cpsr=cpsr, spsr=spsr)
         return flags
 
     def setFlags(self, flagsDict):
@@ -384,7 +384,6 @@ class BCInterpreter:
                     if reg[1] == 'CPSR':
                         result.append(['banking', reg[0]])
 
-
         memory_changes = changes.get(self.sim.mem.__class__)
         if memory_changes:
             result.append(["mempartial", [[k[1], "{:02x}".format(v[1]).upper()] for k, v in memory_changes.items()]])
@@ -416,7 +415,8 @@ class BCInterpreter:
     def __parseFlags(self, cpsr=None, spsr=None):
         d = {}
         if cpsr:
-            d.update({flag: bool((cpsr >> self.sim.regs.flag2index[flag]) & 0x1) for flag in self.sim.regs.flag2index.keys()})
+            d.update({flag: bool((cpsr >> self.sim.regs.flag2index[flag]) & 0x1)
+                      for flag in self.sim.regs.flag2index.keys()})
         if spsr:
             d.update({"S{}".format(flag): bool((spsr >> self.sim.regs.flag2index[flag]) & 0x1)
                       for flag in self.sim.regs.flag2index.keys()})

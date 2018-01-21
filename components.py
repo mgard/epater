@@ -179,7 +179,7 @@ class Registers(Component):
             raise ValueError("Invalid mode '{}'".format(val))
         valCPSR = self.regCPSR & (0xFFFFFFFF - 0x1F)    # Clear mode
         valCPSR = self.regCPSR | self.mode2bits[val]
-        self.history.signalChange(self, {(self.mode, "CPSR"): (self.regCPSR, valCPSR)})
+        self.history.signalChange(self, {(val, "CPSR"): (self.regCPSR, valCPSR)})
         self.regCPSR = valCPSR
         self.currentMode = val
 
@@ -190,9 +190,9 @@ class Registers(Component):
     @CPSR.setter
     def CPSR(self, val):
         oldValue, newValue = self.regCPSR, val & 0xFFFFFFFF
-        self.history.signalChange(self, {(self.mode, "CPSR"): (oldValue, newValue)})
         self.regCPSR = val
         self.currentMode = self.bits2mode[self.regCPSR & 0x1F]
+        self.history.signalChange(self, {(self.mode, "CPSR"): (oldValue, newValue)})
 
     @property
     def SPSR(self):
