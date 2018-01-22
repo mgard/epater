@@ -152,7 +152,8 @@ if __name__ == "__main__":
         previousContextRef = str(contextRef)
         previousContextEpater = str(contextEpater)
         tBegin = time.time()
-        while cycle < 20000:
+        fetchError = False
+        while cycle < 20000 and not fetchError:
             # One step on the reference emulator
             armRef.emu_start(pcRef, CODE_START_ADDR+4096, count=1)
             pcRef = armRef.reg_read(ARM.UC_ARM_REG_R15)
@@ -166,7 +167,7 @@ if __name__ == "__main__":
                 armEpater.execute("into")
             except Breakpoint as e:
                 if e.cmp == "memory" and e.mode == 8:
-                    break
+                    fetchError = True
                 else:
                     raise e
 
@@ -184,6 +185,7 @@ if __name__ == "__main__":
                 print("\tDifferences:")
                 print(contextRef.reason)
                 errorCount += 1
+                break
             previousContextRef = str(contextRef)
             previousContextEpater = str(contextEpater)
             cycle += 1
