@@ -10,6 +10,50 @@ from components import Registers, Memory, Breakpoint
 from history import History
 from simulatorOps.utils import checkMask
 from simulatorOps import *
+from simulatorOps.abstractOp import ExecutionException
+
+class MultipleErrors(Exception):
+    """
+    This exception class is used to store multiple execution errors. It is useful if there
+    are multiple errors in one instruction. Also, this class can be iterated to treat each error individually.
+    """
+    def __init__(self, error = None, info = None, line = None):
+        """
+        Initialize a empty class if error and info are None.
+        Otherwise, initialize the class with the corresponding parameters.
+
+        :param error: a str containing the error type
+        :param info: a str containing information on the error
+        :param line: the line number when the error occurs (default None)
+        """
+        if error and info:
+            self.content = [(error, info, line)]
+        else:
+            self.content = []
+        self.idx = 0
+
+    def __bool__(self):
+        return len(self.content) != 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            retval = self.content[self.idx]
+        except IndexError:
+            self.idx = 0
+            raise StopIteration()
+        self.idx += 1
+        return retval
+
+    def append(self, error, info, line = None):
+        self.content.append((error, info, line))
+
+    def clear(self):
+        self.idx = 0
+        self.content = []
+
 
 class Simulator:
     """
@@ -25,7 +69,7 @@ class Simulator:
         self.PCSpecialBehavior = getSetting("PCspecialbehavior")
         self.allowSwitchModeInUserMode = getSetting("allowuserswitchmode")
         self.maxit = getSetting("runmaxit")
-        self.bkptLastFetch = False
+        self.bkptLastFetch = None
         self.deactivatedBkpts = []
 
         # Initialize history
@@ -51,6 +95,9 @@ class Simulator:
         self.assertionWhenReturn = set()
         self.callStack = []
         self.addr2line = addr2line
+
+        # Initialize execution errors buffer
+        self.errorsPending = MultipleErrors()
 
         # Initialize interrupt structures
         self.interruptActive = False
@@ -111,7 +158,6 @@ class Simulator:
         while not self.isStepDone():    # We repeat until the stopping criterion is met
             self.nextInstr()
         self.explainInstruction()       # We only have to explain the last instruction executed before we stop
-        return self.history.getDiffFromCheckpoint()
 
     def stepBack(self, count=1):
         for c in range(count):
@@ -126,15 +172,15 @@ class Simulator:
         try:
             # Retrieve instruction from memory
             self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, execMode=True))
-            self.bkptLastFetch = False
         except Breakpoint as bp:
             # We hit a breakpoint, or there is an execution error
             if bp.mode == 8:
-                raise bp
+                # Execution error
+                self.errorsPending.append(bp.cmp, bp.desc)
             else:
                 # Get memory instruction again, without trigger breakpoint
                 self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, mayTriggerBkpt=False))
-                self.bkptLastFetch = True
+                self.bkptLastFetch = bp
 
         self.bytecodeToInstr()
         if forceExplain or self.isStepDone():
@@ -235,12 +281,63 @@ class Simulator:
                                     ["disassembly", dis])
 
     def execAssert(self, assertionsList, mode):
-        # TODO
-        pass
+        for assertionInfo in assertionsList:
+            assertionType = assertionInfo[0]
+            if assertionType != mode:
+                continue
+            assertionLine = assertionInfo[1]
+            assertionInfo = assertionInfo[2].split(",")
+
+            strError = ""
+            try:
+                for info in assertionInfo:
+                    info = info.strip()
+                    target, value = info.split("=")
+                    if target[0] == "R":
+                        # Register
+                        reg = int(target[1:])
+                        val = int(value, base=0) & 0xFFFFFFFF
+                        self.regs.deactivateBreakpoints()
+                        valreg = self.regs[reg]
+                        self.regs.reactivateBreakpoints()
+                        if valreg != val:
+                            strError += "Erreur : {} devrait valoir {}, mais il vaut {}\n".format(target, val, valreg)
+                    elif target[:2] == "0x":
+                        # Memory
+                        addr = int(target, base=16)
+                        val = int(value, base=0)
+                        formatStruct = "<B"
+                        if not 0 <= int(val) < 255:
+                            val &= 0xFFFFFFFF
+                            formatStruct = "<I"
+                        valmem = self.mem.get(addr, mayTriggerBkpt=False, size=4 if formatStruct == "<I" else 1)
+                        valmem = struct.unpack(formatStruct, valmem)[0]
+                        if valmem != val:
+                            strError += "Erreur : l'adresse mémoire {} devrait contenir {}, mais elle contient {}\n"\
+                                .format(target, val, valmem)
+                    elif len(target) == 1 and target in self.regs.flag2index:
+                        # Flag
+                        expectedVal = value != '0'
+                        actualVal = self.regs.__getattribute__(target)
+                        if actualVal != expectedVal:
+                            strError += "Erreur : le drapeau {} devrait signaler {}, mais il signale {}\n"\
+                                .format(target, expectedVal, actualVal)
+                    else:
+                        # Assert type unknown
+                        strError += "Assertion inconnue!".format(target, val)
+
+                if len(strError) > 0:
+                    self.errorsPending.append("assert", strError, assertionLine)
+
+            except Breakpoint as bp:
+                assert bp.mode == 8
+                self.errorsPending.append(bp.cmp, bp.desc, assertionLine)
 
     def nextInstr(self, forceExplain=False):
         # One more cycle to do!
         self.history.newCycle()
+        # Clear previous errors
+        self.errorsPending.clear()
 
         if self.currentInstr is None:
             # The current instruction has not be retrieved or decoded (because it was an illegal access)
@@ -253,22 +350,22 @@ class Simulator:
         if self.stepMode in ("out", "forward", "run"):
             if self.bkptLastFetch:
                 # We hit a breakpoint on the last decoded instruction
-                self.bkptLastFetch = False
-                self.stepMode = None
-                return
-
+                self.bkptLastFetch = None
+                raise self.bkptLastFetch
             try:
                 self.currentInstr.execute(self)
             except Breakpoint as bp:
                 # We hit a breakpoint on READ/WRITE, or there is an execution error
-                if bp.mode == 8:
-                    # Error! We report it to the UI
-                    pass    # TODO
-                self.stepMode = None
                 # Disable raised breakpoint
                 self.deactivatedBkpts.append(bp)
                 self._toggleBreakpoint(bp)
-                return
+                if bp.mode != 8:
+                    # READ/WRITE breakpoint
+                    raise bp
+                # Execution error
+                self.errorsPending.append(bp.cmp, bp.desc)
+            except ExecutionException as err:
+                self.errorsPending.append('execution', err.text, self.getCurrentLine())
 
         else:
             # In stepIn mode, breakpoints are temporary deactivate
@@ -276,13 +373,11 @@ class Simulator:
                 self.deactivateAllBreakpoints()
                 self.currentInstr.execute(self)
             except Breakpoint as bp:
-                self.reactivateAllBreakpoints()
                 # There is an execution error
                 assert bp.mode == 8
-                # Error! We report it to the UI
-                pass    # TODO
-                self.stepMode = None
-                return
+                self.errorsPending.append(bp.cmp, bp.desc)
+            except ExecutionException as err:
+                self.errorsPending.append('execution', err.text, self.getCurrentLine())
             self.reactivateAllBreakpoints()
 
         # After instruction execution, restore all breakpoints
@@ -298,8 +393,6 @@ class Simulator:
             self.regs[15] += 4       # PC = PC + 4
 
         newpc = self.regs[15] - self.pcoffset
-
-        # TODO : Make assertion works with the new simulator
         if keeppc in self.assertionCkpts and not self.currentInstr.pcmodified:
             # We check if we've hit an post-assertion checkpoint
             self.execAssert(self.assertionData[keeppc], 'AFTER')
@@ -346,6 +439,9 @@ class Simulator:
         # Did we hit a breakpoint?
         # A breakpoint always stop the simulator
 
+        if self.errorsPending:
+            raise self.errorsPending
+
     def deactivateAllBreakpoints(self):
         # Without removing them, do not trig on breakpoint until `reactivateAllBreakpoints`
         # is called. Useful to temporary disable breakpoints of Memory and Registers
@@ -356,6 +452,16 @@ class Simulator:
         # See `deactivateAllBreakpoints`
         self.regs.reactivateBreakpoints()
         self.mem.reactivateBreakpoints()
+
+    def getCurrentLine(self):
+        self.regs.deactivateBreakpoints()
+        pc = self.regs[15]
+        self.regs.reactivateBreakpoints()
+        pc -= 8 if getSetting("PCbehavior") == "+8" else 0
+        if pc in self.addr2line and len(self.addr2line[pc]) > 0:
+            return self.addr2line[pc][-1]
+        else:
+            return None
 
     def _toggleBreakpoint(self, bkptException):
         if bkptException.cmp == "memory":

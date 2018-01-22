@@ -2,6 +2,7 @@ from struct import unpack
 
 from settings import getSetting
 from simulator import Simulator
+from simulator import MultipleErrors
 import operator
 from components import Breakpoint
 
@@ -33,6 +34,7 @@ class BCInterpreter:
         self.lineBreakpoints = []
         self.sim = Simulator(bytecode, self.assertInfo, self.addr2line, pcInitAddr)
         self.reset()
+        self.errorsPending = MultipleErrors()
 
     def reset(self):
         """
@@ -204,7 +206,17 @@ class BCInterpreter:
         """
         if mode is not None:
             self.sim.setStepCondition(mode)
-        self.sim.loop()
+        try:
+            self.sim.loop()
+        except Breakpoint as bp:
+            # We hit a breakpoint execution stop
+            assert bp.mode != 8
+            self.sim.stepMode = None
+        except MultipleErrors as err:
+            # Execution error
+            self.errorsPending = err
+            self.sim.stepMode = None
+
 
     def step(self, stepMode=None):
         """
@@ -214,7 +226,16 @@ class BCInterpreter:
         """
         if stepMode is not None:
             self.sim.setStepCondition(stepMode)
-        self.sim.nextInstr(forceExplain=True)
+        try:
+            self.sim.nextInstr(forceExplain=True)
+        except Breakpoint as bp:
+            # We hit a breakpoint execution stop
+            assert bp.mode != 8
+            self.sim.stepMode = None
+        except MultipleErrors as err:
+            # Execution error
+            self.errorsPending = err
+            self.sim.stepMode = None
 
     def stepBack(self, count=1):
         """
@@ -326,7 +347,7 @@ class BCInterpreter:
         except Breakpoint:
             # Currently in user mode
             spsr = None
-        flags = self.__parseFlags(cpsr=cpsr, spsr=spsr)
+        flags = self._parseFlags(cpsr=cpsr, spsr=spsr)
         return flags
 
     def setFlags(self, flagsDict):
@@ -379,15 +400,24 @@ class BCInterpreter:
                         result.append(['{}_r{}'.format(reg[0], reg[1]), '{:08x}'.format(value[1])])
                 elif reg[1] == 'CPSR':
                     result.extend(tuple({k.lower(): "{}".format(v)
-                                         for k,v in self.__parseFlags(cpsr=value[1]).items()}.items()))
+                                         for k,v in self._parseFlags(cpsr=value[1]).items()}.items()))
                     result.append(['banking', reg[0]])
                 elif reg[1] == 'SPSR':
                     result.extend(tuple({k.lower(): "{}".format(v)
-                                         for k,v in self.__parseFlags(spsr=value[1]).items()}.items()))
+                                         for k,v in self._parseFlags(spsr=value[1]).items()}.items()))
 
         memory_changes = changes.get(self.sim.mem.__class__)
         if memory_changes:
             result.append(["mempartial", [[k[1], "{:02x}".format(v[1]).upper()] for k, v in memory_changes.items()]])
+
+        if self.errorsPending:
+            for error, info, line in self.errorsPending:
+                if line:
+                    result.append(["codeerror", line, info])
+                else:
+                    result.append(["error", info])
+
+        self.errorsPending = None
 
         return result
 
@@ -395,13 +425,7 @@ class BCInterpreter:
         """
         Return the number of the line currently accessed.
         """
-        self.sim.regs.deactivateBreakpoints()
-        pc = self.sim.regs[15]
-        self.sim.regs.reactivateBreakpoints()
-        pc -= 8 if getSetting("PCbehavior") == "+8" else 0
-        assert pc in self.addr2line, "Line outside of linked memory!"
-        assert len(self.addr2line[pc]) > 0, "Line outside of linked memory!"
-        return self.addr2line[pc][-1]
+        return self.sim.getCurrentLine()
 
     def getCurrentInstructionAddress(self):
         """
@@ -413,7 +437,7 @@ class BCInterpreter:
         pc -= 8 if getSetting("PCbehavior") == "+8" else 0
         return pc
 
-    def __parseFlags(self, cpsr=None, spsr=None):
+    def _parseFlags(self, cpsr=None, spsr=None):
         d = {}
         if cpsr:
             d.update({flag: bool((cpsr >> self.sim.regs.flag2index[flag]) & 0x1)

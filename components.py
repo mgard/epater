@@ -35,7 +35,7 @@ class Breakpoint(Exception):
         self.cmp = component
         self.mode = mode
         self.info = info
-        self.desc = ""
+        self.desc = desc
     
 
 class Component:
