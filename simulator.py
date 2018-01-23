@@ -39,7 +39,7 @@ class Simulator:
         # Initialize decoders
         self.decoders = {'BranchOp': BranchOp(), 'DataOp': DataOp(), 
                             'MemOp': MemOp(), 'MultipleMemOp': MultipleMemOp(),
-                            'HalfSignedMemOp': HalfSignedMemOp(),
+                            'HalfSignedMemOp': HalfSignedMemOp(), 'SwapOp': SwapOp(),
                             'PSROp': PSROp(),
                             'MulOp': MulOp(), 'MulLongOp': MulLongOp(), 
                             'SoftInterruptOp': SoftInterruptOp(), 'NopOp': NopOp()}
