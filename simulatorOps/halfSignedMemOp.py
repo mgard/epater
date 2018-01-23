@@ -172,7 +172,7 @@ class HalfSignedMemOp(AbstractOp):
 
             simulatorContext.regs[self.rd] = res
             if self.signed:
-                simulatorContext.regs[self.rd] |= 0xFF000000 * ((res >> 7) & 1) if self.byte else 0xFFFF0000 * ((res >> 15) & 1)
+                simulatorContext.regs[self.rd] |= 0xFFFFFF00 * ((res >> 7) & 1) if self.byte else 0xFFFF0000 * ((res >> 15) & 1)
                 
             if self.rd == simulatorContext.PC:
                 self.pcmodified = True
