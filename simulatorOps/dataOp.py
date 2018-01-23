@@ -198,7 +198,11 @@ class DataOp(AbstractOp):
         # Get second operand value
         if self.imm:
             op2 = self.shiftedVal
-            workingFlags['C'] = self.carryOutImmShift
+            if self.shift.value != 0:
+                # We change the carry flag only if we did a shift
+                workingFlags['C'] = self.carryOutImmShift
+            else:
+                workingFlags['C'] = simulatorContext.regs.C
         else:
             op2 = simulatorContext.regs[self.op2reg]
             if self.op2reg == simulatorContext.PC and not self.shift.immediate and simulatorContext.PCSpecialBehavior:
