@@ -168,6 +168,11 @@ class Simulator:
             # Swap
             # This one _must_ be before Data processing check, since it overlaps
             self.currentInstr = self.decoders['SwapOp']
+        elif checkMask(instrInt, (7, 4), tuple(range(22, 28)) + (5, 6)):
+            # MUL or MLA
+            # This one _must_ be before Data processing check, since it overlaps
+            # It also _must_ be before HalfSignedMemOp
+            self.currentInstr = self.decoders['MulOp']
         elif checkMask(instrInt, (7, 4), (27, 26, 25)):
             # Half/signed data transfer
             # This one _must_ be before Data processing check, since it overlaps,
@@ -177,10 +182,6 @@ class Simulator:
             # BX
             # This one _must_ be before Data processing check, since it overlaps
             self.currentInstr = self.decoders['BranchOp']
-        elif checkMask(instrInt, (7, 4), tuple(range(22, 28)) + (5, 6)):
-            # MUL or MLA
-            # This one _must_ be before Data processing check, since it overlaps
-            self.currentInstr = self.decoders['MulOp']
         elif checkMask(instrInt, (7, 4, 23), tuple(range(24, 28)) + (5, 6)):
             # UMULL, SMULL, UMLAL or SMLAL
             # This one _must_ be before Data processing check, since it overlaps
@@ -207,7 +208,7 @@ class Simulator:
         else:
             # Undefined instruction
             self.currentInstr = None
-
+        
         if self.currentInstr is not None:
             self.currentInstr.setBytecode(instrInt)
             self.currentInstr.decode()
