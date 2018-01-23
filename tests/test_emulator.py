@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
         lines = []
         with open(inputfile) as f:
-            bytecode, bcinfos, assertInfos, errors, _ = ASMparser(f, memLayout="test")
+            bytecode, bcinfos, _, assertInfos, _, errors = ASMparser(f, memLayout="test")
         with open(inputfile) as f:
             for line in f:
                 lines.append(line)
@@ -189,6 +189,15 @@ if __name__ == "__main__":
             previousContextRef = str(contextRef)
             previousContextEpater = str(contextEpater)
             cycle += 1
+
+            # TODO : This is temporary until the new interpreter
+            errors = armEpater.getErrors()
+            if errors:
+                for err, info, _ in errors:
+                    if err == "memory":
+                        fetchError = True
+                    else:
+                        raise Breakpoint(err, 8, info)
 
         duration = time.time()-tBegin
         if errorCount:

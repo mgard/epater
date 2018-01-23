@@ -295,8 +295,8 @@ def parse(code, memLayout="simulation"):
 
     if len(listErrors) > 0:
         # At least one line did not assemble, we cannot continue
-        return None, None, None, None, listErrors
+        return None, None, None, None, None, listErrors
 
     # No errors
-    return bytecode, addrToLine, lineToAddr, assertions, []
+    return bytecode, addrToLine, lineToAddr, assertions, snippetMode, []
 

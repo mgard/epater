@@ -34,7 +34,7 @@ def runt(interpreter):
 def test_dataop():
     return
     with open("simulatorTests/dataop.asm") as f:
-        bytecode, bcinfos, assertInfos, errors = ASMparser(f)
+        bytecode, bcinfos, assertInfos, _, errors = ASMparser(f)
 
     interpreter = BCInterpreter(bytecode, bcinfos, assertInfos)
     runt(interpreter)
@@ -42,7 +42,7 @@ def test_dataop():
 
 def test_shifts():
     with open("simulatorTests/shifttest1.asm") as f:
-        bytecode, bcinfos, assertInfos, errors = ASMparser(f)
+        bytecode, bcinfos, assertInfos, _, errors = ASMparser(f)
 
     interpreter = BCInterpreter(bytecode, bcinfos, assertInfos)
     runt(interpreter)

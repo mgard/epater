@@ -177,6 +177,11 @@ class Simulator:
             if bp.mode == 8:
                 # Execution error
                 self.errorsPending.append(bp.cmp, bp.desc)
+                # There is no instruction to this address
+                self.fetchedInstr = None
+                self.currentInstr = None
+                self.disassemblyInfo = ""
+                return
             else:
                 # Get memory instruction again, without trigger breakpoint
                 self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, mayTriggerBkpt=False))
@@ -188,8 +193,13 @@ class Simulator:
 
 
     def bytecodeToInstr(self):
+        if not self.fetchedInstr:
+            # Undefined instruction
+            self.currentInstr = None
+            return
         # Assumes that the instruction to decode is in self.fetchedInstr
         instrInt = struct.unpack("<I", self.fetchedInstr)[0]
+
         if instrInt in self.decoderCache:
             self.currentInstr = self.decoderCache[instrInt][0]
             self.currentInstr.setBytecode(instrInt)
@@ -255,7 +265,8 @@ class Simulator:
         else:
             # Undefined instruction
             self.currentInstr = None
-        
+            return
+
         if self.currentInstr is not None:
             self.currentInstr.setBytecode(instrInt)
             self.currentInstr.decode()
@@ -267,6 +278,11 @@ class Simulator:
                 self.decoderCache = {}
 
     def explainInstruction(self):
+        if not self.currentInstr:
+            # Undefined instruction
+            self.disassemblyInfo = ""
+            return
+
         disassembly, description = self.currentInstr.explain(self)
         dis = '<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">{}</div>\n'.format(disassembly, description)
 

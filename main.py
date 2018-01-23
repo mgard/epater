@@ -11,7 +11,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     with open(args.inputfile) as f:
-        bytecode, bcinfos, line2addr, assertions, errors = ASMparser(f)
+        bytecode, bcinfos, line2addr, assertions, _, errors = ASMparser(f)
     print("Parsed source code!")
     print(bytecode)
 

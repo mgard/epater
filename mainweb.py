@@ -313,12 +313,12 @@ def process(ws, msg_in):
                 if ws in interpreters:
                     del interpreters[ws]
 
-                bytecode, bcinfos, line2addr, assertions, errors = ASMparser(code.splitlines())
+                bytecode, bcinfos, line2addr, assertions, snippetMode, errors = ASMparser(code.splitlines())
                 if errors:
                     retval.extend(errors)
                     retval.append(["edit_mode"])
                 else:
-                    interpreters[ws] = BCInterpreter(bytecode, bcinfos, assertions)
+                    interpreters[ws] = BCInterpreter(bytecode, bcinfos, assertions, snippetMode=snippetMode)
                     force_update_all = True
                     interpreters[ws].code__ = copy(code)
                     interpreters[ws].last_step__ = time.time()

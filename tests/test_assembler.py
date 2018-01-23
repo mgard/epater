@@ -8,7 +8,7 @@ from assembler import parse as ASMparser
 
 
 def bytecodeLoad(line):
-    bytecode, bcinfos, _, _, _ = ASMparser(line)
+    bytecode, bcinfos, _, _, _, _ = ASMparser(line)
     return bytecode['SNIPPET_DUMMY_SECTION'], bcinfos
 
 fasm = open('bytecodeTest.asm', 'r')

@@ -14,7 +14,7 @@ class BCInterpreter:
     should go through this class.
     """
 
-    def __init__(self, bytecode, mappingInfo, assertInfo={}, pcInitAddr=0):
+    def __init__(self, bytecode, mappingInfo, assertInfo={}, pcInitAddr=0, snippetMode = False):
         """
         Initialize the bytecode interpreter (simulator).
 
@@ -35,6 +35,7 @@ class BCInterpreter:
         self.sim = Simulator(bytecode, self.assertInfo, self.addr2line, pcInitAddr)
         self.reset()
         self.errorsPending = MultipleErrors()
+        self.snippetMode = snippetMode
 
     def reset(self):
         """
@@ -380,6 +381,30 @@ class BCInterpreter:
         """
         return self.sim.history.cyclesCount
 
+    def getErrors(self): # TODO: This is temporary until the new interpreter
+        """
+        Return all errors from the last step.
+        """
+        return self.errorsPending
+
+    def getErrorsFormatted(self):
+        """
+        Return all errors from the last step, serialized in a way that can be read by the UI.
+        """
+        result = []
+
+        if self.errorsPending:
+            for error, info, line in self.errorsPending:
+                if self.snippetMode and not self.sim.currentInstr and error == 'memory':
+                    # If we are in snippet mode at the last instruction, we hide the memory access error
+                    continue
+                if line:
+                    result.append(["codeerror", line, info])
+                else:
+                    result.append(["error", info])
+        return result
+
+
     def getChangesFormatted(self, setCheckpoint=False):
         """
         Return all the changes since the last checkpoint, serialized in a way that can be read by the UI.
@@ -410,13 +435,7 @@ class BCInterpreter:
         if memory_changes:
             result.append(["mempartial", [[k[1], "{:02x}".format(v[1]).upper()] for k, v in memory_changes.items()]])
 
-        if self.errorsPending:
-            for error, info, line in self.errorsPending:
-                if line:
-                    result.append(["codeerror", line, info])
-                else:
-                    result.append(["error", info])
-
+        result.extend(self.getErrorsFormatted())
         self.errorsPending = None
 
         return result
