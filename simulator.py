@@ -155,16 +155,7 @@ class Simulator:
         # the general. For instance, dataOp check should NOT be the first, since
         # we can only check for 0's at positions 27-26, but this characteristic is
         # shared with many other instruction types
-        if checkMask(instrInt, (19, 24), (27, 26, 23, 20)):       # MRS or MSR
-            # This one is tricky
-            # The signature looks like a data processing operation, BUT
-            # it sets the "opcode" to an operation beginning with 10**, 
-            # and the only operations that match this are TST, TEQ, CMP and CMN
-            # It is said that for these ops, the S flag MUST be set to 1
-            # With MSR and MRS, the bit representing the S flag is always 0, 
-            # so we can differentiate these instructions...
-            self.currentInstr = self.decoders['PSROp']
-        elif checkMask(instrInt, (7, 4, 24), (27, 26, 25, 23, 21, 20, 11, 10, 9, 8, 6, 5)):
+        if checkMask(instrInt, (7, 4, 24), (27, 26, 25, 23, 21, 20, 11, 10, 9, 8, 6, 5)):
             # Swap
             # This one _must_ be before Data processing check, since it overlaps
             self.currentInstr = self.decoders['SwapOp']
@@ -191,6 +182,15 @@ class Simulator:
             # NOP
             # This one _must_ be before Data processing check, since it overlaps
             self.currentInstr = self.decoders['NopOp']
+        elif checkMask(instrInt, (19, 24), (27, 26, 23, 20)):       # MRS or MSR
+            # This one is tricky
+            # The signature looks like a data processing operation, BUT
+            # it sets the "opcode" to an operation beginning with 10**, 
+            # and the only operations that match this are TST, TEQ, CMP and CMN
+            # It is said that for these ops, the S flag MUST be set to 1
+            # With MSR and MRS, the bit representing the S flag is always 0, 
+            # so we can differentiate these instructions...
+            self.currentInstr = self.decoders['PSROp']
         elif checkMask(instrInt, (), (27, 26)):
             # Data processing
             self.currentInstr = self.decoders['DataOp']
