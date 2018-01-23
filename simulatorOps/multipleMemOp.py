@@ -1,7 +1,8 @@
 import operator
 import struct
 from enum import Enum
-from collections import defaultdict, namedtuple, deque 
+from collections import defaultdict, namedtuple, deque
+from functools import reduce
 
 import simulatorOps.utils as utils
 from simulatorOps.abstractOp import AbstractOp, ExecutionException
@@ -113,9 +114,9 @@ class MultipleMemOp(AbstractOp):
 
         self._readregs |= utils.registerWithCurrentBank(self.basereg, bank)
         if self.mode == "LDR":
-            self._readregs |= {utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist}
+            self._readregs |= reduce(operator.or_, [utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist])
         else:
-            self._writeregs |= {utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist}
+            self._writeregs |= reduce(operator.or_, [utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist])
 
         # TODO : update _readmem and _writemem
         # (show the affected memory areas)
