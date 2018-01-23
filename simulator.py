@@ -168,6 +168,11 @@ class Simulator:
             # Swap
             # This one _must_ be before Data processing check, since it overlaps
             self.currentInstr = self.decoders['SwapOp']
+        elif checkMask(instrInt, (7, 4, 23), tuple(range(24, 28)) + (5, 6)):
+            # UMULL, SMULL, UMLAL or SMLAL
+            # This one _must_ be before Data processing check, since it overlaps
+            # It also _must_ be before HalfSignedMemOp and MUL/MLA
+            self.currentInstr = self.decoders['MulLongOp']
         elif checkMask(instrInt, (7, 4), tuple(range(22, 28)) + (5, 6)):
             # MUL or MLA
             # This one _must_ be before Data processing check, since it overlaps
@@ -182,10 +187,6 @@ class Simulator:
             # BX
             # This one _must_ be before Data processing check, since it overlaps
             self.currentInstr = self.decoders['BranchOp']
-        elif checkMask(instrInt, (7, 4, 23), tuple(range(24, 28)) + (5, 6)):
-            # UMULL, SMULL, UMLAL or SMLAL
-            # This one _must_ be before Data processing check, since it overlaps
-            self.currentInstr = self.decoders['MulLongOp']
         elif checkMask(instrInt, (25, 24, 21), (27, 26, 23, 22, 20, 19, 18, 17, 16)):
             # NOP
             # This one _must_ be before Data processing check, since it overlaps
