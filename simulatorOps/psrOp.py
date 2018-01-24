@@ -39,10 +39,14 @@ class PSROp(AbstractOp):
 
         if self.imm and self.flagsOnly:       # Immediate mode is allowed only for flags-only mode
             self.val = instrInt & 0xFF
-            self.shift = ("ROR", "imm", ((instrInt >> 8) & 0xF) * 2)       # see 4.5.3 of ARM doc to understand the * 2
+            self.shift = utils.shiftInfo(type="ROR",
+                                            immediate=True,
+                                            value=((instrInt >> 8) & 0xF)*2)    # see 4.5.3 of ARM doc to understand the * 2   
         else:
             self.val = instrInt & 0xF
-            self.shift = ("ROR", "imm", 0)       # No rotate with registers for these particular instructions
+            self.shift = utils.shiftInfo(type="ROR",
+                                            immediate=True,
+                                            value=0)       # No rotate with registers for these particular instructions
         
         self.opcode = "MSR" if self.modeWrite else "MRS"
 
@@ -101,9 +105,9 @@ class PSROp(AbstractOp):
                 else:
                     valToSet = simulatorContext.regs[self.val] & 0xF0000000   # We only keep the condition flag bits
                 if self.usespsr:
-                    valToSet |= simulatorContext.SPSR & 0x0FFFFFFF
+                    valToSet |= simulatorContext.regs.SPSR & 0x0FFFFFFF
                 else:
-                    valToSet |= simulatorContext.CPSR & 0x0FFFFFFF
+                    valToSet |= simulatorContext.regs.CPSR & 0x0FFFFFFF
             else:
                 valToSet = simulatorContext.regs[self.val]
 
