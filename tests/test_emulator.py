@@ -117,7 +117,7 @@ def initializeQemu(machine):
 
 if __name__ == "__main__":
     for inputfile in glob.glob("simulatorTests/*.asm"):
-
+        print("Parsing : {}".format(inputfile))
         lines = []
         with open(inputfile) as f:
             bytecode, bcinfos, _, assertInfos, _, errors = ASMparser(f, memLayout="test")
@@ -170,6 +170,9 @@ if __name__ == "__main__":
                     fetchError = True
                 else:
                     raise e
+            except Exception as e:
+                print("Error raised while executing {}".format(lines[currentLine].strip()))
+                raise e
 
             # Update contexts
             contextRef.update()
