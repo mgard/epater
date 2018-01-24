@@ -49,6 +49,9 @@ class MultipleMemOp(AbstractOp):
         disCond, descCond = self._explainCondition()
         description += descCond
 
+        baseAddr = simulatorContext.regs[self.basereg]
+        lenAccess = len(self.reglist)
+
         if self.mode == 'LDR':
             disassembly = "POP" if self.basereg == 13 and self.writeback else "LDM"
         else:
@@ -72,9 +75,13 @@ class MultipleMemOp(AbstractOp):
         elif disassembly[:4] == 'PUSH':
             description += "<li>Lit la valeur de SP</li>\n"
             description += "<li>Pour chaque registre de la liste suivante, décrémente SP de 4, puis stocke la valeur du registre à l'adresse pointée par SP.</li>\n"
+        elif self.mode == "LDR":
+            description += "<li>Lit la valeur de {}</li>\n".format(utils.regSuffixWithBank(self.basereg, bank))
+            description += "<li>Pour chaque registre de la liste suivante, stocke la valeur contenue à l'adresse pointée par {reg} dans le registre, puis {incmode} {reg} de 4.</li>\n".format({'reg': utils.regSuffixWithBank(self.basereg, bank), 'incmode': "incrémente" if self.sign > 0 else "décrémente"})
         else:
             description += "<li>Lit la valeur de {}</li>\n".format(utils.regSuffixWithBank(self.basereg, bank))
-
+            description += "<li>Pour chaque registre de la liste suivante, {incmode} {reg} de 4, puis stocke la valeur du registre à l'adresse pointée par {reg}.</li>\n".format({'reg': utils.regSuffixWithBank(self.basereg, bank), 'incmode': "incrémente" if self.sign > 0 else "décrémente"})
+        
         if disassembly[:3] not in ("PUS", "POP"):
             disassembly += " R{}{},".format(self.basereg, "!" if self.writeback else "")
 
@@ -113,13 +120,24 @@ class MultipleMemOp(AbstractOp):
                 description += "<li>Copie du SPSR courant dans le CPSR</li>\n"
 
         self._readregs |= utils.registerWithCurrentBank(self.basereg, bank)
-        if self.mode == "LDR":
-            self._readregs |= reduce(operator.or_, [utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist])
-        else:
-            self._writeregs |= reduce(operator.or_, [utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist])
 
-        # TODO : update _readmem and _writemem
-        # (show the affected memory areas)
+        # Compute the affected memory areas
+        if self.sign > 0:
+            if self.pre:
+                baseAddr += 4
+            endAddr = lenAccess*4 + baseAddr
+        else:
+            endAddr = baseAddr
+            if self.pre:
+                endAddr -= 4
+            baseAddr = endAddr - lenAccess*4
+        endAddr += 3
+        if self.mode == "LDR":
+            self._writeregs |= reduce(operator.or_, [utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist])
+            self._readmem = set(range(baseAddr, endAddr))
+        else:
+            self._readregs |= reduce(operator.or_, [utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist])
+            self._writemem = set(range(baseAddr, endAddr))
 
         description += "</ol>"
         simulatorContext.regs.reactivateBreakpoints()
