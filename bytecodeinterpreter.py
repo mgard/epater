@@ -34,7 +34,7 @@ class BCInterpreter:
         self.lineBreakpoints = []
         self.sim = Simulator(bytecode, self.assertInfo, self.addr2line, pcInitAddr)
         self.reset()
-        self.errorsPending = MultipleErrors()
+        self.errorsPending = None
         self.snippetMode = snippetMode
 
     def reset(self):
@@ -317,18 +317,21 @@ class BCInterpreter:
         """
         return self.sim.regs.getAllRegisters()
 
-    def setRegisters(self, regsDict):
+    def setRegisters(self, bank, reg_id, val):
         """
         Set a variable number of registers at once.
 
-        :param regsDict: a dictionnary containing a mapping between register (an integer) and a value
+        :param bank: a str containing the register mode
+        :param reg_id: int value containing reg id number
+        :param val: the value to set
         """
-        for r,v in regsDict.items():
-            if r == 15:
-                # We never put PC behind its offset
-                # For instance, if we enter 0 in PC, then we do as if it was already ahead at 0x8
-                v = max(v, self.sim.pcoffset)
-            self.sim.regs[r] = v
+        self.sim.regs.deactivateBreakpoints()
+        if reg_id == 15:
+            # We never put PC behind its offset
+            # For instance, if we enter 0 in PC, then we do as if it was already ahead at 0x8
+            val = max(val, self.sim.pcoffset)
+        self.sim.regs.setRegister(bank, reg_id, val, False)
+        self.sim.regs.reactivateBreakpoints()
         # Changing the registers may change some infos in the prediction 
         # (for instance, memory cells affected by a memory access)
         self.sim.fetchAndDecode()

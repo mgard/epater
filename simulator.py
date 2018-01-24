@@ -167,25 +167,23 @@ class Simulator:
     def fetchAndDecode(self, forceExplain=False):
         # Check if PC is valid (multiple of 4)
         if (self.regs[15] - self.pcoffset) % 4 != 0:
-            raise Breakpoint("register", 8, 15, "Erreur : la valeur de PC ({}) est invalide (ce doit être un multiple de 4)!".format(hex(self.regs[15].get())))
-
-        try:
-            # Retrieve instruction from memory
-            self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, execMode=True))
-        except Breakpoint as bp:
-            # We hit a breakpoint, or there is an execution error
-            if bp.mode == 8:
-                # Execution error
-                self.errorsPending.append(bp.cmp, bp.desc)
-                # There is no instruction to this address
-                self.fetchedInstr = None
-                self.currentInstr = None
-                self.disassemblyInfo = ""
-                return
-            else:
-                # Get memory instruction again, without trigger breakpoint
-                self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, mayTriggerBkpt=False))
-                self.bkptLastFetch = bp
+            self.fetchedInstr = None
+            self.errorsPending.append('register', "Erreur : la valeur de PC ({}) est invalide (ce doit être un multiple de 4)!".format(hex(self.regs[15])))
+        else:
+            try:
+                # Retrieve instruction from memory
+                self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, execMode=True))
+            except Breakpoint as bp:
+                # We hit a breakpoint, or there is an execution error
+                if bp.mode == 8:
+                    # Execution error
+                    self.errorsPending.append(bp.cmp, bp.desc)
+                    # There is no instruction to this address
+                    self.fetchedInstr = None
+                else:
+                    # Get memory instruction again, without trigger breakpoint
+                    self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, mayTriggerBkpt=False))
+                    self.bkptLastFetch = bp
 
         self.bytecodeToInstr()
         if forceExplain or self.isStepDone():
@@ -313,7 +311,10 @@ class Simulator:
     def explainInstruction(self):
         if not self.currentInstr:
             # Undefined instruction
-            self.disassemblyInfo = ""
+            self.disassemblyInfo = (["highlightread", []],
+                                    ["highlightwrite", []],
+                                    ["nextline", None],
+                                    ["disassembly", "Information indisponible"])
             return
 
         disassembly, description = self.currentInstr.explain(self)
@@ -383,14 +384,15 @@ class Simulator:
                 self.errorsPending.append(bp.cmp, bp.desc, assertionLine)
 
     def nextInstr(self, forceExplain=False):
+        if self.currentInstr is None:
+            # The current instruction has not be retrieved or decoded (because it was an illegal access)
+            # We raise the last error to explain the illegal access
+            raise self.errorsPending
+
         # One more cycle to do!
         self.history.newCycle()
         # Clear previous errors
         self.errorsPending.clear()
-
-        if self.currentInstr is None:
-            # The current instruction has not be retrieved or decoded (because it was an illegal access)
-            return
 
         keeppc = self.regs[15] - self.pcoffset
 

@@ -385,10 +385,13 @@ def process(ws, msg_in):
                                        ["membp_rw", ["0x{:08x}".format(x) for x in bpm['rw']]],
                                        ["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]]])
                 elif data[0] == 'update':
-                    if data[1][0].upper() == 'R':
-                        reg_id = int(data[1][1:])
+                    reg_update = re.findall(r'(?:([a-z]{3})_)?r(\d{1,2})', data[1])
+                    if reg_update:
+                        bank, reg_id = reg_update[0]
+                        if not len(bank):
+                            bank = 'User'
                         try:
-                            interpreters[ws].setRegisters({reg_id: int(data[2], 16)})
+                            interpreters[ws].setRegisters(bank, int(reg_id), int(data[2], 16))
                         except (ValueError, TypeError):
                             retval.append(["error", "Valeur invalide: {}".format(repr(data[2]))])
                     elif data[1].upper() in ('N', 'Z', 'C', 'V', 'I', 'F', 'SN', 'SZ', 'SC', 'SV', 'SI', 'SF'):
@@ -407,6 +410,7 @@ def process(ws, msg_in):
                             retval.append(["error", "Registre invalide: {}".format(repr(reg_id[1:]))])
                         # bank, reg name, mode [r,w,rw]
                         interpreters[ws].setBreakpointRegister(bank.lower(), reg_id, mode)
+                    force_update_all = True
                 elif data[0] == "interrupt":
                     mode = ["FIQ", "IRQ"][data[2] == "IRQ"] # FIQ/IRQ
                     try: cycles_premier = int(data[4])
