@@ -460,7 +460,7 @@ class Memory(Component):
 
         dictChanges = {}
         for of in range(size):
-            dictChanges[(sec, addr+offset+of)] = (self.data[sec][offset+of], valBytes[of])
+            dictChanges[(sec, offset+of)] = (self.data[sec][offset+of], valBytes[of])
         self.history.signalChange(self, dictChanges)
 
         self.data[sec][offset:offset+size] = valBytes

@@ -433,7 +433,8 @@ class BCInterpreter:
 
         memory_changes = changes.get(self.sim.mem.__class__)
         if memory_changes:
-            result.append(["mempartial", [[k[1], "{:02x}".format(v[1]).upper()] for k, v in memory_changes.items()]])
+            start_addr = self.sim.mem.startAddr
+            result.append(["mempartial", [[start_addr[k[0]]+k[1], "{:02x}".format(v[1]).upper()] for k, v in memory_changes.items()]])
 
         result.extend(self.getErrorsFormatted())
         self.errorsPending = None

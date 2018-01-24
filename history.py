@@ -61,7 +61,10 @@ class History:
             # We reached the end of the history
             raise RuntimeError("Fin de l'historique atteinte, impossible de remonter plus haut!")
 
+        print("Members : {}".format(self.members))
         for name,obj in self.members.items():
+            print("Name : {}".format(name))
+            print("Obj : {}".format(obj))
             obj.stepBack(hist[name])
         
         self.cyclesCount -= 1
