@@ -202,7 +202,7 @@ def parse(code, memLayout="simulation"):
                                    "La déclaration située sur cette ligne fait déborder la section INTVEC dans la section CODE. Vérifiez que vous allouez le bon nombre d'octets (128 octets maximum pour la section INTVEC en entier)."))
 
         if totalMemAllocated > getSetting("maxtotalmem"):
-            return None, None, None, None, [("error", "Le code demande une allocation totale de plus de {} octets de mémoire, ce qui est invalide.".format(getSetting("maxtotalmem")))]
+            return None, None, None, None, None, [("error", "Le code demande une allocation totale de plus de {} octets de mémoire, ce qui est invalide.".format(getSetting("maxtotalmem")))]
 
     maxAddrBySection[currentSection] = currentAddr
     bytecode['__MEMINFOEND'][currentSection] = currentAddr
@@ -210,13 +210,13 @@ def parse(code, memLayout="simulation"):
     if "SNIPPET_DUMMY_SECTION" not in bytecode:
         if "INTVEC" not in bytecode:
             listErrors.append(("codeerror", 0, "La section INTVEC n'est déclarée nulle part (utilisez 'SECTION INTVEC' au début du code)!"))
-            return None, None, None, None, listErrors
+            return None, None, None, None, None, listErrors
         if "CODE" not in bytecode:
             listErrors.append(("codeerror", 0, "La section CODE n'est déclarée nulle part (utilisez 'SECTION CODE')!"))
-            return None, None, None, None, listErrors
+            return None, None, None, None, None, listErrors
         if "DATA" not in bytecode:
             listErrors.append(("codeerror", 0, "La section DATA n'est déclarée nulle part (utilisez 'SECTION DATA' à la fin de votre code)!"))
-            return None, None, None, None, listErrors
+            return None, None, None, None, None, listErrors
 
     # We resolve the pointer dependencies (that is, the instructions using =label)
     labelsPtrAddr = {}
@@ -238,7 +238,7 @@ def parse(code, memLayout="simulation"):
 
     if len(listErrors) > 0:
         # At least one line did not assemble, we cannot continue
-        return None, None, None, None, listErrors
+        return None, None, None, None, None, listErrors
 
     # At this point, all dependencies should have been resolved (e.g. all the labels should have been seen)
     # We fix the bytecode of the affected instructions
