@@ -63,7 +63,7 @@ Other configurations may work as well, but have not been tested.
 
 ## Performances
 
-This emulator was not designed with portability and ease of use in mode rather than performance. While its speed is sufficient for most educational applications, it is not suitable to emulate actual complex ARM programs. Pypy may be used to speed up the simulator and we recommand uvloop for the server side. The server is multi-threaded, but the simulator is not: with *N* cores, *N* simulators may run simultaneously, but one simulator will not benefit from multiple cores. Here are some performance measurements under various conditions:
+**epater** was designed with portability and ease of use in mode rather than performance. While its speed is more than sufficient for most educational applications, it is not suitable to emulate actual complex ARM programs. Pypy may be used to speed up the simulator and we recommand uvloop for the server side. The server is multi-threaded, but the simulator is not: with *N* cores, *N* simulators may run simultaneously, but one simulator will not benefit from multiple cores. Here are some performance measurements under various conditions:
 
 | Details | Performance (instr/sec) |
 | ------- |:-----------------------:|
