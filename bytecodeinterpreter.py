@@ -359,23 +359,17 @@ class BCInterpreter:
         flags = self._parseFlags(cpsr=cpsr, spsr=spsr)
         return flags
 
-    def setFlags(self, flagsDict):
+    def setFlags(self, flag, value):
         """
-        Set the flags in CPSR and the current SPSR (if there is such register)
+        Set the flags in CPSR
 
-        :param flagsDict: a dictionnary with flag names as keys and booleans as values. To set the SPSR flags,
-                        the keys to use are the same as the CPSR, but prepended with a 'S' (e.g. use 'SC' to reference
-                        carry flag in the current SPSR)
+        :param flag: str containing flag name. Valid flag values are 'N' (negative), 'Z' (zero), 'C' (carry),
+                    'V' (overflow), 'I' (ignore IRQ) and 'F' (ignore FIQ)
+        :param value: boolean with the value to set
         """
-        hasSPSR = self.sim.regs.getSPSR() is not None
-        for f,v in flagsDict.items():
-            if hasSPSR and len(f) == 2:
-                f = f[1]
-                self.sim.regs.getSPSR().setFlag(f.upper(), int(v), mayTriggerBkpt=False)
-            elif len(f) == 1:
-                self.sim.flags.setFlag(f.upper(), int(v), mayTriggerBkpt=False)
+        self.sim.regs.setFlag(flag, value, mayTriggerBkpt=False, logToHistory=False)
         # Changing the flags may change the decision to execute or not the next instruction, we update it
-        self.sim.decodeInstr()
+        self.sim.fetchAndDecode()
 
     def getProcessorMode(self):
         """

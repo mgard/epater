@@ -317,7 +317,7 @@ class Registers(Component):
 
         regHandle.val = newValue
     
-    def setFlag(self, flag, value, mayTriggerBkpt=True):
+    def setFlag(self, flag, value, mayTriggerBkpt=True, logToHistory=True):
         currentBank = self.currentMode
 
         try:
@@ -334,7 +334,8 @@ class Registers(Component):
         else:       # We clear the flag
             self.regCPSR &= 0xFFFFFFFF - (1 << self.flag2index[flag])
 
-        self.history.signalChange(self, {(currentBank, "CPSR"): (oldCPSR, self.regCPSR)})
+        if logToHistory:
+            self.history.signalChange(self, {(currentBank, "CPSR"): (oldCPSR, self.regCPSR)})
 
     def setAllFlags(self, flagsDict, mayTriggerBkpt=True):
         oldCPSR = self.regCPSR

@@ -401,7 +401,7 @@ def process(ws, msg_in):
                         except KeyError:
                             pass
                         else:
-                            interpreters[ws].setFlags({flag_id: val})
+                            interpreters[ws].setFlags(flag_id, val)
                     elif data[1][:2].upper() == 'BP':
                         _, mode, bank, reg_id = data[1].split('_')
                         try:
