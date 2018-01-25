@@ -35,6 +35,8 @@ class SwapOp(AbstractOp):
         simulatorContext.regs.deactivateBreakpoints()
         
         self._nextInstrAddr = -1
+
+        addr = simulatorContext.regs[self.rn]
         
         disassembly = "SWP"
         description = "<ol>\n"
@@ -51,9 +53,13 @@ class SwapOp(AbstractOp):
             disassembly += "B"
             description += "<li>Écrit l'octet le moins significatif du registre {} à l'adresse contenue dans {}</li>\n".format(utils.regSuffixWithBank(self.rm, bank), utils.regSuffixWithBank(self.rn, bank))
             description += "<li>Écrit l'octet le moins significatif de la valeur originale en mémoire dans {}</li>\n".format(utils.regSuffixWithBank(self.rd, bank))
+            self._readmem = set([addr])
+            self._writemem = set([addr])
         else:
             description += "<li>Écrit la valeur du registre {} à l'adresse contenue dans {}</li>\n".format(utils.regSuffixWithBank(self.rm, bank), utils.regSuffixWithBank(self.rn, bank))
             description += "<li>Écrit dans {} la valeur originale de l'adresse contenue dans {}</li>\n".format(utils.regSuffixWithBank(self.rd, bank), utils.regSuffixWithBank(self.rn, bank))
+            self._readmem = set(range(addr, addr+4))
+            self._writemem = set(range(addr, addr+4))
 
         disassembly += " R{}, R{}, [R{}]".format(self.rd, self.rm, self.rn)
         description += "</ol>"
