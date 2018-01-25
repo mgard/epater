@@ -243,8 +243,12 @@ class BCInterpreter:
         Step back the simulation
         :param count: number of cycles to step back
         """
-        self.sim.stepBack(count)
-        self.sim.fetchAndDecode()
+        try:
+            self.sim.stepBack(count)
+            self.sim.fetchAndDecode()
+        except RuntimeError as runErr:
+            # We reach end of the history
+            self.errorsPending = MultipleErrors(runErr.__class__(), runErr.args)
 
     def getMemory(self, addr, returnHexaStr=True):
         """

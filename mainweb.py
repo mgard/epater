@@ -248,6 +248,9 @@ def generateUpdate(inter):
     # Breakpoints
     retval.append(["asm_breakpoints", inter.getBreakpointInstr()])
 
+    # Errors
+    retval.extend(inter.getErrorsFormatted())
+
     return retval
 
 

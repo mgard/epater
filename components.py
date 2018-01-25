@@ -381,6 +381,8 @@ class Registers(Component):
             if reg == "CPSR":
                 self.regCPSR = val[0]
             else:
+                if reg == "SPSR":
+                    reg = 16
                 self.banks[bank][reg].val = val[0]
 
 
