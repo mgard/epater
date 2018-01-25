@@ -324,9 +324,14 @@ class BCInterpreter:
         :param regsDict: a dictionnary containing a mapping between register (an integer) and a value
         """
         for r,v in regsDict.items():
+            if r == 15:
+                # We never put PC behind its offset
+                # For instance, if we enter 0 in PC, then we do as if it was already ahead at 0x8
+                v = max(v, self.sim.pcoffset)
             self.sim.regs[r] = v
-        # Changing the registers may change some infos in the prediction (for instance, memory cells affected by a mem access)
-        self.sim.decodeInstr()
+        # Changing the registers may change some infos in the prediction 
+        # (for instance, memory cells affected by a memory access)
+        self.sim.fetchAndDecode()
 
     def getFlagsFormatted(self):
         result = []
