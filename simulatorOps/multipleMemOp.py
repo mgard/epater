@@ -68,6 +68,7 @@ class MultipleMemOp(AbstractOp):
         # See the explanations in execute() for this line
         transferToUserBank = bank != "User" and self.sbit and (self.mode == "STR" or 15 not in self.reglist)
         bankToUse = "User" if transferToUserBank else bank
+        incmode = "incrémente" if self.sign > 0 else "décrémente"
 
         if disassembly[:3] == 'POP':
             description += "<li>Lit la valeur de SP</li>\n"
@@ -77,10 +78,10 @@ class MultipleMemOp(AbstractOp):
             description += "<li>Pour chaque registre de la liste suivante, décrémente SP de 4, puis stocke la valeur du registre à l'adresse pointée par SP.</li>\n"
         elif self.mode == "LDR":
             description += "<li>Lit la valeur de {}</li>\n".format(utils.regSuffixWithBank(self.basereg, bank))
-            description += "<li>Pour chaque registre de la liste suivante, stocke la valeur contenue à l'adresse pointée par {reg} dans le registre, puis {incmode} {reg} de 4.</li>\n".format({'reg': utils.regSuffixWithBank(self.basereg, bank), 'incmode': "incrémente" if self.sign > 0 else "décrémente"})
+            description += "<li>Pour chaque registre de la liste suivante, stocke la valeur contenue à l'adresse pointée par {reg} dans le registre, puis {incmode} {reg} de 4.</li>\n".format(reg=utils.regSuffixWithBank(self.basereg, bank), incmode=incmode)
         else:
             description += "<li>Lit la valeur de {}</li>\n".format(utils.regSuffixWithBank(self.basereg, bank))
-            description += "<li>Pour chaque registre de la liste suivante, {incmode} {reg} de 4, puis stocke la valeur du registre à l'adresse pointée par {reg}.</li>\n".format({'reg': utils.regSuffixWithBank(self.basereg, bank), 'incmode': "incrémente" if self.sign > 0 else "décrémente"})
+            description += "<li>Pour chaque registre de la liste suivante, {incmode} {reg} de 4, puis stocke la valeur du registre à l'adresse pointée par {reg}.</li>\n".format(reg=utils.regSuffixWithBank(self.basereg, bank), incmode=incmode)
         
         if disassembly[:3] not in ("PUS", "POP"):
             disassembly += " R{}{},".format(self.basereg, "!" if self.writeback else "")
