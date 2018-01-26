@@ -436,8 +436,9 @@ class Simulator:
         if self.stepMode in ("out", "forward", "run"):
             if self.bkptLastFetch:
                 # We hit a breakpoint on the last decoded instruction
+                err = self.bkptLastFetch
                 self.bkptLastFetch = None
-                raise self.bkptLastFetch
+                raise err
             try:
                 self.currentInstr.execute(self)
             except Breakpoint as bp:
