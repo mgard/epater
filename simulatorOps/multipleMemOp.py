@@ -147,7 +147,9 @@ class MultipleMemOp(AbstractOp):
     def execute(self, simulatorContext):
         if not self._checkCondition(simulatorContext.regs):
             # Nothing to do, instruction not executed
+            self.countExecConditionFalse += 1
             return
+        self.countExec += 1
 
         # "The lowest-numbereing register is stored to the lowest memory address, through the
         # highest-numbered register to the highest memory address"

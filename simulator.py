@@ -154,6 +154,8 @@ class Simulator:
         Stopping criterion can be set using `setStepCondition`.
         """
         self.history.setCheckpoint()
+        for decoder in self.decoders.values():
+            decoder.resetExecCounters()
         self.nextInstr()                # We always execute at least one instruction
         while not self.isStepDone():    # We repeat until the stopping criterion is met
             self.nextInstr()
@@ -163,6 +165,39 @@ class Simulator:
         for c in range(count):
             self.history.stepBack()
         self.fetchAndDecode()
+
+    def executionStats(self):
+        """
+        Return a dictionnary with the number of times each instruction type was executed
+        in the last execution run.
+        The types are:
+        - "data" (includes all arithmetic and logic operations except multiply)
+        - "mem" (includes all _single_ memory accesses including byte, half or word access and swap)
+        - "multiplemem" (all _multiple_ memory accesses: LDM, STM, POP, and PUSH)
+        - "branch" (all branches, B/BL/BX alike)
+        - "multiply" (multiply and multiply long operations)
+        - "softinterrupt" (self explanatory)
+        - "psr" (CPSR/SPRS <-> register transfers)
+        - "nop" (NOP instructions)
+
+        These keys are associated to a 2-integers tuple. The first value is the number of times
+        this kind of instruction was executed, the second the number of times if _would_ have been
+        executed except for the condition field (e.g. the condition was not met).
+        """
+        memExec = self.decoders['MemOp'].execCounters
+        halfMemExec = self.decoders['HalfSignedMemOp'].execCounters
+        swapExec = self.decoders['SwapOp'].execCounters
+        multiplyExec = self.decoders['MulOp'].execCounters
+        multiplyLongExec = self.decoders['MulLongOp'].execCounters
+
+        return {"data": self.decoders['DataOp'].execCounters,
+                "mem": (memExec[0] + halfMemExec[0] + swapExec[0], memExec[1] + halfMemExec[1] + swapExec[1]),
+                "multiplemem": self.decoders['MultipleMemOp'].execCounters,
+                "branch": self.decoders['BranchOp'].execCounters,
+                "multiply": (multiplyExec[0] + multiplyLongExec[0], multiplyExec[1] + multiplyLongExec[1]),
+                "softinterrupt": self.decoders['SoftInterruptOp'].execCounters,
+                "psr": self.decoders['PSROp'].execCounters,
+                "nop": self.decoders['NopOp'].execCounters}
 
     def fetchAndDecode(self, forceExplain=False):
         # Check if PC is valid (multiple of 4)

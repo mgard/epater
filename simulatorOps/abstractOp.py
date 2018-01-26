@@ -22,6 +22,7 @@ class AbstractOp:
     def __init__(self):
         self._type = utils.InstrType.undefined
         self.resetAccessStates()
+        self.resetExecCounters()
 
     def resetAccessStates(self):
         self._nextInstrAddr = -1
@@ -32,6 +33,13 @@ class AbstractOp:
         self._readmem = set()
         self._writemem = set()
         self.pcmodified = False
+
+    def resetExecCounters(self):
+        self.countExec, self.countExecConditionFalse = 0, 0
+    
+    @property
+    def execCounters(self):
+        return self.countExec, self.countExecConditionFalse
 
     def setBytecode(self, bytecode):
         # It's easier to work with integer objects when it comes to bit manipulation

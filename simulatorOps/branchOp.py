@@ -85,7 +85,9 @@ class BranchOp(AbstractOp):
     def execute(self, simulatorContext):
         if not self._checkCondition(simulatorContext.regs):
             # Nothing to do, instruction not executed
+            self.countExecConditionFalse += 1
             return
+        self.countExec += 1
 
         if self.link:
             simulatorContext.regs[14] = simulatorContext.regs[15] - simulatorContext.pcoffset + 4

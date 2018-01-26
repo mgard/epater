@@ -155,7 +155,9 @@ class MemOp(AbstractOp):
     def execute(self, simulatorContext):
         if not self._checkCondition(simulatorContext.regs):
             # Nothing to do, instruction not executed
+            self.countExecConditionFalse += 1
             return
+        self.countExec += 1
 
         addr = baseval = simulatorContext.regs[self.basereg]
         if self.imm:

@@ -88,7 +88,9 @@ class MulLongOp(AbstractOp):
     def execute(self, simulatorContext):
         if not self._checkCondition(simulatorContext.regs):
             # Nothing to do, instruction not executed
+            self.countExecConditionFalse += 1
             return
+        self.countExec += 1
         workingFlags = {}
 
         op1 = simulatorContext.regs[self.rm]

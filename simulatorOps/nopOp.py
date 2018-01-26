@@ -44,4 +44,8 @@ class NopOp(AbstractOp):
     
     def execute(self, simulatorContext):
         # Whatever happens, a NOP instruction does nothing
-        return
+        if not self._checkCondition(simulatorContext.regs):
+            # Nothing to do, instruction not executed
+            self.countExecConditionFalse += 1
+            return
+        self.countExec += 1
