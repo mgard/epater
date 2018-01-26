@@ -362,27 +362,133 @@ Le simulateur supporte les instructions suivantes. La syntaxe à utiliser est ce
 
 \end{enumerate}
 
-Référez-vous aux notes de cours ou à la documentation d'ARM pour plus de détails sur chacune de celles-ci.
+Toutes les instructions ARMv4 sont supportées à l'exception des instructions du co-processeur. Elles sont présentées dans les tableaux suivants. Référez-vous aux notes de cours ou à la documentation d'ARM pour plus de détails sur chacune de celles-ci.
 
 \subsection{Suffixes conditionnels}
-Toutes les instructions listées ci-dessous peuvent être exécutées \emph{conditionnellement}, en utilisant un des codes à 2 lettres suivants :
-\begin{itemize}
-	\item \textbf{EQ} teste l'égalité ($A == B$)
-	\item \textbf{NE} teste l'inégalité ($A != B$)
-	\item \textbf{CS} teste si un premier nombre non-signé est plus grand ou égal à un second ($A >= B$)
-	\item \textbf{CC} teste si un premier nombre non-signé est strictement plus petit qu'un second ($A < B$)
-	\item \textbf{MI} teste si le résultat est négatif ($A < 0$)
-	\item \textbf{PL} teste si le résultat est positif ($A >= 0$)
-	\item \textbf{VS} teste si la précédente opération a généré un \textit{débordement}
-	\item \textbf{VC} teste si la précédente opération n'a PAS généré un \textit{débordement}
-	\item \textbf{HI} teste si un premier nombre non-signé est plus grand à un second ($A > B$)
-	\item \textbf{LS} teste si un premier nombre non-signé est plus petit ou égal à un second ($A <= B$)
-	\item \textbf{GE} teste si un premier nombre est plus grand ou égal à un second ($A >= B$)
-	\item \textbf{LT} teste si un premier nombre est strictement plus petit qu'un second ($A < B$)
-	\item \textbf{GT} teste si un premier nombre est strictement plus grand qu'un second ($A > B$)
-	\item \textbf{LE} teste si un premier nombre est plus petit ou égal à un second ($A > B$)
-	\item \textbf{AL} exécute systématiquement l'instruction
-\end{itemize}
+Toutes les instructions listées ci-dessous peuvent être exécutées \emph{conditionnellement}, en ajoutant un des codes à 2 lettres suivants à la fin de la mnémonique :
+
+\begin{table}
+\begin{tabular}{l|p{2cm}p{6cm}l}
+Code & Équation & Explication & Signé? \\ \hline
+\textbf{EQ}	& $A == B$ & Teste l'égalité & N/A \\
+\textbf{NE}	& $A \neq B$ & Teste l'inégalité & N/A \\ \hline
+\textbf{CS}	& $A \geq B$ & Teste si un premier nombre est plus grand ou égal à un second & NON \\
+\textbf{CS}	& $A < B$ & Teste si un premier nombre est strictement plus petit qu'un second & NON \\
+\textbf{HI}	& $A > B$ & Teste si un premier nombre est strictement plus grand qu'un second & NON \\
+\textbf{LS}	& $A \leq B$ & Teste si un premier nombre est plus petit ou égal à un second & NON \\ \hline
+\textbf{GE}	& $A \geq B$ & Teste si un premier nombre est plus grand ou égal à un second & OUI \\
+\textbf{LT}	& $A < B$ & Teste si un premier nombre est strictement plus petit qu'un second & OUI \\
+\textbf{GT}	& $A > B$ & Teste si un premier nombre est strictement plus grand qu'un second & OUI \\
+\textbf{LE}	& $A \leq B$ & Teste si un premier nombre est plus petit ou égal à un second & OUI \\ \hline
+\textbf{MI}	& $A < 0$ & Teste si le résultat est négatif & OUI \\
+\textbf{PL}	& $A \geq 0$ & Teste si le résultat est positif & OUI \\ \hline
+\textbf{VS}	& N/A & Teste si la précédente opération a généré un \textit{débordement} (overflow) & OUI \\
+\textbf{VC}	& N/A & Teste si la précédente opération \textbf{n'a pas} généré un \textit{débordement} (overflow) & OUI \\ \hline
+\textbf{AL}	& N/A & Exécute systématiquement l'instruction (pas de condition, implicite) & N/A \\
+\end{tabular}
+\caption{Codes de condition en ARM. Notons que la condition \textbf{AL} est implicitement ajoutée à n'importe quelle instruction ne comportant pas de condition}
+\end{table}
+
+
+\subsection{Instructions de données}
+
+Les instructions manipulant les données peuvent accepter deux ou trois arguments. Lorsque le dernier argument est un registre, il peut optionnellement être décalé par une constante ou un autre registre (voir le tableau \ref{t:decalage}). Le résultat de l'exécution de l'instruction peut également affecter les drapeaux, en ajoutant le suffixe \textit{S} à la mnémonique.
+
+\paragraph{\texttt{MOV R1, R2}} Copie la valeur du registre R2 dans le registre R1.
+\paragraph{\texttt{MOV R0, \#8}} Écrit la valeur 8 dans le registre R0.
+\paragraph{\texttt{MOVEQ R3, R4}} Copie la valeur du registre R4 dans le registre R3 seulement si la condition EQ est vraie.
+\paragraph{\texttt{MOV R3, R4, LSL \#4}} Copie la valeur du registre R4 décalée de 4 bits vers la gauche dans le registre R3.
+\paragraph{\texttt{MOV R3, R4, LSR R5}} Copie la valeur du registre R4 décalée de $N$ bits vers la droite, où $N$ est la valeur contenue dans R5, dans le registre R3.
+
+\paragraph{\texttt{ADD R8, PC, \#0x10}} Additionne 16 (0x10) à la valeur de PC et stocke le résultat dans R8.
+\paragraph{\texttt{ADD R9, R10, R11}} Additionne R10 et R11 et stocke le résultat dans R9.
+\paragraph{\texttt{SUBS R0, R4, R5}} Soustrait R4 et R5, stocke le résultat dans R0 et met à jour les drapeaux en fonction de ce résultat.
+\paragraph{\texttt{ADD R0, R1, R2, LSL \#1}} Additionne R1 et la valeur de R2 décalée de une position vers la gauche, stocke le résultat dans R0.
+\paragraph{\texttt{RSBNES SP, R8, R9, ASR R7}} Soustrait R8 et la valeur de R9 décalée arithmétiquement vers la droite R7 fois, stocke le résultat dans SP et met à jour les drapeaux en fonction de ce résultat, mais seulement si la condition NE est rencontrée.
+
+\begin{table*}
+\begin{tabular}{l|l|p{13.5cm}}
+Type & Format & Effet \\ \hline
+\textbf{LSL} & \texttt{LSL REG} & Décale les bits vers la gauche autant de fois que la valeur contenue dans REG. Le bit qui se retrouverait immédiatement à gauche du MSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\
+   & \texttt{LSL \#CONST} & Décale les bits vers la gauche CONST fois (maximum 32). Le bit qui se retrouverait immédiatement à gauche du MSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\ \hline
+   
+ \textbf{LSR} & \texttt{LSR REG} & Décale les bits vers la droite autant de fois que la valeur contenue dans REG. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\
+   & \texttt{LSR \#CONST} & Décale les bits vers la droite CONST fois (maximum 32). Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\ \hline
+   
+ \textbf{ASR} & \texttt{ASR REG} & Décale les bits vers la droite autant de fois que la valeur contenue dans REG. La valeur du MSB (bit 31) est \textit{dupliquée} sur tous les nouveaux bits insérés. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\
+   & \texttt{ASR \#CONST} & Décale les bits vers la droite CONST fois (maximum 32). La valeur du MSB (bit 31) est \textit{dupliquée} sur les CONST bits les plus significatifs. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\ \hline
+   
+ \textbf{ROR} & \texttt{ROR REG} & Effectue une rotation des bits vers la droite autant de fois que la valeur contenue dans REG. Les bits qui ``débordent'' à droite sont réinsérés à gauche. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\
+   & \texttt{ROR \#CONST} & Effectue une rotation des bits vers la droite CONST fois (maximum 31). Les bits qui ``débordent'' à droite sont réinsérés à gauche. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\ \hline
+  
+ \textbf{RRX} & \texttt{RRX} & Opération spéciale qui décale tous les bits du registre vers la droite d'une position. Le drapeau C (\textit{carry}) est inséré à la position du bit le plus significatif (MSB). Le bit éjecté devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. Ce décalage n'accepte pas de paramètre. \\
+\end{tabular}
+\label{t:decalage}
+\caption{Format des différents modes de décalage acceptés pour une instruction de manipulation de données en ARMv4.}
+\end{table*}
+
+\begin{table*}
+\begin{tabular}{l|l|p{7.5cm}l}
+Code & Format & Description & Exemple \\ \hline
+\textbf{MOV} & \texttt{MOV REG1, REG2[, DEC]} 	& Copie la valeur de REG2 à REG1 avec un décalage optionnel. & \texttt{MOV R1, R2} \\
+ 			 & \texttt{MOV REG1, \#CONST} 			& Écrit la valeur CONST (en décimal ou hexadécimal) dans REG1 & \texttt{MOV R1, \#42} \\
+\hline
+\textbf{ADD} & \texttt{ADD REG1, REG2, REG3[, DEC]} 	& Additionne REG2 et REG3, stocke le résultat dans REG1. REG3 peut être décalé (optionnel). & \texttt{ADD R1, R2, R3} \\
+ 			 & \texttt{ADD REG1, REG2, \#CONST} 			& Additionne REG2 et la valeur CONST, stocke le résultat dans REG1 & \texttt{ADD R1, R2, \#42} \\
+\hline
+\textbf{SUB} & \texttt{SUB REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG2 - REG3, stocke le résultat dans REG1. REG3 peut être décalé (optionnel). & \texttt{SUB R1, R2, R3} \\
+ 			 & \texttt{SUB REG1, REG2, \#CONST} 			& Effectue la soustraction REG2 - CONST, stocke le résultat dans REG1 & \texttt{SUB R1, R2, \#42} \\
+\hline
+\textbf{RSB} & \texttt{RSB REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG3 - REG2, stocke le résultat dans REG1. REG3 peut optionnellement être décalé. & \texttt{RSB R1, R2, R3} \\
+ 			 & \texttt{RSB REG1, REG2, \#CONST} 			& Effectue la soustraction CONST - REG2, stocke le résultat dans REG1 & \texttt{RSB R1, R2, \#42} \\
+\hline
+\textbf{AND} & \texttt{AND REG1, REG2, REG3[, DEC]} 	& Effectue l'opération ET logique entre REG2 et REG3, stocke le résultat dans REG1. REG3 peut optionnellement être décalé. & \texttt{AND R1, R2, R3} \\
+ 			 & \texttt{AND REG1, REG2, \#CONST} 			& Effectue l'opération ET logique entre REG2 et CONST, stocke le résultat dans REG1 & \texttt{AND R1, R2, \#0xFF} \\
+\hline
+\textbf{ORR} & \texttt{ORR REG1, REG2, REG3[, DEC]} 	& Effectue l'opération OU logique entre REG2 et REG3, stocke le résultat dans REG1. REG3 peut optionnellement être décalé. & \texttt{ORR R1, R2, R3} \\
+ 			 & \texttt{ORR REG1, REG2, \#CONST} 			& Effectue l'opération OU logique entre REG2 et CONST, stocke le résultat dans REG1 & \texttt{ORR R1, R2, \#0xFF} \\
+\hline
+\textbf{EOR} & \texttt{EOR REG1, REG2, REG3[, DEC]} 	& Effectue l'opération logique REG2 XOR REG3, stocke le résultat dans REG1. REG3 peut être décalé. & \texttt{EOR R1, R2, R3} \\
+ 			 & \texttt{EOR REG1, REG2, \#CONST} 			& Effectue l'opération logique REG2 XOR CONST, stocke le résultat dans REG1 & \texttt{EOR R1, R2, \#0xFF} \\
+\hline
+\textbf{BIC} & \texttt{BIC REG1, REG2, REG3[, DEC]} 	& Effectue l'opération logique REG2 ET NON REG3, stocke le résultat dans REG1. REG3 peut être décalé. & \texttt{BIC R1, R2, R3} \\
+ 			 & \texttt{BIC REG1, REG2, \#CONST} 			& Effectue l'opération logique REG2 et NON CONST, stocke le résultat dans REG1 & \texttt{BIC R1, R2, \#0xFF} \\
+\hline
+\textbf{CMP} & \texttt{CMP REG1, REG2[, DEC]} 	& Effectue la soustraction REG1 - REG2, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). REG2 peut être décalé. & \texttt{CMP R1, R2} \\
+ 			 & \texttt{CMP REG1, \#CONST} 			& Effectue la soustraction REG1 - CONST, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). & \texttt{CMP R1, \#18} \\
+
+\end{tabular}
+\caption{Instructions de manipulation de données usuelles (arithmétique et logique)}
+\end{table*}
+
+
+\begin{table*}
+\begin{tabular}{l|l|p{7.5cm}l}
+Code & Format & Description & Exemple \\ \hline
+\textbf{MVN} & \texttt{MVN REG1, REG2[, DEC]} 	& Effectue un NON logique sur REG2 et écrit le résultat dans R1. REG3 peut être décalé (optionnel). & \texttt{MVN R1, R2} \\
+ 			 & \texttt{MVN REG1, \#CONST} 			& Effectue un NON logique sur CONST (inverse ses bits) et écrit le résultat dans REG1 & \texttt{MVN R1, \#42} \\
+\hline
+\textbf{ADC} & \texttt{ADC REG1, REG2, REG3[, DEC]} 	& Additionne REG2 + REG3 + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1. REG3 peut être décalé (optionnel). & \texttt{ADC R1, R2, R3} \\
+ 			 & \texttt{ADC REG1, REG2, \#CONST} 			& Additionne REG2 + CONST + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1 & \texttt{ADC R1, R2, \#42} \\
+\hline
+\textbf{SBC} & \texttt{SBC REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG2 - REG3 - 1 + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1. REG3 peut être décalé (optionnel). & \texttt{SBC R1, R2, R3} \\
+ 			 & \texttt{SBC REG1, REG2, \#CONST} 			& Effectue la soustraction REG2 - CONST - 1 + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1 & \texttt{SBC R1, R2, \#42} \\
+\hline
+\textbf{RSC} & \texttt{RSC REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG3 - REG2 - 1 + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1. REG3 peut optionnellement être décalé. & \texttt{RSC R1, R2, R3} \\
+ 			 & \texttt{RSC REG1, REG2, \#CONST} 			& Effectue la soustraction CONST - REG2 - 1 + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1 & \texttt{RSC R1, R2, \#42} \\
+\hline
+\textbf{CMN} & \texttt{CMN REG1, REG2[, DEC]} 	& Effectue l'addition REG1 + REG2, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). REG2 peut être décalé (optionnel). & \texttt{CMN R1, R2} \\
+ 			 & \texttt{CMN REG1, \#CONST} 			& Effectue l'addition REG1 + CONST, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). & \texttt{CMN R1, \#18} \\
+\hline
+\textbf{TEQ} & \texttt{TEQ REG1, REG2[, DEC]} 	& Effectue l'opération logique REG1 XOR REG2, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). REG2 peut être décalé. & \texttt{TEQ R1, R2} \\
+ 			 & \texttt{TEQ REG1, \#CONST} 			& Effectue l'opération logique REG1 XOR CONST, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). & \texttt{TEQ R1, \#0x5F} \\
+\hline
+\textbf{TST} & \texttt{TST REG1, REG2[, DEC]} 	& Effectue l'opération logique REG1 AND REG2, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). REG2 peut être décalé. & \texttt{TST R1, R2} \\
+ 			 & \texttt{TST REG1, \#CONST} 			& Effectue l'opération logique REG1 AND CONST, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). & \texttt{TST R1, \#0x5F} \\
+
+\end{tabular}
+\caption{Instructions de manipulation de données spécialisées (arithmétique et logique)}
+\end{table*}
 
 \subsection{Instructions de manipulation de données}
 \begin{itemize}
