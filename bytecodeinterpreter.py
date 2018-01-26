@@ -396,6 +396,7 @@ class BCInterpreter:
     def getErrorsFormatted(self):
         """
         Return all errors from the last step, serialized in a way that can be read by the UI.
+        Also, all errors will be clear.
         """
         result = []
 
@@ -408,6 +409,7 @@ class BCInterpreter:
                     result.append(["codeerror", line, info])
                 else:
                     result.append(["error", info])
+        self.errorsPending = None
         return result
 
 
@@ -443,7 +445,6 @@ class BCInterpreter:
             result.append(["mempartial", [[start_addr[k[0]]+k[1], "{:02x}".format(v[1]).upper()] for k, v in memory_changes.items()]])
 
         result.extend(self.getErrorsFormatted())
-        self.errorsPending = None
 
         return result
 
