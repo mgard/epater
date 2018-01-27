@@ -102,6 +102,10 @@ select, button, input[type=submit] {
     font-size: 1.1em;
 }
 
+#slideout_text {
+    font-size: 9pt;
+}
+
 .top_buttons img {
     vertical-align: middle;
 }
@@ -497,7 +501,6 @@ select:disabled, button:disabled, input[type=submit]:disabled {
 #solution pre {
     color: inherit !important;
     background: none !important;
-    border: none !important;
     font-weight: bold;
 }
 
