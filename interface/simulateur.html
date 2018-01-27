@@ -3,8 +3,8 @@
     <head>
         <meta charset="UTF-8">
         <title>Simulateur ARM</title>
-        <link rel="stylesheet" type="text/css" media="screen" href="static/css/style.css"/>
-        <link rel="stylesheet" type="text/css" media="screen" href="static/css/jquery-ui.css"/>
+        <link rel="stylesheet" type="text/css" media="screen" href="static/css/style.min.css"/>
+        <link rel="stylesheet" type="text/css" media="screen" href="static/css/jquery-ui.min.css"/>
         <script src="static/js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript">
             window.define = window.define || ace.define;
@@ -18,6 +18,7 @@
         <script src="static/js/editablegrid/editablegrid_validators.js" ></script>
         <script src="static/js/editablegrid/editablegrid_utils.js" ></script>
         <link rel="stylesheet" href="static/js/editablegrid/editablegrid.css" type="text/css" media="screen">
+        <link rel="stylesheet" href="static/css/contained-bootstrap.min.css" type="text/css" media="screen">
     </head>
     <body>
     <div id="message_bar"></div>
@@ -42,10 +43,10 @@
                         % end
                     </ul>
                     % if enonce:
-                        <div id="tabsmain-enonce">{{ !enonce }}</div>
+                        <div id="tabsmain-enonce" class="bootstrap"><div class="container">{{ !enonce }}</div></div>
                     % end
                     % if solution:
-                        <div id="tabsmain-solution">{{ !solution }}</div>
+                        <div id="tabsmain-solution" class="bootstrap"><div class="container">{{ !solution }}</div></div>
                     % end
                     <div id="tabsmain-simulation">
                         <table id="content-sim">
