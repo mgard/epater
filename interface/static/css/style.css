@@ -86,7 +86,6 @@ body {
 }
 
 h1 {
-    width: 600px;
     border-bottom: 3px solid #28648F;
 }
 
@@ -241,11 +240,6 @@ select:disabled, button:disabled, input[type=submit]:disabled {
 #stdout_ {
     width: 300px;
     height: 100px;
-}
-
-img {
-    /* height: 30px;
-    width: auto;*/
 }
 
 .ts-error {
@@ -500,8 +494,11 @@ img {
   font-size: 1.1em;
 }
 
-#enonce {
-    max-width: 700px;
+#solution pre {
+    color: inherit !important;
+    background: none !important;
+    border: none !important;
+    font-weight: bold;
 }
 
 .pre {
