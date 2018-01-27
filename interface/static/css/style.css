@@ -103,7 +103,7 @@ select, button, input[type=submit] {
 }
 
 #slideout_text {
-    font-size: 9pt;
+    font-size: 9pt !important;
 }
 
 .top_buttons img {
