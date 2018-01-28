@@ -694,7 +694,7 @@ def get():
             elif page == "demo":
                 title = "Démonstrations"
         lang = request.get_cookie("lang")
-        if None == lang:
+        if lang not in ['fr', 'en']:
             lang = default_lang
         i18NPlugin.set_lang(lang)
 
