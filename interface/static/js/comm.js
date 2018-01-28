@@ -107,14 +107,15 @@ ws.onmessage = function (event) {
             for (var i = 0; i < obj[1].length; i++) {
                 var element = obj[1][i];
                 try {
-                    if (element.slice(0, 4) == "MEM_") {
-                        var addr = element.slice(4);
+                    if (!isNaN(element)) {
+                        // Memory
                         if (type == "read") {
-                            mem_highlights_r.push(addr);
+                            mem_highlights_r.push(element);
                         } else {
-                            mem_highlights_w.push(addr);
+                            mem_highlights_w.push(element);
                         }
                     } else {
+                        // Register
                         $(document.getElementById(element)).addClass("highlight" + type);
                     }
                 } catch(e) {}

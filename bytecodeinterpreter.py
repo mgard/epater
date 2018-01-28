@@ -213,10 +213,12 @@ class BCInterpreter:
             # We hit a breakpoint execution stop
             assert bp.mode != 8
             self.sim.stepMode = None
+            self.sim.explainInstruction()
         except MultipleErrors as err:
             # Execution error
             self.errorsPending = err
             self.sim.stepMode = None
+            self.sim.explainInstruction()
 
 
     def step(self, stepMode=None):

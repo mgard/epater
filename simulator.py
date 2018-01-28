@@ -356,7 +356,7 @@ class Simulator:
         dis = '<div id="disassembly_instruction">{}</div>\n<div id="disassembly_description">{}</div>\n'.format(disassembly, description)
 
         if self.currentInstr.nextAddressToExecute != -1:
-            self.disassemblyInfo = (["highlightread", list(self.currentInstr.affectedRegs[0] | self.currentInstr.affectedMem[0])], 
+            self.disassemblyInfo = (["highlightread", list(self.currentInstr.affectedRegs[0] | self.currentInstr.affectedMem[0])],
                                     ["highlightwrite", list(self.currentInstr.affectedRegs[1] | self.currentInstr.affectedMem[1])], 
                                     ["nextline", self.currentInstr.nextAddressToExecute], 
                                     ["disassembly", dis])

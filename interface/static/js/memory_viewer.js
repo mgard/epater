@@ -12,7 +12,7 @@ function updateMemoryBreakpointsView() {
     if (tableRow.length < 1) {
       continue;
     }
-    col = parseInt(mem_highlights_r[i], 16) % 16;
+    col = parseInt(mem_highlights_r[i]) % 16;
     $('.editablegrid-c'+col, tableRow).addClass('highlightread');
   }
 
@@ -24,7 +24,7 @@ function updateMemoryBreakpointsView() {
     if (tableRow.length < 1) {
       continue;
     }
-    col = parseInt(mem_highlights_w[i], 16) % 16;
+    col = parseInt(mem_highlights_w[i]) % 16;
     $('.editablegrid-c'+col, tableRow).addClass('highlightwrite');
   }
 
@@ -139,7 +139,7 @@ function resetMemoryViewer() {
   }
 
   editableGrid = new EditableGrid("DemoGridJsData",  {
-    modelChanged: function(row, col, oldValue, newValue, rowref) { 
+    modelChanged: function(row, col, oldValue, newValue, rowref) {
       if (oldValue !== "--") {
         if (newValue.length > 2) {
           newValue = newValue.slice(0, 2);
@@ -150,7 +150,7 @@ function resetMemoryViewer() {
       } else {
         editableGrid.setValueAt(row, col, "--", true);
       }
-    }, 
+    },
     enableSort: false,
     pageSize: 20,
     tableRendered: function() {
