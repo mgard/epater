@@ -174,11 +174,6 @@ class DataOp(AbstractOp):
 
         description += "</ol>"
 
-        if self._nextInstrAddr == -1 or not self._checkCondition(simulatorContext.regs):
-            # The conditional instruction will not be executed,
-            # or the current instruction did not change PC
-            self._nextInstrAddr = simulatorContext.regs[simulatorContext.PC] - 4    # PC is 8 bytes ahead
-
         simulatorContext.regs.reactivateBreakpoints()
         return disassembly, description
     
