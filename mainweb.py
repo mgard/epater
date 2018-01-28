@@ -257,10 +257,11 @@ def generateUpdate(inter):
 def updateDisplay(interp, force_all=False):
     retval = []
 
-    try:
-        retval.append(["debugline", interp.getCurrentLine()])
+    currentLine = interp.getCurrentLine()
+    if currentLine:
+        retval.append(["debugline", currentLine])
         retval.extend(interp.getCurrentInfos())
-    except AssertionError:
+    else:
         retval.append(["debugline", -1])
         retval.append(["nextline", -1])
         retval.append(["disassembly", "Information indisponible"])
