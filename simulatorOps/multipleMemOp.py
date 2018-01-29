@@ -131,8 +131,8 @@ class MultipleMemOp(AbstractOp):
             endAddr = baseAddr
             if self.pre:
                 endAddr -= 4
-            baseAddr = endAddr - lenAccess*4
-        endAddr += 3
+            baseAddr = endAddr - (lenAccess-1)*4
+        endAddr += 4
         if self.mode == "LDR":
             self._writeregs |= reduce(operator.or_, [utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist])
             self._readmem = set(range(baseAddr, endAddr))
