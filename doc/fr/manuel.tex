@@ -352,21 +352,19 @@ Deux éléments principaux peuvent être configurés dans cette interface :
 \clearpage
 \section{Instructions ARM supportées}
 
-Le simulateur supporte les instructions suivantes. La syntaxe à utiliser est celle présentée dans les spécifications et documentations techniques d'ARM, sauf pour les spécificités suivantes :
+Le simulateur supporte toutes les instructions ARMv4 à l'exception des instructions du co-processeur. Elles sont présentées dans les sections suivantes. Référez-vous aux notes de cours ou à la documentation d'ARM pour plus de détails sur chacune de celles-ci. La syntaxe à utiliser est celle présentée dans les spécifications et documentations techniques d'ARM, sauf pour les spécificités suivantes :
 \begin{enumerate}
 	\item Toutes les mnémoniques (MOV, LDR, BL, etc.) doivent être écrites en \textbf{majuscules}
 	\item Tous les noms de registres doivent être écrits en \textbf{majuscules}
-	\item Les étiquettes peuvent être indifféremment en majuscules ou minuscules, mais ne peuvent être directement une mnémonique. Elles peuvent également contenir des chiffres, mais ne peuvent pas \textit{commencer} par un chiffre.
-	\item L'indentation n'a pas d'importance. De même, l'espacement entre les différents composants d'une instruction n'est pas pris en compte, hormis pour l'espace ou la tabulation après la mnémonique, qui est obligatoire.
-	\item Une \emph{section} se déclare uniquement par son nom. Les attributs de section (par exemple \textit{.noinit}) ne sont pas supportés.
+	\item Les étiquettes peuvent contenir, majuscules, minuscules et chiffres, mais pas \textit{commencer} par un chiffre.
+	\item L'indentation n'a pas d'importance. L'espace ou la tabulation après la mnémonique est obligatoire.
+%	\item Une \emph{section} se déclare uniquement par son nom. Les attributs de section (par exemple \textit{.noinit}) ne sont pas supportés.
 
 \end{enumerate}
 
-Toutes les instructions ARMv4 sont supportées à l'exception des instructions du co-processeur. Elles sont présentées dans les tableaux suivants. Référez-vous aux notes de cours ou à la documentation d'ARM pour plus de détails sur chacune de celles-ci.
 
-\subsection{Suffixes conditionnels}
-Toutes les instructions listées ci-dessous peuvent être exécutées \emph{conditionnellement}, en ajoutant un des codes à 2 lettres suivants à la fin de la mnémonique :
-
+\noindent Toutes les instructions peuvent être exécutées \emph{conditionnellement}, en ajoutant un des codes à 2 lettres suivants à la fin de la mnémonique :
+\vspace{-0.8em}
 \begin{table}
 \begin{tabular}{l|p{2cm}p{6cm}l}
 Code & Équation & Explication & Signé? \\ \hline
@@ -384,190 +382,335 @@ Code & Équation & Explication & Signé? \\ \hline
 \textbf{PL}	& $A \geq 0$ & Teste si le résultat est positif & OUI \\ \hline
 \textbf{VS}	& N/A & Teste si la précédente opération a généré un \textit{débordement} (overflow) & OUI \\
 \textbf{VC}	& N/A & Teste si la précédente opération \textbf{n'a pas} généré un \textit{débordement} (overflow) & OUI \\ \hline
-\textbf{AL}	& N/A & Exécute systématiquement l'instruction (pas de condition, implicite) & N/A \\
+%\textbf{AL}	& N/A & Exécute systématiquement l'instruction (pas de condition, implicite) & N/A \\
 \end{tabular}
-\caption{Codes de condition en ARM. Notons que la condition \textbf{AL} est implicitement ajoutée à n'importe quelle instruction ne comportant pas de condition}
+\caption{Codes de condition en ARM. Notons qu'une condition spéciale (AL) est implicitement ajoutée à n'importe quelle instruction ne comportant pas de condition. Cette condition signifie que l'instruction doit être inconditionnellement exécutée. La colonne \textit{Signé?} indique si la comparaison présume un nombre signé ou non. Par exemple, la condition CS considère que les nombres ne sont pas signés, si bien que comparer -1 (0xFFFFFFFF) et 0 (0x00000000) sera vrai, comme si $-1 \geq 0$. À l'opposé, la condition GE tient compte du bit de signe et sera fausse pour cette même comparaison.}
 \end{table}
 
+\clearpage
 
-\subsection{Instructions de données}
+\section{Instructions de données}
 
-Les instructions manipulant les données peuvent accepter deux ou trois arguments. Lorsque le dernier argument est un registre, il peut optionnellement être décalé par une constante ou un autre registre (voir le tableau \ref{t:decalage}). Le résultat de l'exécution de l'instruction peut également affecter les drapeaux, en ajoutant le suffixe \textit{S} à la mnémonique.
+Les instructions manipulant les données peuvent accepter deux ou trois arguments. Lorsque le dernier argument est un registre, il peut optionnellement être décalé par une constante ou un autre registre avant d'exécuter le reste de l'instruction (voir le tableau \ref{t:decalage}). Le résultat de l'exécution de l'instruction peut également affecter les drapeaux, en ajoutant le suffixe \textit{S} à la mnémonique.
+
+Les instructions de manipulation de données peuvent être divisées en quatre catégories :
+
+\begin{itemize}
+	\item Les instructions arithmétiques : voir tableau \ref{t:dataarith} 
+	\item Les instructions booléennes et logiques : voir tableau \ref{t:databool}
+	\item Les instructions arithmétiques utilisant la valeur du drapeau retenue C (\textit{Carry}) : voir tableau \ref{t:dataarithwithcarry}
+	\item Les instructions de comparaison (arithmétiques et booléennes) : voir tableau \ref{t:datacmp}
+\end{itemize}
+
+\subsection{Exemples d'utilisation}
 
 \paragraph{\texttt{MOV R1, R2}} Copie la valeur du registre R2 dans le registre R1.
 \paragraph{\texttt{MOV R0, \#8}} Écrit la valeur 8 dans le registre R0.
 \paragraph{\texttt{MOVEQ R3, R4}} Copie la valeur du registre R4 dans le registre R3 seulement si la condition EQ est vraie.
 \paragraph{\texttt{MOV R3, R4, LSL \#4}} Copie la valeur du registre R4 décalée de 4 bits vers la gauche dans le registre R3.
-\paragraph{\texttt{MOV R3, R4, LSR R5}} Copie la valeur du registre R4 décalée de $N$ bits vers la droite, où $N$ est la valeur contenue dans R5, dans le registre R3.
+\paragraph{\texttt{MOV R3, R4, LSR R5}} Copie la valeur du registre R4 décalée de $N$ bits vers la droite, où $N$ est la valeur de R5, dans le registre R3.
 
-\paragraph{\texttt{ADD R8, PC, \#0x10}} Additionne 16 (0x10) à la valeur de PC et stocke le résultat dans R8.
-\paragraph{\texttt{ADD R9, R10, R11}} Additionne R10 et R11 et stocke le résultat dans R9.
+\paragraph{\texttt{ADD R8, PC, \#0x10}} Ajoute 16 (0x10) à PC, met le résultat dans R8.
 \paragraph{\texttt{SUBS R0, R4, R5}} Soustrait R4 et R5, stocke le résultat dans R0 et met à jour les drapeaux en fonction de ce résultat.
 \paragraph{\texttt{ADD R0, R1, R2, LSL \#1}} Additionne R1 et la valeur de R2 décalée de une position vers la gauche, stocke le résultat dans R0.
-\paragraph{\texttt{RSBNES SP, R8, R9, ASR R7}} Soustrait R8 et la valeur de R9 décalée arithmétiquement vers la droite R7 fois, stocke le résultat dans SP et met à jour les drapeaux en fonction de ce résultat, mais seulement si la condition NE est rencontrée.
+\paragraph{\texttt{RSBNES SP, R8, R9, ASR R7}} Soustrait la valeur de R9, décalée arithmétiquement vers la droite R7 fois, et R8, stocke le résultat dans SP et met à jour les drapeaux en fonction de ce résultat, mais seulement si la condition NE est rencontrée.
+
+
 
 \begin{table*}
 \begin{tabular}{l|l|p{13.5cm}}
 Type & Format & Effet \\ \hline
-\textbf{LSL} & \texttt{LSL REG} & Décale les bits vers la gauche autant de fois que la valeur contenue dans REG. Le bit qui se retrouverait immédiatement à gauche du MSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\
-   & \texttt{LSL \#CONST} & Décale les bits vers la gauche CONST fois (maximum 32). Le bit qui se retrouverait immédiatement à gauche du MSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\ \hline
-   
- \textbf{LSR} & \texttt{LSR REG} & Décale les bits vers la droite autant de fois que la valeur contenue dans REG. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\
-   & \texttt{LSR \#CONST} & Décale les bits vers la droite CONST fois (maximum 32). Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\ \hline
-   
- \textbf{ASR} & \texttt{ASR REG} & Décale les bits vers la droite autant de fois que la valeur contenue dans REG. La valeur du MSB (bit 31) est \textit{dupliquée} sur tous les nouveaux bits insérés. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\
-   & \texttt{ASR \#CONST} & Décale les bits vers la droite CONST fois (maximum 32). La valeur du MSB (bit 31) est \textit{dupliquée} sur les CONST bits les plus significatifs. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\ \hline
-   
- \textbf{ROR} & \texttt{ROR REG} & Effectue une rotation des bits vers la droite autant de fois que la valeur contenue dans REG. Les bits qui ``débordent'' à droite sont réinsérés à gauche. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\
-   & \texttt{ROR \#CONST} & Effectue une rotation des bits vers la droite CONST fois (maximum 31). Les bits qui ``débordent'' à droite sont réinsérés à gauche. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. \\ \hline
+\textbf{LSL} & \texttt{LSL N} & Décale les bits vers la \textbf{gauche} N fois. Des zéros sont insérés à droite pour remplacer les bits décalés. Le bit qui se retrouverait immédiatement à gauche du MSB devient la valeur du drapeau de retenue C (\textit{Carry}) si le suffixe \textit{S} est utilisé.
+
+\includegraphics[width=9cm]{pics/lsl.png} \\  \hline
+
+\textbf{LSR} & \texttt{LSR N} & Décale les bits vers la \textbf{droite} N fois. Des zéros sont insérés à gauche pour remplacer les bits décalés. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau de retenue C (\textit{Carry}) si le suffixe \textit{S} est utilisé.
+
+\includegraphics[width=9cm]{pics/lsr.png} \\  \hline
+
+\textbf{ASR} & \texttt{ASR N} & Décale les bits vers la \textbf{droite} N fois. Les bits insérés à gauche ont la même valeur que le MSB actuel (bit 31). Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau de retenue C (\textit{Carry}) si le suffixe \textit{S} est utilisé.
+
+\includegraphics[width=9cm]{pics/asr.png} \\  \hline
+
+\textbf{ROR} & \texttt{ROR N} & Effectue une rotation des bits vers la droite autant de fois que la valeur contenue dans REG. Les bits qui ``débordent'' à droite sont réinsérés à gauche. Le bit qui se retrouverait immédiatement à droite du LSB devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé.
+
+\includegraphics[width=9cm]{pics/ror.png} \\  \hline
   
- \textbf{RRX} & \texttt{RRX} & Opération spéciale qui décale tous les bits du registre vers la droite d'une position. Le drapeau C (\textit{carry}) est inséré à la position du bit le plus significatif (MSB). Le bit éjecté devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. Ce décalage n'accepte pas de paramètre. \\
+ \textbf{RRX} & \texttt{RRX} & Opération spéciale qui décale tous les bits du registre vers la droite d'une position. Le drapeau C (\textit{carry}) est inséré à la position du bit le plus significatif (MSB). Le bit éjecté devient la valeur du drapeau C (\textit{carry}) si le suffixe \textit{S} est utilisé. Ce décalage n'accepte pas de paramètre. 
+ 
+\includegraphics[width=9cm]{pics/rrx.png} \\
 \end{tabular}
 \label{t:decalage}
-\caption{Format des différents modes de décalage acceptés pour une instruction de manipulation de données en ARMv4.}
+\caption{Format des différents modes de décalage acceptés pour une instruction de manipulation de données en ARMv4. $N$ peut être soit un registre, soit une constante positive $\leq 32$. Toutes les figures (sauf RRX) montrent l'effet d'un décalage de $5$.}
 \end{table*}
+
+
 
 \begin{table*}
 \begin{tabular}{l|l|p{7.5cm}l}
 Code & Format & Description & Exemple \\ \hline
-\textbf{MOV} & \texttt{MOV REG1, REG2[, DEC]} 	& Copie la valeur de REG2 à REG1 avec un décalage optionnel. & \texttt{MOV R1, R2} \\
- 			 & \texttt{MOV REG1, \#CONST} 			& Écrit la valeur CONST (en décimal ou hexadécimal) dans REG1 & \texttt{MOV R1, \#42} \\
+\textbf{MOV} & \texttt{MOV REG1, REG2[, DEC]} 	& Copie la valeur de REG2 dans REG1. Un décalage optionnel peut être appliqué sur REG2 (voir tableau~\ref{t:decalage}). & \texttt{MOV R1, R2} \\
+ 			 & \texttt{MOV REG1, \#CONST} 			& Écrit la valeur CONST (en décimal ou hexadécimal précédé de \texttt{0x}) dans REG1 & \texttt{MOV R1, \#0x42} \\
 \hline
-\textbf{ADD} & \texttt{ADD REG1, REG2, REG3[, DEC]} 	& Additionne REG2 et REG3, stocke le résultat dans REG1. REG3 peut être décalé (optionnel). & \texttt{ADD R1, R2, R3} \\
+\textbf{ADD} & \texttt{ADD REG1, REG2, REG3[, DEC]} 	& Additionne REG2 et REG3, stocke le résultat dans REG1. Un décalage optionnel peut être appliqué sur REG3 (voir tableau~\ref{t:decalage}). & \texttt{ADD R1, R2, R3} \\
  			 & \texttt{ADD REG1, REG2, \#CONST} 			& Additionne REG2 et la valeur CONST, stocke le résultat dans REG1 & \texttt{ADD R1, R2, \#42} \\
 \hline
-\textbf{SUB} & \texttt{SUB REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG2 - REG3, stocke le résultat dans REG1. REG3 peut être décalé (optionnel). & \texttt{SUB R1, R2, R3} \\
+\textbf{SUB} & \texttt{SUB REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG2 - REG3, stocke le résultat dans REG1. Un décalage optionnel peut être appliqué sur REG3 (voir tableau~\ref{t:decalage}). & \texttt{SUB R1, R2, R3} \\
  			 & \texttt{SUB REG1, REG2, \#CONST} 			& Effectue la soustraction REG2 - CONST, stocke le résultat dans REG1 & \texttt{SUB R1, R2, \#42} \\
 \hline
-\textbf{RSB} & \texttt{RSB REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG3 - REG2, stocke le résultat dans REG1. REG3 peut optionnellement être décalé. & \texttt{RSB R1, R2, R3} \\
+\textbf{RSB} & \texttt{RSB REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG3 - REG2, stocke le résultat dans REG1. Un décalage optionnel peut être appliqué sur REG3 (voir tableau~\ref{t:decalage}). & \texttt{RSB R1, R2, R3} \\
  			 & \texttt{RSB REG1, REG2, \#CONST} 			& Effectue la soustraction CONST - REG2, stocke le résultat dans REG1 & \texttt{RSB R1, R2, \#42} \\
 \hline
-\textbf{AND} & \texttt{AND REG1, REG2, REG3[, DEC]} 	& Effectue l'opération ET logique entre REG2 et REG3, stocke le résultat dans REG1. REG3 peut optionnellement être décalé. & \texttt{AND R1, R2, R3} \\
- 			 & \texttt{AND REG1, REG2, \#CONST} 			& Effectue l'opération ET logique entre REG2 et CONST, stocke le résultat dans REG1 & \texttt{AND R1, R2, \#0xFF} \\
-\hline
-\textbf{ORR} & \texttt{ORR REG1, REG2, REG3[, DEC]} 	& Effectue l'opération OU logique entre REG2 et REG3, stocke le résultat dans REG1. REG3 peut optionnellement être décalé. & \texttt{ORR R1, R2, R3} \\
- 			 & \texttt{ORR REG1, REG2, \#CONST} 			& Effectue l'opération OU logique entre REG2 et CONST, stocke le résultat dans REG1 & \texttt{ORR R1, R2, \#0xFF} \\
-\hline
-\textbf{EOR} & \texttt{EOR REG1, REG2, REG3[, DEC]} 	& Effectue l'opération logique REG2 XOR REG3, stocke le résultat dans REG1. REG3 peut être décalé. & \texttt{EOR R1, R2, R3} \\
- 			 & \texttt{EOR REG1, REG2, \#CONST} 			& Effectue l'opération logique REG2 XOR CONST, stocke le résultat dans REG1 & \texttt{EOR R1, R2, \#0xFF} \\
-\hline
-\textbf{BIC} & \texttt{BIC REG1, REG2, REG3[, DEC]} 	& Effectue l'opération logique REG2 ET NON REG3, stocke le résultat dans REG1. REG3 peut être décalé. & \texttt{BIC R1, R2, R3} \\
- 			 & \texttt{BIC REG1, REG2, \#CONST} 			& Effectue l'opération logique REG2 et NON CONST, stocke le résultat dans REG1 & \texttt{BIC R1, R2, \#0xFF} \\
-\hline
-\textbf{CMP} & \texttt{CMP REG1, REG2[, DEC]} 	& Effectue la soustraction REG1 - REG2, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). REG2 peut être décalé. & \texttt{CMP R1, R2} \\
- 			 & \texttt{CMP REG1, \#CONST} 			& Effectue la soustraction REG1 - CONST, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). & \texttt{CMP R1, \#18} \\
 
 \end{tabular}
-\caption{Instructions de manipulation de données usuelles (arithmétique et logique)}
+\label{t:dataarith}
+\caption{Instructions arithmétiques de manipulation de données}
 \end{table*}
 
 
 \begin{table*}
 \begin{tabular}{l|l|p{7.5cm}l}
 Code & Format & Description & Exemple \\ \hline
-\textbf{MVN} & \texttt{MVN REG1, REG2[, DEC]} 	& Effectue un NON logique sur REG2 et écrit le résultat dans R1. REG3 peut être décalé (optionnel). & \texttt{MVN R1, R2} \\
- 			 & \texttt{MVN REG1, \#CONST} 			& Effectue un NON logique sur CONST (inverse ses bits) et écrit le résultat dans REG1 & \texttt{MVN R1, \#42} \\
+
+\textbf{ADC} & \texttt{ADC REG1, REG2, REG3[, DEC]} 	& Additionne REG2 + REG3 + C, stocke le résultat dans REG1. Un décalage optionnel peut être appliqué sur REG3 (voir tableau~\ref{t:decalage}). & \texttt{ADC R1, R2, R3} \\
+ 			 & \texttt{ADC REG1, REG2, \#CONST} 			& Additionne REG2 + CONST + C, stocke le résultat dans REG1 & \texttt{ADC R1, R2, \#42} \\
 \hline
-\textbf{ADC} & \texttt{ADC REG1, REG2, REG3[, DEC]} 	& Additionne REG2 + REG3 + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1. REG3 peut être décalé (optionnel). & \texttt{ADC R1, R2, R3} \\
- 			 & \texttt{ADC REG1, REG2, \#CONST} 			& Additionne REG2 + CONST + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1 & \texttt{ADC R1, R2, \#42} \\
+\textbf{SBC} & \texttt{SBC REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG2 - REG3 - 1 + C, stocke le résultat dans REG1. Un décalage optionnel peut être appliqué sur REG3 (voir tableau~\ref{t:decalage}). & \texttt{SBC R1, R2, R3} \\
+ 			 & \texttt{SBC REG1, REG2, \#CONST} 			& Effectue la soustraction REG2 - CONST - 1 + C, stocke le résultat dans REG1 & \texttt{SBC R1, R2, \#42} \\
 \hline
-\textbf{SBC} & \texttt{SBC REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG2 - REG3 - 1 + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1. REG3 peut être décalé (optionnel). & \texttt{SBC R1, R2, R3} \\
- 			 & \texttt{SBC REG1, REG2, \#CONST} 			& Effectue la soustraction REG2 - CONST - 1 + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1 & \texttt{SBC R1, R2, \#42} \\
+\textbf{RSC} & \texttt{RSC REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG3 - REG2 - 1 + C, stocke le résultat dans REG1. Un décalage optionnel peut être appliqué sur REG3 (voir tableau~\ref{t:decalage}). & \texttt{RSC R1, R2, R3} \\
+ 			 & \texttt{RSC REG1, REG2, \#CONST} 			& Effectue la soustraction CONST - REG2 - 1 + C, stocke le résultat dans REG1 & \texttt{RSC R1, R2, \#42} \\
 \hline
-\textbf{RSC} & \texttt{RSC REG1, REG2, REG3[, DEC]} 	& Effectue la soustraction REG3 - REG2 - 1 + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1. REG3 peut optionnellement être décalé. & \texttt{RSC R1, R2, R3} \\
- 			 & \texttt{RSC REG1, REG2, \#CONST} 			& Effectue la soustraction CONST - REG2 - 1 + C, où C est la valeur du drapeau \textit{Carry} (Retenue), stocke le résultat dans REG1 & \texttt{RSC R1, R2, \#42} \\
-\hline
-\textbf{CMN} & \texttt{CMN REG1, REG2[, DEC]} 	& Effectue l'addition REG1 + REG2, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). REG2 peut être décalé (optionnel). & \texttt{CMN R1, R2} \\
- 			 & \texttt{CMN REG1, \#CONST} 			& Effectue l'addition REG1 + CONST, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). & \texttt{CMN R1, \#18} \\
-\hline
-\textbf{TEQ} & \texttt{TEQ REG1, REG2[, DEC]} 	& Effectue l'opération logique REG1 XOR REG2, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). REG2 peut être décalé. & \texttt{TEQ R1, R2} \\
- 			 & \texttt{TEQ REG1, \#CONST} 			& Effectue l'opération logique REG1 XOR CONST, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). & \texttt{TEQ R1, \#0x5F} \\
-\hline
-\textbf{TST} & \texttt{TST REG1, REG2[, DEC]} 	& Effectue l'opération logique REG1 AND REG2, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). REG2 peut être décalé. & \texttt{TST R1, R2} \\
- 			 & \texttt{TST REG1, \#CONST} 			& Effectue l'opération logique REG1 AND CONST, mais ne fait qu'agir sur les drapeaux (aucun registre n'est modifié). & \texttt{TST R1, \#0x5F} \\
 
 \end{tabular}
-\caption{Instructions de manipulation de données spécialisées (arithmétique et logique)}
+\label{t:dataarithwithcarry}
+\caption{Instructions arithmétiques de manipulation de données utilisant le drapeau Retenue (\textit{Carry}). Dans les explications, $C$ correspond à la valeur de ce drapeau (0 ou 1).}
 \end{table*}
 
-\subsection{Instructions de manipulation de données}
+
+\begin{table*}
+\begin{tabular}{l|l|p{7.5cm}l}
+Code & Format & Description & Exemple \\ \hline
+\textbf{MVN} & \texttt{MVN REG1, REG2[, DEC]} 	& Effectue un NON logique sur REG2 et écrit le résultat dans R1. Un décalage optionnel peut être appliqué sur REG2 (voir tableau~\ref{t:decalage}). & \texttt{MVN R1, R2} \\
+ 			 & \texttt{MVN REG1, \#CONST} 			& Effectue un NON logique sur CONST (inverse ses bits) et écrit le résultat dans REG1 & \texttt{MVN R1, \#42} \\
+\hline
+\textbf{AND} & \texttt{AND REG1, REG2, REG3[, DEC]} 	& Effectue l'opération ET logique entre REG2 et REG3, stocke le résultat dans REG1. Un décalage optionnel peut être appliqué sur REG3 (voir tableau~\ref{t:decalage}). & \texttt{AND R1, R2, R3} \\
+ 			 & \texttt{AND REG1, REG2, \#CONST} 			& Effectue l'opération ET logique entre REG2 et CONST, stocke le résultat dans REG1 & \texttt{AND R1, R2, \#0xFF} \\
+\hline
+\textbf{ORR} & \texttt{ORR REG1, REG2, REG3[, DEC]} 	& Effectue l'opération OU logique entre REG2 et REG3, stocke le résultat dans REG1. Un décalage optionnel peut être appliqué sur REG3 (voir tableau~\ref{t:decalage}). & \texttt{ORR R1, R2, R3} \\
+ 			 & \texttt{ORR REG1, REG2, \#CONST} 			& Effectue l'opération OU logique entre REG2 et CONST, stocke le résultat dans REG1 & \texttt{ORR R1, R2, \#0xFF} \\
+\hline
+\textbf{EOR} & \texttt{EOR REG1, REG2, REG3[, DEC]} 	& Effectue l'opération logique REG2 XOR REG3, stocke le résultat dans REG1. Un décalage optionnel peut être appliqué sur REG3 (voir tableau~\ref{t:decalage}). & \texttt{EOR R1, R2, R3} \\
+ 			 & \texttt{EOR REG1, REG2, \#CONST} 			& Effectue l'opération logique REG2 XOR CONST, stocke le résultat dans REG1 & \texttt{EOR R1, R2, \#0xFF} \\
+\hline
+\textbf{BIC} & \texttt{BIC REG1, REG2, REG3[, DEC]} 	& Effectue l'opération logique REG2 ET NON REG3, stocke le résultat dans REG1. Un décalage optionnel peut être appliqué sur REG3 (voir tableau~\ref{t:decalage}). & \texttt{BIC R1, R2, R3} \\
+ 			 & \texttt{BIC REG1, REG2, \#CONST} 			& Effectue l'opération logique REG2 et NON CONST, stocke le résultat dans REG1 & \texttt{BIC R1, R2, \#0xFF} \\
+\hline
+
+\end{tabular}
+\label{t:databool}
+\caption{Instructions booléennes de manipulation de données}
+\end{table*}
+
+
+
+\begin{table*}
+\begin{tabular}{l|l|p{7.5cm}l}
+Code & Format & Description & Exemple \\ \hline
+ \textbf{CMP} & \texttt{CMP REG1, REG2[, DEC]} 	& Effectue la soustraction REG1 - REG2 et met à jour les drapeaux en fonction du résultat. Un décalage optionnel peut être appliqué sur REG2 (voir tableau~\ref{t:decalage}). & \texttt{CMP R1, R2} \\
+ 			 & \texttt{CMP REG1, \#CONST} 			& Effectue la soustraction REG1 - CONST et met à jour les drapeaux en fonction du résultat. & \texttt{CMP R1, \#18} \\ \hline
+\textbf{CMN} & \texttt{CMN REG1, REG2[, DEC]} 	& Effectue l'addition REG1 + REG2 et met à jour les drapeaux. Un décalage optionnel peut être appliqué sur REG2 (voir tableau~\ref{t:decalage}). & \texttt{CMN R1, R2} \\
+ 			 & \texttt{CMN REG1, \#CONST} 			& Effectue l'addition REG1 + CONST et met à jour les drapeaux en fonction du résultat. & \texttt{CMN R1, \#18} \\
+\hline
+\textbf{TEQ} & \texttt{TEQ REG1, REG2[, DEC]} 	& Effectue l'opération logique REG1 XOR REG2 et met à jour les drapeaux en fonction du résultat. Un décalage optionnel peut être appliqué sur REG2 (voir tableau~\ref{t:decalage}). & \texttt{TEQ R1, R2} \\
+ 			 & \texttt{TEQ REG1, \#CONST} 			& Effectue l'opération logique REG1 XOR CONST et met à jour les drapeaux en fonction du résultat. & \texttt{TEQ R1, \#0x5F} \\
+\hline
+\textbf{TST} & \texttt{TST REG1, REG2[, DEC]} 	& Effectue l'opération logique REG1 AND REG2 et met à jour les drapeaux en fonction du résultat. Un décalage optionnel peut être appliqué sur REG2 (voir tableau~\ref{t:decalage}). & \texttt{TST R1, R2} \\
+ 			 & \texttt{TST REG1, \#CONST} 			& Effectue l'opération logique REG1 AND CONST et met à jour les drapeaux en fonction du résultat. & \texttt{TST R1, \#0x5F} \\ \hline
+
+\end{tabular}
+\label{t:datacmp}
+
+\caption{Instructions de comparaisons de données (arithmétique et logique). Ces instructions ont le même effet que d'autres, mais n'écrivent leur résultat nulle part -- elles ne font qu'agir sur les drapeaux. Pour cette raison, le suffixe \textit{S} est redondant et ne doit pas être utilisé.}
+\end{table*}
+
+\clearpage
+\section{Instructions d'accès mémoire}
+\vspace{-0.8em}
+\subsection{Accès mémoire de base}
+
+Il existe deux types d'accès mémoire (avec leur mnémonique) :
 \begin{itemize}
-	\item MOV
-	\item MVN
-	\item ADD
-	\item SUB
-	\item MUL
-	\item MLA
-	\item AND
-	\item EOR
-	\item ORR
-	\item ADC
-	\item RSB
-	\item SBC
-	\item RSC
-	\item BIC
-	\item NOP
+	\item \texttt{LDR}, qui lit une donnée de la mémoire et l'écrit dans un registre;
+	\item \texttt{STR}, qui lit un registre et écrit sa valeur dans la mémoire;
 \end{itemize}
 
-\subsection{Instructions de comparaison}
+Plusieurs suffixes peuvent être ajoutés à ces opérations pour modifier leur comportement (en plus du suffixe conditionnel) :
 \begin{itemize}
-	\item CMP
-	\item CMN
-	\item TST
-	\item TEQ
+	\item Le suffixe \texttt{B}, qui permet de ne lire qu'un seul octet (au lieu de 4)
+	\item Le suffixe \texttt{H}, qui permet de ne lire que 2 octets (au lieu de 4)
+	\item Dans le cas de LDR, les suffixes \texttt{SB} et \texttt{SH}, qui lisent respectivement 1 et 2 octets, mais en \textit{étendant le signe de la valeur lues au reste du registre}. Par exemple, lire la valeur $0xFF$ en mode \texttt{B} écrira la valeur $0x000000FF$ dans le registre de destination. Faire la même chose en mode \texttt{SB} écrira plutôt $0xFFFFFFFF$ (le MSB de l'octet lu est dupliqué à gauche).
+\end{itemize}
+Note : l'utilisation des suffixes \texttt{H}, \texttt{SH} ou \texttt{SB} empêche l'utilisation des cas 3, 5, 6 et 7 de la liste suivante ou d'un décalage.
+
+\subsection{Format d'une instruction LDR ou STR}
+
+Les instructions d'accès mémoire sont du format : \texttt{LDR REG, INFOMEM} où REG est le registre source (dans le cas de STR) ou de destination (dans le cas de LDR), et INFOMEM une expression déterminant une adresse mémoire. Celle-ci peut prendre sept formes :
+\begin{enumerate}
+	\item {[REGBASE] : la valeur contenue dans REGBASE est directement interprétée comme une adresse}
+	\item {[REGBASE, REGADD] : les valeurs de REGBASE et REGADD sont additionnées pour former une adresse. REGADD peut optionnellement être décalé (voir tableau \ref{t:decalage}). Si le ] est suivi d'un point d'exclamation (!), la somme de REGBASE et REGADD est écrite dans REGBASE par après}
+	\item {[REGBASE, \#CONST] : les valeurs de REGBASE et CONST sont additionnées pour former une adresse. Un point d'exclamation peut ici aussi être ajouté pour stocker la somme dans REGBASE}
+	\item {[REGBASE], REGADD : la valeur de REGBASE est utilisée comme adresse, mais REGADD est additionné à cette valeur \textit{après} l'accès mémoire, et le résultat stocké dans REGBASE. REGADD peut optionnellement être décalé (voir tableau \ref{t:decalage})}
+	\item {[REGBASE], \#CONST : la valeur de REGBASE est utilisée comme adresse, mais CONST est additionné à cette valeur \textit{après} l'accès mémoire, et le résultat stocké dans REGBASE}
+	\item LABEL : l'assembleur transforme l'étiquette LABEL en un accès relatif à PC. L'étiquette doit être définie ailleurs dans le programme.
+	\item =LABEL : l'assembleur transforme =LABEL en un accès relatif à PC vers \textit{l'adresse} de l'étiquette LABEL (l'équivalent d'un pointeur en C). Cette étiquette doit être définie ailleurs dans le programme. Ce mode ne peut être utilisé qu'en conjonction avec \texttt{LDR} (il est interdit de l'utiliser avec une instruction \texttt{STR}).
+\end{enumerate}
+
+\subsection{Exemples d'utilisation}
+
+\paragraph{\texttt{LDR R0, [R1]}} Copie dans R0 la valeur contenue dans l'adresse mémoire désignée par R1 et les 3 octets suivants (4 octets au total).
+
+\paragraph{\texttt{LDR R0, [R1, \#4]}} Copie dans R0 la valeur contenue dans l'adresse mémoire calculée par R1+4 et les 3 octets suivants (4 octets au total).
+
+\paragraph{\texttt{LDR R0, [R1, R2]}} Copie dans R0 la valeur contenue dans l'adresse mémoire calculée par R1+R2 et les 3 octets suivants (4 octets au total).
+
+\paragraph{\texttt{LDR R0, [R1, R2, LSL R3]}} Copie dans R0 la valeur contenue dans l'adresse mémoire calculée par R1+N et les 3 octets suivants (4 octets au total), où N est la valeur de R2 décalée vers la gauche R3 fois.
+
+\paragraph{\texttt{LDR R0, [R1, R2, LSR \#2]}} Copie dans R0 la valeur contenue dans l'adresse mémoire calculée par R1+N et les 3 octets suivants (4 octets au total), où N est la valeur de R2 décalée deux fois vers la droite.
+
+\paragraph{\texttt{LDR R0, [R1, R2]!}} Copie dans R0 la valeur contenue dans l'adresse mémoire calculée par R1+R2 et les 3 octets suivants (4 octets au total). Par la suite, stocke le résultat de R1+R2 dans R1.
+
+\paragraph{\texttt{LDRB R0, [R1]}} Copie dans R0 la valeur de l'octet contenu dans l'adresse mémoire désignée par R1.
+
+\paragraph{\texttt{LDRGEB R0, [R1], R2}} Copie dans R0 la valeur de l'octet contenu dans l'adresse mémoire désignée par R1. Additionne R1+R2 et stocke le résultat dans R1. Ces opérations ne sont effectuées que si la condition GE est rencontrée.
+
+\paragraph{\texttt{LDR R0, mavariable}} Copie dans R0 la valeur contenue dans l'adresse mémoire désignée par l'étiquette \textit{mavariable} et les 3 octets suivant.
+
+\paragraph{\texttt{LDR R0, =var2}} Copie dans R0 \textit{l'adresse de} l'étiquette \textit{var2}.
+
+\paragraph{\texttt{LDRH R0, [R1]}} Copie dans R0 la valeur contenue dans l'adresse mémoire désignée par R1 et l'octet suivant (2 octets au total).
+
+\paragraph{\texttt{STR R0, [R1]}} Copie les 4 octets composant la valeur de R0 à l'adresse mémoire désignée par R1 (ainsi que les 3 octets suivants).
+
+\paragraph{\texttt{STRB R0, [R1]}} Copie l'octet le moins significatif de la valeur de R0 à l'adresse mémoire désignée par R1.
+
+\paragraph{\texttt{STREQ R0, [R1], \#8}} Copie l'octet le moins significatif de la valeur de R0 à l'adresse mémoire désignée par R1. Additionne 8 à R1 et stocke le résultat dans R1. Ces opérations ne sont effectuées que si la condition EQ est rencontrée.
+
+\paragraph{\texttt{STR R0, mavariable}} Copie les 4 octets composant la valeur de R0 à l'adresse mémoire désignée par l'étiquette \textit{mavariable}.
+
+
+\subsection{Accès mémoire multiples}
+
+Il est également possible de lire ou écrire plusieurs espaces mémoire contigus simultanément. De manière générale, ce genre d'accès est surtout utilisé en conjonction avec une pile. Les instructions à utiliser sont \texttt{PUSH} et \texttt{POP}. Ces deux instructions prennent une liste de registre en paramètre, entourés d'accolages (\{\}). Les registre listés sont stockés dans la mémoire, de la manière suivante :
+\begin{enumerate}
+	\item Le registre SP (R13) est décrémenté de 4 octets
+	\item La valeur du registre dont l'index est \textbf{le plus élevé} est stockée à cette adresse (par exemple, si on a R5, R8 et R11, c'est la valeur de R11 qui sera écrite).
+	\item Le registre SP est décrémenté de quatre octets, et le cycle recommence avec les registres restant à écrire.
+\end{enumerate}
+L'utilisation de POP est similaire, mais la mémoire est lue au lieu d'être écrite et SP incrémenté au lieu d'être décrémenté. L'ordre des registres dans la liste n'a donc aucune importance, seule leur présence (ou absence) est prise en compte.
+
+\subsection{Exemples d'utilisation}
+
+\paragraph{\texttt{PUSH \{R0, R3-R7\}}} Stocke les registres R0, R3, R4, R5, R6 et R7 à partir de l'adresse pointée par SP (en descendant la mémoire)
+
+\paragraph{\texttt{POPNE \{R4, R5, R12\}}} Lit la mémoire et copie ses valeurs dans R4, R5 et R12 à partir de l'adresse pointée par SP (en remontant la mémoire), mais seulement si la condition NE est rencontrée.
+
+\subsection{Échange mémoire/registre (swap)}
+
+Un dernier type d'accès, plus rare, est un accès \textit{d'échange}, qui écrit et lit simultanément le même espace mémoire. L'instruction à utiliser est \textit{SWP}, dont la syntaxe est la suivante : \texttt{SWP REG1, REG2, [REG3]}. REG3 doit contenir l'adresse où l'on souhaite lire et écrire, REG2 le contenu que l'on souhaite y écrire et REG1 le registre de destination pour la valeur lue. La valeur est lue dans REG1 avant d'être modifiée par l'écriture de REG2. Un suffixe \texttt{B} peut optionnellement être ajouté pour ne lire/écrire qu'un seul octet (au lieu de 4).
+
+\subsection{Exemples d'utilisation}
+
+\paragraph{\texttt{SWP R3, R8, [R9]}} Copie la valeur contenue à l'adresse mémoire contenue dans R9 dans R3, écrit la valeur de R8 à cette même adresse
+
+\paragraph{\texttt{SWPPLB R1, R2, [R10]}} Copie la valeur de l'octet contenu à l'adresse mémoire contenue dans R10 dans R1, écrit la valeur de l'octet le moins significatif de R8 à cette même adresse, mais seulement si la condition PL est rencontrée
+
+\clearpage
+\section{Instructions de branchement}
+
+Ces instructions permettent de modifier la valeur de PC afin de changer le fil d'exécution du programme. Elles sont souvent utilisées en conjonction avec une condition pour réaliser un bloc \textit{IF}. Il existe trois types d'instruction de branchement :
+\begin{enumerate}
+	\item \texttt{B LABEL}, qui assigne PC à l'adresse de l'étiquette LABEL
+	\item \texttt{BL LABEL}, qui opère la même opération, mais stocke de plus l'adresse de l'instruction \textit{suivant le BL} dans le registre LR (R14). Cette instruction est souvent utilisée pour appeler une fonction en conservant l'adresse de retour.
+	\item \texttt{BX REG}, qui copie la valeur du registre REG dans PC. Cette instruction est souvent utilisée avec le registre LR pour revenir d'une fonction.
+\end{enumerate}
+
+\subsection{Exemples d'utilisation}
+
+\paragraph{\texttt{B main}} Branche inconditionnellement à l'adresse de l'étiquette \textit{main}
+
+\paragraph{\texttt{BEQ maboucle}} Branche à l'adresse de l'étiquette \textit{maboucle}, mais seulement si la condition EQ est remplie
+
+\paragraph{\texttt{BL mafonction}} Branche inconditionnellement à l'adresse de l'étiquette \textit{mafonction}, écrit l'adresse de l'instruction suivant ce \texttt{BL} dans le registre LR
+
+\paragraph{\texttt{BX LR}} Copie la valeur de LR dans PC et poursuit l'exécution
+
+\paragraph{\texttt{BXLE R3}} Copie la valeur de R3 dans PC, mais seulement si la condition LE est rencontrée
+
+\clearpage
+\section{Instructions de décalage}
+
+On peut utiliser une instruction \texttt{MOV} pour réaliser n'importe quel type de décalage. Toutefois, pour faciliter la programmation, un ensemble de cinq \textit{pseudo-instructions} sont fournies et permettent d'écrire directement une opération de décalage :
+
+\begin{itemize}
+	\item \texttt{LSL REG1, REG2, REG3} ou \texttt{LSL REG1, REG2, \#CONST} : décale REG2 de REG3 ou \#CONST positions vers la gauche, stocke le résultat dans REG1. Équivalent à \texttt{MOV REG1, REG2, LSL REG3}.
+	\item \texttt{LSR REG1, REG2, REG3} ou \texttt{LSR REG1, REG2, \#CONST} : décale REG2 de REG3 ou \#CONST positions vers la droite, stocke le résultat dans REG1. Équivalent à \texttt{MOV REG1, REG2, LSR REG3}.
+	\item \texttt{ASR REG1, REG2, REG3} ou \texttt{ASR REG1, REG2, \#CONST} : décale REG2 de REG3 ou \#CONST positions vers la droite (en copiant la valeur du MSB sur tous les bits insérés), stocke le résultat dans REG1. Équivalent à \texttt{MOV REG1, REG2, ASR REG3}.
+	\item \texttt{ROR REG1, REG2, REG3} ou \texttt{ROR REG1, REG2, \#CONST} : décale REG2 de REG3 ou \#CONST positions vers la droite en réinsérant les bits à la gauche du registre, stocke le résultat dans REG1. Équivalent à \texttt{MOV REG1, REG2, ROR REG3}.
+	\item \texttt{RRX REG1, REG2} : décale REG2 de une position vers la droite en utilisant le drapeau Retenue (C) comme nouvelle valeur de MSB. Équivalent à \texttt{MOV REG1, REG2, RRX}.
 \end{itemize}
 
-\subsection{Instructions de décalage}
-Note : ces instructions sont des pseudo-instructions. Elles sont transformées par le programme assembleur en une instruction MOV intégrant le décalage.
+Note : ces instructions étant des pseudo-instructions, leur encodage est strictement le même qu'une instruction MOV équivalente. Le tableau \ref{t:decalage} présente en détails chaque type de décalage.
+
+\subsection{Exemples d'utilisation}
+
+\paragraph{\texttt{LSL R9, R10, R4}} Décale R10 de R4 positions vers la gauche, stocke le résultat dans R9
+
+\paragraph{\texttt{LSREQ R1, R2, \#6}} Décale R2 de 6 positions vers la droite, stocke le résultat dans R1, mais seulement si la condition EQ est rencontrée.
+
+
+
+\clearpage
+\section{Instructions d'accès au registre de contrôle et de statut}
+
+Deux instructions permettent d'accéder et de modifier les registres de contrôle et de statut (CPSR et SPSR). Ces instructions sont les suivantes :
+
 \begin{itemize}
-	\item LSL
-	\item LSR
-	\item ASR
-	\item ROR
-	\item RRX
+	\item \texttt{MRS REG, STATUS} : transfère la valeur du registre STATUS (qui peut être CPSR ou SPSR) dans le registre REG
+	\item \texttt{MSR STATUS, REG} : transfère la valeur du registre REG dans le registre STATUS (qui peut être CPSR ou SPSR)
+	\item \texttt{MSR STATUS\_flg, REG} ou \texttt{MSR STATUS\_flg, \#CONST} : transfère la valeur du registre REG ou de la constante CONST dans le registre STATUS (qui peut être CPSR ou SPSR), mais ne fait que agir sur les drapeaux (les autres bits du registre de statut ne sont pas modifiés)
 \end{itemize}
 
-\subsection{Instructions de branchement}
-\begin{itemize}
-	\item B
-	\item BL
-	\item BX
-\end{itemize}
+Attention : l'accès au registre SPSR n'est valide que dans les modes qui en comportent un.
 
-\subsection{Instructions d'accès mémoire}
-\begin{itemize}
-	\item LDR
-	\item STR
-	\item LDRB
-	\item STRB
-\end{itemize}
+\subsection{Exemples d'utilisation}
 
-\subsection{Instructions d'accès mémoire multiples}
-\begin{itemize}
-	\item LDM
-	\item STM
-	\item PUSH
-	\item POP
-\end{itemize}
+\paragraph{\texttt{MRS R9, CPSR}} Transfère le contenu du registre CPSR dans le registre R9
 
-\subsection{Instructions d'accès au registre de contrôle et de statut}
-\begin{itemize}
-	\item MSR
-	\item MRS
-\end{itemize}
+\paragraph{\texttt{MRS SPSR, R5}} Transfère le contenu du registre R5 dans le registre SPSR du mode courant
 
-\subsection{Instructions de déclenchement d'une interruption logicielle}
-\begin{itemize}
-	\item SWI
-	\item SVC
-\end{itemize}
 
+\paragraph{\texttt{MRS CPSR\_flg, \#0xF0000000}} Transfère la constante 0xF0000000 dans le registre CPSR, mais en n'affectant que les drapeaux. Les drapeaux étant aux bits 28 à 31 du CPSR, cette instruction les assigne tous à 1.
+
+\clearpage
+\section{Instructions de déclenchement d'une interruption logicielle}
+
+Deux mnémoniques équivalentes permettent de déclencher une interruption logicielle : \texttt{SWI} et \texttt{SVC}. Ces instructions possèdent \textit{exactement} le même comportement et prennent en paramètre une constante dont la valeur ne peut excéder $2^24$. Cette valeur est ignorée par le processeur, mais peut être récupérée par l'interruption logicielle et être utilisée comme paramètre.
+
+\subsection{Exemples d'utilisation}
+
+\paragraph{\texttt{SVC \#0xCAFE}} Déclenche une interruption logicielle
+\paragraph{\texttt{SWI \#22}} Déclenche une interruption logicielle
+\paragraph{\texttt{SVCEQ \#0xCAFE}} Déclenche une interruption logicielle seulement si la condition EQ est rencontrée
+
+\clearpage
 \section{Remerciements}
 
 Les auteurs tiennent à remercier les personnes suivantes pour l'aide qu'ils ont apporté à la réalisation de ce simulateur :
 \begin{itemize}
 	\item Jessica Déziel, pour le design de l'interface graphique
 	\item Jonathan Gilbert, pour les tests préliminaires du simulateur et la réalisation des exercices
+	\item Étienne Dubeau, pour son travail à l'amélioration du simulateur et à l'implémentation de nouvelles fonctionnalités
 \end{itemize}
 
 \end{document} 
