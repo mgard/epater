@@ -153,6 +153,7 @@ class MemOp(AbstractOp):
     
 
     def execute(self, simulatorContext):
+        self.pcmodified = False
         if not self._checkCondition(simulatorContext.regs):
             # Nothing to do, instruction not executed
             self.countExecConditionFalse += 1
