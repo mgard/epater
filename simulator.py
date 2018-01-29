@@ -138,7 +138,7 @@ class Simulator:
                 self.stepCondition = 1
                 return False
             else:
-                return maxCyclesReached
+                return True
         if self.stepMode == "out":
             return self.stepCondition == 0 or maxCyclesReached
         if self.stepMode == "run":

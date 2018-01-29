@@ -71,7 +71,7 @@ async def run_instance(websocket):
             break
         if websocket in interpreters:
             interp = interpreters[websocket]
-            if (not interp.shouldStop) and (time.time() > interp.last_step__ + interp.animate_speed__) and (interp.user_asked_stop__ == False):
+            if (interp.user_asked_stop__ == False) and (time.time() > interp.last_step__ + interp.animate_speed__):
                 return
         await asyncio.sleep(0.05)
 
@@ -141,6 +141,8 @@ async def handler(websocket, path):
                     interpreters[websocket].step()
                     interpreters[websocket].last_step__ = time.time()
                     interpreters[websocket].num_exec__ += 1
+                    if interpreters[websocket].shouldStop:
+                        interpreters[websocket].user_asked_stop__ = True
                     ui_update_queue.extend(updateDisplay(interpreters[websocket]))
 
                 else:
@@ -148,6 +150,7 @@ async def handler(websocket, path):
                     interpreters[websocket].execute()
                     interpreters[websocket].last_step__ = time.time()
                     interpreters[websocket].num_exec__ += interpreters[websocket].getCycleCount()
+                    interpreters[websocket].user_asked_stop__ = True
                     ui_update_queue.extend(updateDisplay(interpreters[websocket]))
 
                 to_run_task = asyncio.ensure_future(run_instance(websocket))
@@ -329,7 +332,7 @@ def process(ws, msg_in):
                     interpreters[ws].next_report__ = 0
                     interpreters[ws].animate_speed__ = 0.1
                     interpreters[ws].num_exec__ = 0
-                    interpreters[ws].user_asked_stop__ = False
+                    interpreters[ws].user_asked_stop__ = True
                     retval.append(["line2addr", line2addr])
                     interpreters[ws].lang = lang
             else:
