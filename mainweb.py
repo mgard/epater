@@ -150,6 +150,7 @@ async def handler(websocket, path):
                     interpreters[websocket].execute()
                     interpreters[websocket].last_step__ = time.time()
                     interpreters[websocket].num_exec__ += interpreters[websocket].getCycleCount()
+                    interpreters[websocket].num_exec__ = max(interpreters[websocket].num_exec__, 1)
                     interpreters[websocket].user_asked_stop__ = True
                     ui_update_queue.extend(updateDisplay(interpreters[websocket]))
 
