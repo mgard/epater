@@ -454,10 +454,10 @@
                                         <button onclick="assemble('{{ lang }}')" id="assemble" class="top_buttons">D&eacute;marrer</button>
                                         <button onclick="reset()" id="reset" class="top_buttons" disable="disabled">R&eacute;initialiser</button>
                                         <button id="run" onclick="simulate('run')" disable="disabled" class="top_buttons"><img src="static/image/run.png" alt="run"/></button>
-                                        <button id="stepin" onclick="simulate('stepinto')" disable="disabled" class="top_buttons"><img src="static/image/into.png" alt="step into"/></button>
-                                        <button id="stepforward" onclick="simulate('stepforward')" disable="disabled" class="top_buttons"><img src="static/image/over.png" alt="step forward"/></button>
-                                        <button id="stepout" onclick="simulate('stepout')" disable="disabled" class="top_buttons"><img src="static/image/out.png" alt="step out"/></button>
                                         <button id="stepback" onclick="simulate('stepback')" disable="disabled" class="top_buttons"><img src="static/image/back.png" alt="step back"/></button>
+                                        <button id="stepout" onclick="simulate('stepout')" disable="disabled" class="top_buttons"><img src="static/image/out.png" alt="step out"/></button>
+                                        <button id="stepforward" onclick="simulate('stepforward')" disable="disabled" class="top_buttons"><img src="static/image/over.png" alt="step forward"/></button>
+                                        <button id="stepin" onclick="simulate('stepinto')" disable="disabled" class="top_buttons"><img src="static/image/into.png" alt="step into"/></button>
                                     </div>
                                     <div id="editor">{{ code }}</div>
                                     <br>
@@ -736,7 +736,7 @@
             })
 
         // Help buttons
-        $("#stepback").tooltipster({ content: 'Step Back', position: 'right' });
+        $("#stepback").tooltipster({ content: "Reculer à l'instruction précédente", position: 'right' });
         $("#run").tooltipster({ content: 'Exécuter', position: 'right' });
         $("#stepin").tooltipster({ content: "Exécuter l'instruction courante", position: 'right' });
         $("#stepforward").tooltipster({ content: 'Exécuter la ligne courante', position: 'right' });
