@@ -380,6 +380,7 @@ class Registers(Component):
             bank, reg = k
             if reg == "CPSR":
                 self.regCPSR = val[0]
+                self.currentMode = self.bits2mode[val[0] & 0x1F]
             else:
                 if reg == "SPSR":
                     reg = 16
