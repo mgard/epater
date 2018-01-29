@@ -47,11 +47,32 @@ class SoftInterruptOp(AbstractOp):
             return
         self.countExec += 1
 
+        keepPC = simulatorContext.regs[15]
         # We enter a software interrupt
         keepCPSR = simulatorContext.regs.CPSR
         simulatorContext.regs.mode = "SVC"                  # Set the register bank
         simulatorContext.regs.SPSR = keepCPSR               # Save the CPSR in the current SPSR
         # Does entering SVC interrupt deactivate IRQ and/or FIQ?
-        simulatorContext.regs[14] = simulatorContext.regs[15]
+        simulatorContext.regs[14] = keepPC
         simulatorContext.regs[15] = 0x08                    # Entrypoint for the SVC
         self.pcmodified = True
+
+        if keepPC - simulatorContext.pcoffset in simulatorContext.assertionCkpts and \
+            simulatorContext.assertionData[keepPC - simulatorContext.pcoffset][0][0] != "BEFORE":
+            # There is an assertion after the SVC call, user probably wanted this to be
+            # executed when the interrupt returns
+            # We use the same mechanism than with assertion with BL
+            key = keepPC - simulatorContext.pcoffset + 4
+            assertionInfo = []
+            for ad in simulatorContext.assertionData[keepPC - simulatorContext.pcoffset]:
+                assertionInfo.append(("BEFORE", ad[1], ad[2]))
+            if key in simulatorContext.assertionData:
+                for ad in simulatorContext.assertionData[key]:
+                    # We don't want to insert it more than one time
+                    if ad[0] == "BEFORE":
+                        break
+                else:
+                    simulatorContext.assertionData[key].extend(assertionInfo)
+            else:
+                simulatorContext.assertionData[key] = assertionInfo
+                simulatorContext.assertionCkpts.add(key)
