@@ -24,6 +24,62 @@ class InstrType(Enum):
     multiplylong = 11
     declareOp = 100
 
+exportInstrInfo = {# DATA OPERATIONS
+                   'AND': InstrType.dataop,
+                   'EOR': InstrType.dataop,
+                   'SUB': InstrType.dataop,
+                   'RSB': InstrType.dataop,
+                   'ADD': InstrType.dataop,
+                   'ADC': InstrType.dataop,
+                   'SBC': InstrType.dataop,
+                   'RSC': InstrType.dataop,
+                   'TST': InstrType.dataop,
+                   'TEQ': InstrType.dataop,
+                   'CMP': InstrType.dataop,
+                   'CMN': InstrType.dataop,
+                   'ORR': InstrType.dataop,
+                   'MOV': InstrType.dataop,
+                   'BIC': InstrType.dataop,
+                   'MVN': InstrType.dataop,
+                    # The next five are not actual operations, but can be translated to a MOV op
+                   'LSR': InstrType.shiftop,
+                   'LSL': InstrType.shiftop,
+                   'ASR': InstrType.shiftop,
+                   'ROR': InstrType.shiftop,
+                   'RRX': InstrType.shiftop,
+                    # PROGRAM STATUS REGISTER OPERATIONS
+                   'MRS': InstrType.psrtransfer,
+                   'MSR': InstrType.psrtransfer,
+                    # MEMORY OPERATIONS
+                   'LDR': InstrType.memop,
+                   'STR': InstrType.memop,
+                    # MULTIPLE MEMORY OPERATIONS
+                   'LDM': InstrType.multiplememop,
+                   'STM': InstrType.multiplememop,
+                   'PUSH': InstrType.multiplememop,
+                   'POP': InstrType.multiplememop,
+                    # BRANCH OPERATIONS
+                   'B'  : InstrType.branch,
+                   'BX' : InstrType.branch,
+                   'BL' : InstrType.branch,
+                   'BLX': InstrType.branch,
+                    # MULTIPLY OPERATIONS
+                   'MUL': InstrType.multiply,
+                   'MLA': InstrType.multiply,
+                    # MULTIPLY OPERATIONS LONG
+                   'UMULL': InstrType.multiplylong,
+                   'UMLAL': InstrType.multiplylong,
+                   'SMULL': InstrType.multiplylong,
+                   'SMLAL': InstrType.multiplylong,
+                    # SWAP OPERATIONS
+                   'SWP': InstrType.swap,
+                    # SOFTWARE INTERRUPT OPERATIONS
+                   'SWI': InstrType.softinterrupt,
+                   'SVC': InstrType.softinterrupt,      # Same opcode, but two different mnemonics
+                    # NOP
+                   'NOP': InstrType.nopop,
+                   }
+
 conditionMapping = {'EQ': 0,
                     'NE': 1,
                     'CS': 2,
@@ -267,3 +323,78 @@ def addWithCarry(op1, op2, carryIn):
     carryOut = usum != r
     overflowOut = ssum != toSigned(r)
     return r, carryOut, overflowOut
+
+def immediateToBytecode(imm, mode=None, alreadyinverted=False, gccMode=True):
+    """
+    The immediate operand rotate field is a 4 bit unsigned integer which specifies a shift
+    operation on the 8 bit immediate value. This value is zero extended to 32 bits, and then
+    subject to a rotate right by twice the value in the rotate field. (ARM datasheet, 4.5.3)
+
+    GCC and IAR have different ways of dealing with immediate rotate:
+    IAR put the constant to the far left of the unsigned field (that is, it uses as many rotations as possible)
+    GCC put the constant to the far right of the unsigned field (using as few rotations as possible)
+    :param imm:
+    :return:
+    """
+    def tryInvert():
+        if mode is None:
+            return None
+        if mode == 'logical':
+            invimm = (~imm) & 0xFFFFFFFF
+        elif mode == 'arithmetic':
+            invimm = (~imm + 1) & 0xFFFFFFFF
+        ret2 = immediateToBytecode(invimm, mode, True)
+        if ret2:
+            return ret2[0], ret2[1], True
+        return None
+
+    imm &= 0xFFFFFFFF
+    if imm == 0:
+        return 0, 0, False
+    if imm < 256:
+        return imm, 0, False
+
+    if imm < 0:
+        if alreadyinverted:
+            return None
+        return tryInvert()
+
+    def _rotLeftPos(onep, n):
+        return [(k+n) % 32 for k in onep]
+
+    def _rotLeftBin(binlist, n):
+        return binlist[n:] + binlist[:n]
+
+    immBin = [int(b) for b in "{:032b}".format(imm)]
+    onesPos = [31-i for i in range(len(immBin)) if immBin[i] == 1]
+    for i in range(31):
+        rotatedPos = _rotLeftPos(onesPos, i)
+        if max(rotatedPos) < 8:
+            # Does it fit in 8 bits?
+            # If so, we want to use the put the constant to the far left of the unsigned field
+            # (that is, we want as many rotations as possible)
+            # Remember that we can only do an EVEN number of right rotations
+            if not gccMode:
+                rotReal = i + (7 - max(rotatedPos))
+                if rotReal % 2 == 1:
+                    if max(rotatedPos) < 7:
+                        rotReal -= 1
+                    else:
+                        return None
+            else:
+                rotReal = i - min(rotatedPos)
+                if rotReal % 2 == 1:
+                    if max(rotatedPos) < 7:
+                        rotReal += 1
+                    else:
+                        return None
+
+            immBinRot = [str(b) for b in _rotLeftBin(immBin, rotReal)]
+            val = int("".join(immBinRot), 2) & 0xFF
+            rot = rotReal // 2
+            break
+    else:
+        if alreadyinverted:
+            return None
+        return tryInvert()
+    return val, rot, False

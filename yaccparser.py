@@ -6,7 +6,7 @@ from tokenizer import tokens, ParserError, lexer
 from settings import getSetting
 from i18n import I18n as _
 
-import instruction
+import simulatorOps.utils as instruction
 
 class YaccError(ParserError):
     """

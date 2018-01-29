@@ -3,7 +3,7 @@ from collections import namedtuple
 from itertools import chain
 import ply.lex as lex
 
-import instruction as instrInfos
+import simulatorOps.utils as instrInfos
 
 """
 This is the lexer definiton for the ARM assembly parser.
