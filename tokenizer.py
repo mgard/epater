@@ -669,7 +669,7 @@ lexer = lex.lex()
 
 
 if __name__ == "__main__":
-    a = lexer.input("UMULL R0 R1 R2 R4 R5\n")
+    a = lexer.input("STRH\n")
     print(lexer.token())
     print(lexer.token())
     print(lexer.token())
