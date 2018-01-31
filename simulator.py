@@ -438,6 +438,7 @@ class Simulator:
                 # We hit a breakpoint on the last decoded instruction
                 err = self.bkptLastFetch
                 self.bkptLastFetch = None
+                self.history.restartCycle()
                 raise err
             try:
                 self.currentInstr.execute(self)
@@ -448,6 +449,7 @@ class Simulator:
                 self._toggleBreakpoint(bp)
                 if bp.mode != 8:
                     # READ/WRITE breakpoint
+                    self.history.restartCycle()
                     raise bp
                 # Execution error
                 self.errorsPending.append(bp.cmp, bp.desc)

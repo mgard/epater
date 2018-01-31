@@ -35,6 +35,14 @@ class History:
         self.history.append({k:{} for k in self.members})
         self.cyclesCount += 1
 
+    def restartCycle(self):
+        """
+        Remove the last cycle info without applying any changes to the components.
+        Useful for breakpoints, where we actually want to resume the execution
+        at the same instruction it was stopped.
+        """
+        self.history.pop()
+
     def signalChange(self, obj, change):
         """
         Called by a component to signal a change. The name identifier must be
