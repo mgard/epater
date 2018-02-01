@@ -16,6 +16,7 @@ main
 LDR R0, =variable1
 LDR R1, =variable2
 LDR R2, =memvar1
+LDR R3, =0x3003211F
 
 MOV R3, #4
 MOV R4, #2

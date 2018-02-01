@@ -448,7 +448,8 @@ def p_memaccess(p):
     """memaccess : memaccesspre
                  | memaccesspost
                  | memaccesslabel
-                 | memaccesslabeladdr"""
+                 | memaccesslabeladdr
+                 | memaccessimmediate"""
     # We divide pre and post increment to simplify their respective rules
     p[0] = p[1]
 
@@ -546,7 +547,7 @@ def p_memaccesspost(p):
 
 def p_memaccesslabel(p):
     """memaccesslabel : LABEL"""
-    # We will use PC as label
+    # We will use PC as base register
     b = 15 << 16
     # Pre-indexing
     b |= 1 << 24
@@ -554,11 +555,19 @@ def p_memaccesslabel(p):
 
 def p_memaccesslabeladdr(p):
     """memaccesslabeladdr : EQUALS LABEL"""
-    # We will use PC as label
+    # We will use PC as base register
     b = 15 << 16
     # Pre-indexing
     b |= 1 << 24
     p[0] = (b, ("addrptr", p[2], 4096))     # This instruction cannot be assembled yet: we need to know the label's address
+
+def p_memaccessimmediate(p):
+    """memaccessimmediate : EQUALS CONST"""
+    b = 15 << 16
+    # Pre-indexing
+    b |= 1 << 24
+    # TODO check if we can encode it with a MOV
+    p[0] = (b, ("const", p[2], 4096))
 
 
 def p_swapinstruction(p):
@@ -898,7 +907,7 @@ parser = yacc.yacc()
 
 
 if __name__ == '__main__':
-    a1 = parser.parse("STRT R0, [R4]\n")
+    a1 = parser.parse("LDR R1, =0x22\n") #STRT R0, [R4]\n")
     print(a1)
     #print(a, hex(a['BYTECODE']))
     #a = parser.parse("\n")
