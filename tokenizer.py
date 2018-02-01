@@ -160,24 +160,24 @@ def t_assertion_ASSERTIONDATA(t):
 
 # A constant or variable declaration
 def t_CONSTDEC(t):
-    r'(?<=[\t ])DC[0-9]+\s+'
+    r'(?<=[\t ])ASSIGN[0-9]+\s+'
     t.lexer.begin('decwithvalues')
-    t.value = int(t.value[2:])
+    t.value = int(t.value[6:])
     return t
 
 def t_VARDEC(t):
-    r'(?<=[\t ])DS[0-9]+\s+'
+    r'(?<=[\t ])ALLOC[0-9]+\s+'
     t.lexer.begin('decwithsize')
-    t.value = int(t.value[2:])
+    t.value = int(t.value[5:])
     return t
 
 def t_VARDECWITHOUTSIZE(t):
-    r'(?<=[\t ])DS\s+'
+    r'(?<=[\t ])ALLOC\s+'
     t.lexer.begin('decwithsize')
     return t
 
 def t_CONSTDECWITHOUTSIZE(t):
-    r'(?<=[\t ])DC\s+'
+    r'(?<=[\t ])ASSIGN\s+'
     t.lexer.begin('decwithvalues')
     return t
 
