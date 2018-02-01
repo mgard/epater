@@ -393,7 +393,7 @@ def process(ws, msg_in):
                                        ["membp_rw", ["0x{:08x}".format(x) for x in bpm['rw']]],
                                        ["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]]])
                 elif data[0] == 'update':
-                    reg_update = re.findall(r'(?:([a-z]{3})_)?r(\d{1,2})', data[1])
+                    reg_update = re.findall(r'^(?:([A-Z]{3})_)?r(\d{1,2})', data[1])
                     if reg_update:
                         bank, reg_id = reg_update[0]
                         if not len(bank):
