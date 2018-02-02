@@ -16,7 +16,7 @@ var AssemblyARMHighlightRules = function() {
          { token: 'sectiontitle.assembly',
            regex: 'SECTION\\s(?:INTVEC|CODE|DATA)' },
          { token: 'memdeclare.assembly',
-           regex: '\\bD[CS](?:8|16|32)\\b' },
+           regex: '\\b(?:ALLOC|ASSIGN)(?:8|16|32)\\b' },
          { token: 'constant.character.assembly',
            regex: '#-?0x[0-9a-fA-F]+' },
            { token: 'constant.character.assembly',
