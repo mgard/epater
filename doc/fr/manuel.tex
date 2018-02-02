@@ -2,7 +2,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[francais]{babel}
 
-\title{Manuel d'utilisation du simulateur ARM epater\\Révision 1}
+\title{Manuel d'utilisation du simulateur ARM epater\\Révision 2}
 
 
 \author{Marc-André Gardner\\Yannick Hold-Geoffroy\\Jean-François Lalonde}
@@ -575,6 +575,25 @@ Code & Format & Description & Exemple \\ \hline
 
 \caption{Instructions de comparaisons de données (arithmétique et logique). Ces instructions ont le même effet que d'autres, mais n'écrivent leur résultat nulle part -- elles ne font qu'agir sur les drapeaux. Pour cette raison, le suffixe \textit{S} est redondant et ne doit pas être utilisé.}
 \end{table*}
+
+\clearpage
+\section{Assignations et allocations en mémoire}
+
+Écrire une instruction réserve implicitement 4 octets en mémoire. Toutefois, il est également possible de réserver ou assigner des valeurs arbitraires à n'importe quel endroit dans la mémoire. Deux mots clés sont disponibles à cette fin. Il est à noter que ces mots clés \textbf{ne sont pas des instructions} : ils ne génèrent aucun code ARM en tant que tel, mais se contentent d'initialiser ou de réserver certaines sections de la mémoire. Ces directives doivent être précédées d'une étiquette qui sert de nom de variable.
+
+\begin{itemize}
+	\item Le mot clé \texttt{ALLOC} permet \textbf{d'allouer} une certaine quantité de mémoire, sans l'initialiser (c'est-à-dire que vous ne pouvez pas déterminer ses valeurs initiales). Sa syntaxe est \texttt{ALLOCT NOMBRE}, où \texttt{T} est un nombre déterminant la taille des éléments à allouer et \texttt{NOMBRE} le nombre d'éléments de cette taille à allouer. \texttt{T} est exprimé en bits, et peut prendre les valeurs 8, 16 ou 32. 
+	
+	Par exemple, la ligne \texttt{mavariable ALLOC32 5} allouera 5 espaces de 32 bits (4 octets) chacun; l'étiquette \textit{mavariable} permettra d'y faire référence dans le code. De même \texttt{monoctet ALLOC8 1} allouera 1 espace de 8 bits, soit un octet au total, avec \textit{monoctet} comme étiquette de référence.
+	
+	\item Le mot clé \texttt{ASSIGN} permet \textbf{d'assigner} une valeur à une ou plusieurs adresses mémoire. Sa syntaxe est \texttt{ASSIGNT VAL1, VAL2, ..., VALN}, où \texttt{T} est un nombre déterminant la taille des éléments en mémoire et \texttt{VAL1, VAL2, ..., VALN} une liste de valeurs séparées par des virgules de longueur arbitraire, qui seront écrites à la suite dans la mémoire. Tout comme pour \texttt{ALLOC}, \texttt{T} est exprimé en bits, et peut prendre les valeurs 8, 16 ou 32. 
+	
+	Par exemple, la ligne \texttt{mavariable ASSIGN32 8, 0x12, 0, -1} assignera la valeur 8 (représentée sur 32 bits) aux 4 premiers octets, la valeur 0x12 aux 4 suivants, la valeur 0 aux 4 suivants et la valeur -1 aux 4 suivants, pour un total de 16 octets assignés.
+	
+	La directive \texttt{ASSIGN} accepte également des chaînes de caractères écrites entre guillemets. Par exemple, la ligne \texttt{machaine ASSIGN8 "ceci est du texte"} assignera un octet pour chaque caractère ASCII du texte contenu entre les guillements.
+\end{itemize}
+
+Notons qu'une étiquette ne peut être déclarée ou assignée \textbf{qu'une seule fois}. Par exemple, faire suivre \texttt{mavariable ALLOC32 5} de \texttt{mavariable ASSIGN32 8, 0x12, 0, -1} est une erreur, puisque \texttt{mavariable} est alors utilisée deux fois.
 
 \clearpage
 \section{Instructions d'accès mémoire}
