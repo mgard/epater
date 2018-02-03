@@ -125,7 +125,7 @@ Il est possible de mettre en place des points d'arrêt (\textit{breakpoints}) en
 \caption{Un point d'arrêt (\textit{breakpoint}) peut être mis en place en cliquant sur le numéro de ligne.}
 \end{figure}
 
-\paragraph{\textbf{Note importante :}}un point d'arrêt peut être placé sur n'importe qu'elle ligne si le programme n'est \emph{pas assemblé}. Une fois le programme \emph{assemblé} (le bouton ``Démarrer'' pressé et le code assemblé sans erreur), les points d'arrêt peuvent seulement être placé sur une ligne \emph{contenant une instruction} et les points d'arrêts invalides sont désactivés ou déplacé sur la prochaine ligne. Si l'utilisateur clique sur une ligne ne contenant pas d'instruction, le point d'arrêt sera placé sur la prochaine ligne contenant une instruction. Par exemple, à la figure \ref{f:editeurbkpt}, cliquer sur la ligne 17 placera un point d'arrêt à la ligne \emph{18}.
+\paragraph{\textbf{Note importante :}}un point d'arrêt peut être placé sur n'importe quelle ligne si le programme n'est \emph{pas assemblé}. Une fois le programme \emph{assemblé} (le bouton ``Démarrer'' pressé et le code assemblé sans erreur), un point d'arrêt peut seulement être placé sur une ligne \emph{contenant une instruction} et un point d'arrêt invalide est désactivé ou déplacé sur la prochaine ligne. Si l'utilisateur clique sur une ligne ne contenant pas d'instruction, le point d'arrêt sera placé sur la prochaine ligne contenant une instruction. Par exemple, à la figure \ref{f:editeurbkpt}, cliquer sur la ligne 17 placera un point d'arrêt à la ligne \emph{18}.
 
 Lors de l'exécution, l'éditeur passe en mode lecture seule. Il affiche cependant certaines informations. La ligne en cours d'exécution est surlignée en rouge bourgogne :
 \begin{figure}[h!]
@@ -168,7 +168,7 @@ Lorsque le bouton \textit{Démarrer} est pressé, le simulateur tente d'abord d'
 	\item \textbf{Arrêt} : interrompt la simulation et revient en mode édition.
 	\item \textbf{Réinitialisation} : effectue l'équivalent d'une interruption \emph{reset} sur le microprocesseur. La valeur de PC est mise à $0$. Notez que cela n'affecte \emph{pas} la valeur des autres registres et des drapeaux.
 	\item \textbf{Exécution en continu} : le simulateur exécute les instructions suivantes sans arrêt, jusqu'à ce qu'il rencontre une erreur ou un point d'arrêt. Notez que le simulateur est volontairement limité quant au nombre d'instructions qu'il peut exécuter d'un seul coup (10\,000). Lorsque ce nombre est atteint, le simulateur arrête comme s'il avait rencontré un point d'arrêt. Il suffit d'appuyer à nouveau sur le bouton d'exécution en continu pour poursuivre.
-    \item \textbf{Retour en arrière} : retourne en arrière d'une instruction. L'état du simulateur (les registres, la mémoire et les drapeaux) retourne comme elle était à l'instruction précédente puis arrête.
+    \item \textbf{Retour en arrière} : retourne en arrière d'une instruction. L'état du simulateur (les registres, la mémoire et les drapeaux) retourne comme il était à l'instruction précédente puis arrête.
 	\item \textbf{Exécuter jusqu'à la sortie} : dans le cas où la ligne courante est dans une fonction, cette action exécute sans arrêt les instructions jusqu'à sortir de la fonction (appel de BX). Si la ligne courante n'est pas dans une fonction, cette action a le même effet qu'une exécution en continu.
 	\item \textbf{Exécuter ligne courante} : dans le cas où la ligne courante est une instruction autre que BL, cette action a le même effet que la précédente. Toutefois, dans le cas d'un appel de fonction (BL), cette action exécute l'entièreté de la fonction jusqu'à son retour.
 	\item \textbf{Exécuter instruction courante} : exécute l'instruction courante (celle qui est surlignée dans l'éditeur) et passe à la suivante puis arrête.
@@ -348,7 +348,7 @@ Trois bouton sont accessible pour modifier les sessions :
 \begin{enumerate}     
 \item \textbf{Effacer} : la session courante est supprimée et la suivante est sélectionnée (son code est restauré).
 \item \textbf{Effacer tout} : toutes les sessions sont supprimées puis le code par défaut est restauré.
-\item \textbf{Nouvelle session} : la session courante est sauvegardée et une nouvelle session est ajouté en tête de la liste. Le code par défaut est restauré. 
+\item \textbf{Nouvelle session} : la session courante est sauvegardée et une nouvelle session est ajoutée en tête de la liste. Le code par défaut est restauré. 
 \end{enumerate}
 
 \begin{marginfigure}
@@ -359,7 +359,7 @@ Trois bouton sont accessible pour modifier les sessions :
 
 De plus, cliquer sur une session sauvegarde la session courante et restaure la session sélectionnée. La session en cours est affichée en bleu pour la différencier.
 
-Certaines informations sont affichées pour distinguer les différentes sessions. On y retrouve, le numéro de la session, l'heure de la dernière sauvegarde, la taille du code (en nombre de caractères) et le nom personnalisé de la session. Un double-clic sur le nom permet de le modifier.
+Certaines informations sont affichées pour distinguer les différentes sessions. On y retrouve le numéro de la session, l'heure de la dernière sauvegarde, la taille du code (en nombre de caractères) et le nom personnalisé de la session. Un double-clic sur le nom permet de le modifier.
 
 \paragraph{\textbf{Note importante :}} bien que ce procédé permette de sauvegarder son code même après la fermeture de votre navigateur, \textbf{il est fortement recommandé d'enregistrer (télécharger) votre code}. Les sauvegardes de sessions sont enregistrées dans la mémoire de votre navigateur et il n'y a aucune garantie que celle-ci ne sera pas effacée. Si c'est le cas, l'équipe du simulateur ne possède aucun moyen de récupérer votre code, puisque aucune donnée n'est enregistrée sur le serveur.  
 
@@ -377,7 +377,7 @@ Ces contrôles, situés au bas de l'écran, vous permettent de télécharger le 
 
 N'importe quel type de fichier texte brut peut être lu par le simulateur. Nous vous recommandons toutefois d'utiliser l'extension ``txt'' afin d'éviter la confusion avec d'autres formats de fichier. C'est d'ailleurs cette extension que comportent les fichiers téléchargés depuis le simulateur.
 
-\paragraph{\textbf{Note importante :}}malgré que votre code est sauvegardé automatiquement dans votre navigateur, \textbf{il est fortement recommandé de sauvegarder votre code} avec ces contrôles.
+\paragraph{\textbf{Note importante :}}malgré que votre code est sauvegarder automatiquement dans votre navigateur, \textbf{il est fortement recommandé de sauvegarder votre code} avec ces contrôles.
 
 \clearpage
 \subsection{Configuration}
