@@ -1,16 +1,29 @@
 var saveEditorTimer = window.setInterval('onTimer()', 60000);
 
 var savedEditor = JSON.parse(localStorage.getItem(getURLParameter('sim')));
-if (savedEditor) {
-    savedEditor['defaultEditor'] = editor.getValue();
-    if (savedEditor['current'] != null){
+if (savedEditor && savedEditor['current'] != null) {
+    defaultEditor = editor.getValue();
+    if (savedEditor['defaultEditor'] != defaultEditor){
+        // Default code is different than previous version
+        editor.setValue(defaultEditor, -1);
+        savedEditor['data'].unshift({});
+        savedEditor['current'] = 0;
+        savedEditor['defaultEditor'] = defaultEditor;
+        localStorage.setItem(getURLParameter('sim'), JSON.stringify(savedEditor));
+        saveCurrentEditor(true);
+        savedEditor = JSON.parse(localStorage.getItem(getURLParameter('sim')));
+        savedEditor['data'][0]['name'] = "Code par défaut modifié";
+        localStorage.setItem(getURLParameter('sim'), JSON.stringify(savedEditor));
+        updateSessionPanel();
+    }
+    else{
         editor.setValue(savedEditor['data'][savedEditor['current']]['code'], -1);
     }
 }
 else{
     savedEditor = {defaultEditor: editor.getValue(), current: null, data: []}
+    localStorage.setItem(getURLParameter('sim'), JSON.stringify(savedEditor));
 }
-localStorage.setItem(getURLParameter('sim'), JSON.stringify(savedEditor));
 updateSessionPanel();
 
 $("#session_delete").click(function () {
