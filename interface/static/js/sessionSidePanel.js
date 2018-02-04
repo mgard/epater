@@ -1,9 +1,11 @@
-var saveEditorTimer = window.setInterval('saveCurrentEditor();updateSessionPanel()', 30000);
+var saveEditorTimer = window.setInterval('onTimer()', 60000);
 
 var savedEditor = JSON.parse(localStorage.getItem(getURLParameter('sim')));
 if (savedEditor) {
     savedEditor['defaultEditor'] = editor.getValue();
-    editor.setValue(savedEditor['data'][savedEditor['current']]['code'], -1);
+    if (savedEditor['current'] != null){
+        editor.setValue(savedEditor['data'][savedEditor['current']]['code'], -1);
+    }
 }
 else{
     savedEditor = {defaultEditor: editor.getValue(), current: null, data: []}
@@ -17,7 +19,6 @@ $("#session_delete").click(function () {
         var message = 'Êtes-vous sûr de vouloir supprimer la session en cours ?'
         if(confirm(message)){
             if (savedEditor['data'].length == 1){
-                localStorage.removeItem(getURLParameter('sim'));
                 editor.setValue(savedEditor['defaultEditor'], -1);
                 savedEditor['current'] = null;
                 savedEditor['data'] = [];
@@ -42,8 +43,8 @@ $("#session_delete_all").click(function () {
         if(confirm(message)){
             savedEditor['current'] = null;
             savedEditor['data'] = [];
-            localStorage.setItem(getURLParameter('sim'), JSON.stringify(savedEditor));
             editor.setValue(savedEditor['defaultEditor'], -1);
+            localStorage.setItem(getURLParameter('sim'), JSON.stringify(savedEditor));
             updateSessionPanel();
         }
     }
@@ -127,6 +128,16 @@ function updateSessionPanel(){
     }
 }
 
+function onTimer(){
+    var defaultEditor = JSON.parse(localStorage.getItem(getURLParameter('sim')))['defaultEditor'];
+    var currentEditor = editor.getValue();
+    if (defaultEditor != currentEditor) {
+        // We save only if there is a modification
+        saveCurrentEditor();
+        updateSessionPanel();
+    }
+}
+
 function restoreSession(selected){
     saveCurrentEditor();
     var savedEditor = JSON.parse(localStorage.getItem(getURLParameter('sim')));
@@ -136,6 +147,12 @@ function restoreSession(selected){
     updateSessionPanel();
 }
 
+
 window.onbeforeunload = function (e) {
-	saveCurrentEditor();
+    var defaultEditor = JSON.parse(localStorage.getItem(getURLParameter('sim')))['defaultEditor'];
+    var currentEditor = editor.getValue();
+    if (defaultEditor != currentEditor) {
+        // We save only if there is a modification
+        saveCurrentEditor();
+    }
 };
