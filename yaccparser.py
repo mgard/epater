@@ -448,7 +448,8 @@ def p_memaccess(p):
     """memaccess : memaccesspre
                  | memaccesspost
                  | memaccesslabel
-                 | memaccesslabeladdr"""
+                 | memaccesslabeladdr
+                 | memaccessimmediate"""
     # We divide pre and post increment to simplify their respective rules
     p[0] = p[1]
 
@@ -546,7 +547,7 @@ def p_memaccesspost(p):
 
 def p_memaccesslabel(p):
     """memaccesslabel : LABEL"""
-    # We will use PC as label
+    # We will use PC as base register
     b = 15 << 16
     # Pre-indexing
     b |= 1 << 24
@@ -554,11 +555,19 @@ def p_memaccesslabel(p):
 
 def p_memaccesslabeladdr(p):
     """memaccesslabeladdr : EQUALS LABEL"""
-    # We will use PC as label
+    # We will use PC as base register
     b = 15 << 16
     # Pre-indexing
     b |= 1 << 24
     p[0] = (b, ("addrptr", p[2], 4096))     # This instruction cannot be assembled yet: we need to know the label's address
+
+def p_memaccessimmediate(p):
+    """memaccessimmediate : EQUALS CONST"""
+    b = 15 << 16
+    # Pre-indexing
+    b |= 1 << 24
+    # TODO check if we can encode it with a MOV
+    p[0] = (b, ("const", p[2], 4096))
 
 
 def p_swapinstruction(p):
@@ -863,28 +872,32 @@ def p_nopinstruction(p):
 def p_declarationconst(p):
     """declarationconst : CONSTDEC LISTINIT"""
     if p[1] not in (8, 16, 32):
-        raise YaccError("Une constante peut avoir les tailles suivantes (en bits) : 8, 16 ou 32. {} n'est pas une taille valide".format(p[1]))
+        raise YaccError("Une variable peut avoir les tailles suivantes (en bits) : 8, 16 ou 32. {} n'est pas une taille valide".format(p[1]))
     formatletter = "B" if p[1] == 8 else "H" if p[1] == 16 else "I"  # 32
     bitmask = 2**(p[1]) - 1
     p[0] = (struct.pack("<" + formatletter * len(p[2]), *[v & bitmask for v in p[2]]), None)
 
 def p_declarationconst_error(p):
-    """declarationsize : CONSTDECWITHOUTSIZE CONST"""
-    raise YaccError("Une déclaration de constante doit être suivie d'une taille en bits (par exemple DC32 ou DC8)")
+    """declarationconst : CONSTDECWITHOUTSIZE LISTINIT"""
+    raise YaccError("Une assignation de variable doit être suivie d'une taille en bits (par exemple ASSIGN32 ou ASSIGN8)")
 
 def p_declarationsize(p):
-    """declarationsize : VARDEC CONST"""
+    """declarationsize : VARDEC LISTINIT"""
     if p[1] not in (8, 16, 32):
         raise YaccError("Une variable peut avoir les tailles suivantes (en bits) : 8, 16 ou 32. {} n'est pas une taille valide".format(p[1]))
-    dimBytes = p[2] * p[1] // 8
+    if len(p[2]) > 1:
+        raise YaccError("Une allocation de variable ne peut qu'être suivie d'un nombre d'éléments. Utilisez ASSIGN si vous voulez assigner des valeurs précises.")
+    dimNbr = p[2][0]
+    dimBytes = dimNbr * p[1] // 8
     if dimBytes > 8192:
         raise YaccError("Demande d'allocation mémoire trop grande. Le maximum permis est de 8 Ko (8192 octets), mais la déclaration demande {} octets.".format(dimBytes))
     assert dimBytes <= 8192, "Too large memory allocation requested! ({} bytes)".format(dimBytes)
     p[0] = (struct.pack("<" + "B" * dimBytes, *[getSetting("fillValue")] * dimBytes), None)
 
 def p_declarationsize_error(p):
-    """declarationsize : VARDECWITHOUTSIZE CONST"""
-    raise YaccError("Une déclaration de variable doit être suivie d'une taille en bits (par exemple DS32 ou DS8)")
+    """declarationsize : VARDECWITHOUTSIZE LISTINIT"""
+    # The user did not provide element size for an allocation
+    raise YaccError("Une allocation de variable doit être suivie d'une taille en bits (par exemple ALLOC32 ou ALLOC8)")
 
 
 #def p_error(p):
@@ -898,7 +911,7 @@ parser = yacc.yacc()
 
 
 if __name__ == '__main__':
-    a1 = parser.parse("STRT R0, [R4]\n")
+    a1 = parser.parse("LDR R1, =0x22\n") #STRT R0, [R4]\n")
     print(a1)
     #print(a, hex(a['BYTECODE']))
     #a = parser.parse("\n")

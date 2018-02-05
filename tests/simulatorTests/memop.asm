@@ -2,12 +2,12 @@ SECTION INTVEC
 
 B main
 
-variable1 DC32 0x04, -1, 42, 0xFFFFFE, 14, 1, 0x800000, -42, 0xFF, 0xF00
-variable2 DC16 2, -1, 0x7FFF, 0x42
-variable3 DC8 1, -2, 4, -8, 16, -32, 64, 128
+variable1 ASSIGN32 0x04, -1, 42, 0xFFFFFE, 14, 1, 0x800000, -42, 0xFF, 0xF00
+variable2 ASSIGN16 2, -1, 0x7FFF, 0x42
+variable3 ASSIGN8 1, -2, 4, -8, 16, -32, 64, 128
 
-str1 DC8 "This is a string"
-str2 DC8 "This is a null-terminated string", 0
+str1 ASSIGN8 "This is a string"
+str2 ASSIGN8 "This is a null-terminated string", 0
 
 SECTION CODE
 
@@ -16,6 +16,7 @@ main
 LDR R0, =variable1
 LDR R1, =variable2
 LDR R2, =memvar1
+LDR R3, =0x3003211F
 
 MOV R3, #4
 MOV R4, #2
@@ -120,7 +121,7 @@ SWPB R5, R4, [R2]
 
 SECTION DATA
 
-memvar1 DS32 40
-memvar2 DS16 10
-memvar3 DS32 1
-memvar4 DS8 100
+memvar1 ALLOC32 40
+memvar2 ALLOC16 10
+memvar3 ALLOC32 1
+memvar4 ALLOC8 100

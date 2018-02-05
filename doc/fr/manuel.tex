@@ -2,10 +2,10 @@
 \usepackage[utf8]{inputenc}
 \usepackage[francais]{babel}
 
-\title{Manuel d'utilisation du simulateur ARM epater\\Révision 1}
+\title{Manuel d'utilisation du simulateur ARM epater\\Révision 2}
 
 
-\author{Marc-André Gardner\\Yannick Hold-Geoffroy\\Jean-François Lalonde}
+\author{Marc-André Gardner, Yannick Hold-Geoffroy et Jean-François Lalonde}
 
 %\date{28 March 2010} % without \date command, current date is supplied
 
@@ -41,16 +41,15 @@
 
 \maketitle% this prints the handout title, author, and date
 
-
 \section{Introduction}
 
-Ce manuel présente l'utilisation du simulateur \textbf{épater}, qui émule un processeur à architecture ARMv4 (coeur ARM7), tel qu'étudié dans le cours \textit{GIF-1001 Ordinateurs: Structure et Applications}. Ce manuel se concentre uniquement sur l'utilisation du simulateur à proprement parler. Les informations concernant l'architecture ARM et la programmation en langage assembleur peuvent être obtenues dans les notes de cours ou dans les manuels de référence cités dans le plan de cours.
+Ce manuel présente l'utilisation du simulateur \textbf{épater}, qui émule un processeur à architecture ARMv4 (coeur ARM7), tel qu'étudié dans le cours \textit{GIF-1001 Ordinateurs: Structure et Applications}. Il présente également succinctement le jeu d'instruction ARMv4. Des informations complémentaires concernant l'architecture ARM et la programmation en assembleur peuvent être obtenues dans les notes de cours ou dans les manuels de référence cités dans le plan de cours.
 
 \section{Prise en main}
 
 \subsection{Accès au simulateur}
 
-Le simulateur est disponible en ligne, à l'adresse \url{http://gif1001-sim.gel.ulaval.ca/}. Aucune installation n'est nécessaire et l'accès ne requiert pas d'authentification. Le simulateur a été testé avec les navigateurs suivants :
+Le simulateur est disponible à l'adresse \url{http://gif1001-sim.gel.ulaval.ca/}. Aucune installation n'est nécessaire. Le simulateur a été testé avec les navigateurs suivants :
 \begin{itemize}
 	\item Google Chrome version 50 et plus, sur Windows, MacOS et Linux
 	\item Mozilla Firefox version 44 et plus, sur Windows, MacOS et Linux
@@ -60,13 +59,18 @@ Le simulateur est disponible en ligne, à l'adresse \url{http://gif1001-sim.gel.
 
 D'autres navigateurs peuvent également être compatibles avec l'interface du simulateur, mais cette compatibilité n'est pas garantie. Si vous rencontrez des problèmes avec un navigateur alternatif, installez un des navigateurs énumérés plus haut.
 
-\subsection{Enregistrement et chargement}
 
-\paragraph{\textbf{\color{red}{Note importante :}}} \textbf{\color{red}{Le serveur ne réalise \emph{aucune} sauvegarde de votre code ou de vos données. Il est de \emph{votre} responsabilité de télécharger le fichier contenant votre code à chaque fois que vous quittez la session de simulation ou fermez votre navigateur.}}
+\paragraph{\textbf{\color{red}{Note importante :}}} {\color{red}{Le simulateur opère automatiquement une sauvegarde \textbf{locale} de votre code. Aucune donnée n'est conservée sur le serveur : si les données de votre navigateur sont effacées ou perdues, vous \textbf{perdrez} votre code. Veillez à \textbf{toujours} télécharger le fichier contenant votre code, en utilisant le bouton ``Sauvegarder'', à chaque fois que vous quittez la session de simulation ou fermez votre navigateur. Il est de \textbf{votre} responsabilité de vous assurer de conserver ces fichiers en lieu sûr. L'équipe du simulateur ne pourra être tenue responsable de perte de données et \textbf{ne possède aucun moyen} de récupérer des données perdues.}}
 
+%Le serveur sauvegarde automatiquement votre code, mais il n'y a aucune garantie que celui-ci sera conservé après avoir quitté la session de simulation. Il est de \emph{votre} responsabilité de télécharger le fichier contenant votre code à chaque fois que vous quittez la session de simulation ou fermez votre navigateur.}}
+
+
+\tableofcontents
+
+\clearpage
 \section{Utilisation du simulateur}
 
-La page d'accueil du simulateur est présentée à la figure \ref{f:accueil}. Elle contient, sur la gauche, un menu permettant de choisir le type d'activité (démonstrations, exercices, travaux pratiques ou codage libre) et, dans sa section principale, une liste des programmes disponibles.
+La page d'accueil du simulateur est présentée à la figure \ref{f:accueil}. Elle contient, sur la gauche, un menu permettant de choisir le type d'activité (démonstrations, exercices, travaux pratiques ou simulation libre) et, dans sa section principale, une liste des programmes disponibles.
 
 \begin{figure}
 \raggedleft
@@ -112,15 +116,16 @@ Passer la souris sur ce X fait apparaître une infobulle contenant un texte expl
 \caption{Le message expliquant l'erreur peut être consulté en passant la souris sur le X.}
 \end{figure}
 
-Une fois le programme \emph{assemblé} (le bouton ``Démarrer'' pressé et le code assemblé sans erreur), il est possible de mettre en place des points d'arrêt (\textit{breakpoints}) en cliquant sur le numéro d'une ligne. Un point d'arrêt force le simulateur à s'arrêter lorsqu'il l'atteint. Un point d'arrêt peut être désactivé en recliquant sur le même numéro de ligne. Par exemple, dans la figure suivante, les lignes 20 et 22 sont des points d'arrêt :
+
+Il est possible de mettre en place des points d'arrêt (\textit{breakpoints}) en cliquant sur le numéro d'une ligne. Un point d'arrêt force le simulateur à s'arrêter lorsqu'il l'atteint. Un point d'arrêt peut être désactivé en recliquant sur le même numéro de ligne. Par exemple, dans la figure suivante, les lignes 20 et 22 sont des points d'arrêt :
 \begin{figure}[h!]
 \raggedleft
 \includegraphics[width=0.9\linewidth]{pics/editeur_bkpt.png}
 \label{f:editeurbkpt}
-\caption{Un point d'arrêt (\textit{breakpoint}) peut être mis en place en cliquant sur le numéro de ligne, une fois le programme assemblé.}
+\caption{Un point d'arrêt (\textit{breakpoint}) peut être mis en place en cliquant sur le numéro de ligne.}
 \end{figure}
 
-\paragraph{\textbf{Note importante :}}un point d'arrêt ne peut être placé que sur une ligne \emph{contenant une instruction}. Si l'utilisateur clique sur une ligne ne contenant pas d'instructions, le point d'arrêt sera placé sur la prochaine ligne contenant une instruction. Par exemple, à la figure \ref{f:editeurbkpt}, cliquer sur la ligne 17 placera un point d'arrêt à la ligne \emph{18}.
+\paragraph{\textbf{Note importante :}}un point d'arrêt peut être placé sur n'importe quelle ligne si le programme n'est \emph{pas assemblé}. Une fois le programme \emph{assemblé} (le bouton ``Démarrer'' pressé et le code assemblé sans erreur), un point d'arrêt peut seulement être placé sur une ligne \emph{contenant une instruction} et un point d'arrêt invalide est désactivé ou déplacé sur la prochaine ligne. Si l'utilisateur clique sur une ligne ne contenant pas d'instruction, le point d'arrêt sera placé sur la prochaine ligne contenant une instruction. Par exemple, à la figure \ref{f:editeurbkpt}, cliquer sur la ligne 17 placera un point d'arrêt à la ligne \emph{18}.
 
 Lors de l'exécution, l'éditeur passe en mode lecture seule. Il affiche cependant certaines informations. La ligne en cours d'exécution est surlignée en rouge bourgogne :
 \begin{figure}[h!]
@@ -150,6 +155,7 @@ Cette interface diffère selon le mode actuel. Dans le mode \emph{édition} (fig
 \label{f:controles1}
 \caption{Barre de contrôle en mode \emph{édition}}
 \end{figure}
+\vspace{-1em}
 \begin{figure}[h!]
 \raggedleft
 \includegraphics[width=0.8\linewidth]{pics/controles_2b.png}
@@ -161,10 +167,11 @@ Lorsque le bouton \textit{Démarrer} est pressé, le simulateur tente d'abord d'
 \begin{enumerate}
 	\item \textbf{Arrêt} : interrompt la simulation et revient en mode édition.
 	\item \textbf{Réinitialisation} : effectue l'équivalent d'une interruption \emph{reset} sur le microprocesseur. La valeur de PC est mise à $0$. Notez que cela n'affecte \emph{pas} la valeur des autres registres et des drapeaux.
-	\item \textbf{Exécution en continu} : le simulateur exécute les instructions suivantes sans arrêt, jusqu'à ce qu'il rencontre une erreur ou un point d'arrêt. Notez que le simulateur est volontairement limité quant au nombre d'instructions qu'il peut exécuter d'un seul coup. Lorsque ce nombre est atteint, le simulateur arrête comme s'il avait rencontré un point d'arrêt. Il suffit d'appuyer à nouveau sur le bouton d'exécution en continu pour poursuivre.
-	\item \textbf{Exécuter instruction courante} : exécute l'instruction courante (celle qui est surlignée dans l'éditeur) et passe à la suivante puis arrête.
-	\item \textbf{Exécuter ligne courante} : dans le cas où la ligne courante est une instruction autre que BL, cette action a le même effet que la précédente. Toutefois, dans le cas d'un appel de fonction (BL), cette action exécute l'entièreté de la fonction jusqu'à son retour.
+	\item \textbf{Exécution en continu} : le simulateur exécute les instructions suivantes sans arrêt, jusqu'à ce qu'il rencontre une erreur ou un point d'arrêt. Notez que le simulateur est volontairement limité quant au nombre d'instructions qu'il peut exécuter d'un seul coup (10\,000). Lorsque ce nombre est atteint, le simulateur arrête comme s'il avait rencontré un point d'arrêt. Il suffit d'appuyer à nouveau sur le bouton d'exécution en continu pour poursuivre.
+    \item \textbf{Retour en arrière} : retourne en arrière d'une instruction. L'état du simulateur (les registres, la mémoire et les drapeaux) retourne comme il était à l'instruction précédente puis arrête.
 	\item \textbf{Exécuter jusqu'à la sortie} : dans le cas où la ligne courante est dans une fonction, cette action exécute sans arrêt les instructions jusqu'à sortir de la fonction (appel de BX). Si la ligne courante n'est pas dans une fonction, cette action a le même effet qu'une exécution en continu.
+	\item \textbf{Exécuter ligne courante} : dans le cas où la ligne courante est une instruction autre que BL, cette action a le même effet que la précédente. Toutefois, dans le cas d'un appel de fonction (BL), cette action exécute l'entièreté de la fonction jusqu'à son retour.
+	\item \textbf{Exécuter instruction courante} : exécute l'instruction courante (celle qui est surlignée dans l'éditeur) et passe à la suivante puis arrête.
 \end{enumerate}
 
 \clearpage
@@ -317,6 +324,46 @@ Les lignes suivantes sont une description textuelle de l'instruction, générée
 
 
 \clearpage
+\subsection{Sauvegarde des sessions de travail}
+
+Les sessions sauvegardées permettent d'alterner entre plusieurs versions de code d'une même simulation. La session courante est sauvegardée automatiquement et restaurée au retour à la même simulation. 
+
+\begin{figure}[h!]
+\raggedleft
+\includegraphics[width=0.2\linewidth]{pics/session_button.png}
+\label{f:session_button}
+\caption{Boutton du menu latéral}
+\end{figure}
+
+Pour afficher le panneau des sessions sauvegardées, il faut survoler le bouton ``Sessions sauvegardées'' du menu latéral. 
+
+\begin{figure}[h!]
+\raggedleft
+\includegraphics[width=0.4\linewidth]{pics/session_control.png}
+\label{f:session_control}
+\caption{Contrôle des sessions sauvegardées}
+\end{figure}
+
+Trois bouton sont accessible pour modifier les sessions : 
+\begin{enumerate}     
+\item \textbf{Effacer} : la session courante est supprimée et la suivante est sélectionnée (son code est restauré).
+\item \textbf{Effacer tout} : toutes les sessions sont supprimées puis le code par défaut est restauré.
+\item \textbf{Nouvelle session} : la session courante est sauvegardée et une nouvelle session est ajoutée en tête de la liste. Le code par défaut est restauré. 
+\end{enumerate}
+
+\begin{marginfigure}
+\includegraphics[width=\linewidth]{pics/session_open.png}
+\label{f:session_open}
+\caption{Vue des sessions sauvegardées avec la session numéro 2 de sélectionnée}
+\end{marginfigure}
+
+De plus, cliquer sur une session sauvegarde la session courante et restaure la session sélectionnée. La session en cours est affichée en bleu pour la différencier.
+
+Certaines informations sont affichées pour distinguer les différentes sessions. On y retrouve le numéro de la session, l'heure de la dernière sauvegarde, la taille du code (en nombre de caractères) et le nom personnalisé de la session. Un double-clic sur le nom permet de le modifier.
+
+\paragraph{\textbf{Note importante :}} bien que ce procédé permette de sauvegarder son code même après la fermeture de votre navigateur, \textbf{il est fortement recommandé d'enregistrer (télécharger) votre code}. Les sauvegardes de sessions sont enregistrées dans la mémoire de votre navigateur et il n'y a aucune garantie que celle-ci ne sera pas effacée. Si c'est le cas, l'équipe du simulateur ne possède aucun moyen de récupérer votre code, puisque aucune donnée n'est enregistrée sur le serveur.  
+
+\clearpage
 \subsection{Contrôles d'enregistrement et de chargement}
 
 Ces contrôles, situés au bas de l'écran, vous permettent de télécharger le code présent dans l'éditeur et de charger un code présent sur votre ordinateur. Ces deux actions sont analogues à l'ouverture et l'enregistrement dans une application traditionnelle.
@@ -330,7 +377,7 @@ Ces contrôles, situés au bas de l'écran, vous permettent de télécharger le 
 
 N'importe quel type de fichier texte brut peut être lu par le simulateur. Nous vous recommandons toutefois d'utiliser l'extension ``txt'' afin d'éviter la confusion avec d'autres formats de fichier. C'est d'ailleurs cette extension que comportent les fichiers téléchargés depuis le simulateur.
 
-\paragraph{\textbf{Note importante :}} ces contrôles constituent la \emph{seule} manière de sauvegarder et réouvrir votre code. Il n'y a \emph{aucun} système de sauvegarde automatique et le serveur ne conserve \emph{aucune} trace du code exécuté. \textbf{Si vous ne téléchargez pas votre code avant de fermer votre navigateur ou de changer de page, les modifications que vous y avez apportées seront perdues et irrécupérables.} Un message d'avertissement vous est présenté lorsque vous tentez de fermer la fenêtre afin de vous rappelez de télécharger le fichier.
+\paragraph{\textbf{Note importante :}}malgré que votre code est sauvegarder automatiquement dans votre navigateur, \textbf{il est fortement recommandé de sauvegarder votre code} avec ces contrôles.
 
 \clearpage
 \subsection{Configuration}
@@ -346,7 +393,7 @@ La fenêtre de configuration peut être ouverte en pressant le bouton \textit{Co
 Deux éléments principaux peuvent être configurés dans cette interface :
 \begin{enumerate}
 	\item Une interruption temporelle peut être activée, en mode FIQ ou IRQ. Le nombre de cycles avant la première interruption, de même que le délai de répétition (encore là en nombre de cycles processeur) peuvent être configurés.
-	\item La vitesse d'exécution, qui correspond au délai minimum entre l'exécution de deux instructions consécutives. Normalement, un délai de 100ms est suffisant pour exécuter les différents travaux pratiques et exercices du cours. Toutefois, dans certains cas spécifiques, une vitesse plus rapide peut être bénéfique. Dans tous les cas, n'oubliez pas que le simulateur ne peut exécuter plus qu'un certain nombre d'instructions à la suite, avant de se mettre en pause et d'attendre une nouvelle commande.
+	\item La vitesse d'exécution, qui correspond au délai minimum entre l'exécution de deux instructions consécutives. Par défaut, cette vitesse est de 0, c'est-à-dire que le simulateur exécute les instructions aussi vite que possible. Toutefois, il est possible d'augmenter ce délai afin de pouvoir visualiser l'exécution du programme. Dans tous les cas, le simulateur se met automatiquement en pause après avoir exécuté 10\,000 instructions de suite.
 \end{enumerate}
 
 \clearpage
@@ -535,6 +582,25 @@ Code & Format & Description & Exemple \\ \hline
 \end{table*}
 
 \clearpage
+\section{Assignations et allocations en mémoire}
+
+Écrire une instruction réserve implicitement 4 octets en mémoire. Toutefois, il est également possible de réserver ou assigner des valeurs arbitraires à n'importe quel endroit dans la mémoire. Deux mots clés sont disponibles à cette fin. Il est à noter que ces mots clés \textbf{ne sont pas des instructions} : ils ne génèrent aucun code ARM en tant que tel, mais se contentent d'initialiser ou de réserver certaines sections de la mémoire. Ces directives doivent être précédées d'une étiquette qui sert de nom de variable.
+
+\begin{itemize}
+	\item Le mot clé \texttt{ALLOC} permet \textbf{d'allouer} une certaine quantité de mémoire, sans l'initialiser (c'est-à-dire que vous ne pouvez pas déterminer ses valeurs initiales). Sa syntaxe est \texttt{ALLOCT NOMBRE}, où \texttt{T} est un nombre déterminant la taille des éléments à allouer et \texttt{NOMBRE} le nombre d'éléments de cette taille à allouer. \texttt{T} est exprimé en bits, et peut prendre les valeurs 8, 16 ou 32. 
+	
+	Par exemple, la ligne \texttt{mavariable ALLOC32 5} allouera 5 espaces de 32 bits (4 octets) chacun; l'étiquette \textit{mavariable} permettra d'y faire référence dans le code. De même \texttt{monoctet ALLOC8 1} allouera 1 espace de 8 bits, soit un octet au total, avec \textit{monoctet} comme étiquette de référence.
+	
+	\item Le mot clé \texttt{ASSIGN} permet \textbf{d'assigner} une valeur à une ou plusieurs adresses mémoire. Sa syntaxe est \texttt{ASSIGNT VAL1, VAL2, ..., VALN}, où \texttt{T} est un nombre déterminant la taille des éléments en mémoire et \texttt{VAL1, VAL2, ..., VALN} une liste de valeurs séparées par des virgules de longueur arbitraire, qui seront écrites à la suite dans la mémoire. Tout comme pour \texttt{ALLOC}, \texttt{T} est exprimé en bits, et peut prendre les valeurs 8, 16 ou 32. 
+	
+	Par exemple, la ligne \texttt{mavariable ASSIGN32 8, 0x12, 0, -1} assignera la valeur 8 (représentée sur 32 bits) aux 4 premiers octets, la valeur 0x12 aux 4 suivants, la valeur 0 aux 4 suivants et la valeur -1 aux 4 suivants, pour un total de 16 octets assignés.
+	
+	La directive \texttt{ASSIGN} accepte également des chaînes de caractères écrites entre guillemets. Par exemple, la ligne \texttt{machaine ASSIGN8 "ceci est du texte"} assignera un octet pour chaque caractère ASCII du texte contenu entre les guillements.
+\end{itemize}
+
+Notons qu'une étiquette ne peut être déclarée ou assignée \textbf{qu'une seule fois}. Par exemple, faire suivre \texttt{mavariable ALLOC32 5} de \texttt{mavariable ASSIGN32 8, 0x12, 0, -1} est une erreur, puisque \texttt{mavariable} est alors utilisée deux fois.
+
+\clearpage
 \section{Instructions d'accès mémoire}
 \vspace{-0.8em}
 \subsection{Accès mémoire de base}
@@ -702,6 +768,34 @@ Deux mnémoniques équivalentes permettent de déclencher une interruption logic
 \paragraph{\texttt{SVC \#0xCAFE}} Déclenche une interruption logicielle
 \paragraph{\texttt{SWI \#22}} Déclenche une interruption logicielle
 \paragraph{\texttt{SVCEQ \#0xCAFE}} Déclenche une interruption logicielle seulement si la condition EQ est rencontrée
+
+
+\clearpage
+\section{Assertions}
+
+En plus des instructions ARM et des directives de déclarations mémoire, le simulateur supporte un mécanisme \textit{d'assertion} qui permet de valider le fonctionnement d'un programme. Il se base sur une directive spéciale, \texttt{ASSERT}. Lorsque le simulateur rencontre une ligne contenant ce mot-clé, il évalue la ou les expressions qui suivent. Si ces expressions ne sont pas vraies, il arrête la simulation et écrit un message d'erreur indiquant les divergences entre le résultat prévu et obtenu. Si les expressions sont vraies, aucune action n'est prise et le programme se poursuit normalement. On peut combiner plusieurs expressions sur la même ligne en les séparant par des virgules et ces expressions peuvent être de trois types :
+\begin{itemize}
+	\item Vérification d'un registre : \texttt{REG=VAL}, où \texttt{REG} est un registre et \texttt{VAL} la valeur qu'il doit posséder, en décimal ou hexadécimal.
+	\item Vérification d'une adresse mémoire : \texttt{ADDR=VAL}, où \texttt{ADDR} est une adresse mémoire commençant par \texttt{0x} et \texttt{VAL} la valeur que cette case mémoire doit posséder. Si \texttt{VAL} est entre 0 et 255, seule l'octet pointé par cette adresse est comparé; sinon, ce sont aussi les trois octets suivants qui sont comparés (pour une taille totale de 32 bits ou 4 octets)
+	\item Vérification d'un drapeau : \texttt{DRAPEAU=VAL}, où \texttt{DRAPEAU} est une lettre \textit{majuscule} désignant un drapeau (C, V, Z ou N) et \texttt{VAL} la valeur (0 ou 1) attendue
+\end{itemize}
+
+\subsection{Exemples d'utilisation}
+
+\paragraph{\texttt{ASSERT R0=9}} Teste si R0 vaut bel et bien 9
+
+\paragraph{\texttt{ASSERT R2=0x18, R1=-5}} Teste si R2 vaut bel et bien 0x18 et R1 -5
+
+\paragraph{\texttt{ASSERT 0x16=24}} Teste si la valeur à l'adresse 0x16 de la mémoire est bien 24
+
+\paragraph{\texttt{ASSERT 0x1004=-1}} Teste si les valeurs aux adresses 0x1004 à 0x1007 inclusivement valent bien -1 (0xFFFFFFFF)
+
+\paragraph{\texttt{ASSERT C=1,Z=0}} Teste si le drapeau Retenue (\textit{Carry}) est bien levé et le drapeau Zéro inactif
+
+
+\subsection{Note importante}
+
+Les assertions ne sont pas des instructions ARM et n'apparaissent donc pas dans le bytecode. Elles ne peuvent pas être copiées d'un endroit à l'autre de la mémoire comme le peuvent être des instructions.
 
 \clearpage
 \section{Remerciements}

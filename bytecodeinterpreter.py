@@ -223,9 +223,11 @@ class BCInterpreter:
 
     def step(self, stepMode=None):
         """
-        Run the simulator in a given mode for one step only.
+        Run the simulator in a given mode for one step only. Useful to execute step by step.
+
         :param stepMode: can be "into" | "forward" | "out" | "run" or None, which means to
-                keep the current mode, whatever it is
+                keep the current mode, whatever it is. It should be set only for
+                the first step of the execution.
         """
         if stepMode is not None:
             self.sim.setStepCondition(stepMode)
@@ -247,7 +249,6 @@ class BCInterpreter:
         """
         try:
             self.sim.stepBack(count)
-            self.sim.fetchAndDecode()
         except RuntimeError as runErr:
             # We reach end of the history
             self.errorsPending = MultipleErrors(runErr.__class__(), runErr.args)

@@ -160,27 +160,26 @@ def t_assertion_ASSERTIONDATA(t):
 
 # A constant or variable declaration
 def t_CONSTDEC(t):
-    r'(?<=[\t ])DC[0-9]+\s+'
+    r'(?<=[\t ])ASSIGN[0-9]+\s+'
     t.lexer.begin('decwithvalues')
-    t.value = int(t.value[2:])
-    return t
-
-def t_VARDEC(t):
-    r'(?<=[\t ])DS[0-9]+\s+'
-    t.lexer.begin('decwithsize')
-    t.value = int(t.value[2:])
-    return t
-
-def t_VARDECWITHOUTSIZE(t):
-    r'(?<=[\t ])DS\s+'
-    t.lexer.begin('decwithsize')
+    t.value = int(t.value[6:])
     return t
 
 def t_CONSTDECWITHOUTSIZE(t):
-    r'(?<=[\t ])DC\s+'
+    r'(?<=[\t ])ASSIGN\s+'
     t.lexer.begin('decwithvalues')
     return t
 
+def t_VARDEC(t):
+    r'(?<=[\t ])ALLOC[0-9]+\s+'
+    t.lexer.begin('decwithsize')
+    t.value = int(t.value[5:])
+    return t
+
+def t_VARDECWITHOUTSIZE(t):
+    r'(?<=[\t ])ALLOC\s+'
+    t.lexer.begin('decwithsize')
+    return t
 
 
 # A data operation (2 operands)
@@ -514,9 +513,11 @@ def t_ANY_REG(t):
     return t
 
 
-# The constant declaration (DC) is the only case where we may have multiple constants on the same line
+# The assignation (ASSIGN) is the only case where we may have multiple constants on the same line
 # We may also receive strings, which we should convert in ASCII mode
-def t_decwithvalues_LISTINIT(t):
+# We also add the allocation (ALLOC) to this list since this is a common error that we should spot
+# (with ALLOC, this list must be of length 1, and this will be checked in the yacc parser)
+def t_decwithvalues_decwithsize_LISTINIT(t):
     r"([ \t]*(\"([^\"\\]|\\.)*\"|'([^'\\]|\\.)*'|[+-]?(0x[0-9a-fA-F]+|[0-9]+)),?)+"
     valsStr = t.value.split(",")
     valsInt = []
@@ -658,6 +659,9 @@ def t_generalinstr_error(t):
 
 def t_swpinstr_error(t):
     print("(25) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
+
+def t_assertion_error(t):
+    print("(26) Caractere invalide (ligne {}, colonne {}) : {}".format(t.lineno, t.lexpos, t.value[0]))
 
 # General handler
 def t_error(t):

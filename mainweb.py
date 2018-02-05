@@ -9,6 +9,7 @@ import json
 import os
 import sys
 import re
+import io
 import binascii
 import signal
 import base64
@@ -34,8 +35,15 @@ from bs4 import BeautifulSoup
 from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
 
+
 with open("emailpass.txt") as fhdl:
     email_password = fhdl.read().strip()
+
+try:
+    with open("privepass.txt") as fhdl:
+        prive_password = fhdl.read().strip()
+except FileNotFoundError:
+    prive_password = None
 
 
 UPDATE_THROTTLE_SEC = 0.3
@@ -393,7 +401,7 @@ def process(ws, msg_in):
                                        ["membp_rw", ["0x{:08x}".format(x) for x in bpm['rw']]],
                                        ["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]]])
                 elif data[0] == 'update':
-                    reg_update = re.findall(r'(?:([a-z]{3})_)?r(\d{1,2})', data[1])
+                    reg_update = re.findall(r'^(?:([A-Z]{3})_)?r(\d{1,2})', data[1])
                     if reg_update:
                         bank, reg_id = reg_update[0]
                         if not len(bank):
@@ -574,7 +582,7 @@ def readFileBrokenEncoding(filename):
             data = fhdl.read()
         data = encodeWSGIb(data)
     else:
-        with open(filename, 'r') as fhdl:
+        with io.open(filename, 'r', encoding="utf-8") as fhdl:
             data = fhdl.read()
     return data
 
@@ -601,6 +609,26 @@ def get():
         title = ""
         sections = {}
         identifier = ""
+        extra_left = ""
+
+        is_private_session = False
+        if prive_password is not None:
+            getval = request.query.get("prive", None)
+            if getval is not None:
+                is_private_session = getval == prive_password
+                response.set_cookie("prive", request.query.get("prive", None))
+            else:
+                is_private_session = request.get_cookie("prive", None) == prive_password
+
+        if is_private_session:
+            extra_left = """<a href="?prive="><div class="left_item"><div class="left_item_inner">Retour mode normal</div></div></a>"""
+
+        # Liste privee
+        try:
+            with open("exercices/prive.txt", "r") as fhdl:
+                prive = fhdl.read().replace("/", os.sep).splitlines()
+        except FileNotFoundError:
+            prive = []
 
         if "sim" in request.query:
             this_template = simulator_template
@@ -610,6 +638,10 @@ def get():
             elif not request.query["sim"] == "nouveau":
                 try:
                     request.query["sim"] = base64.b64decode(unquote(request.query["sim"]))
+
+                    if request.query["sim"].decode("utf-8")  in prive and not is_private_session:
+                        raise FileNotFoundError()
+
                     # YAHOG -- When in WSGI, we must add 0xdc00 to every extended (e.g. accentuated) character in order for the
                     # open() call to understand correctly the path
                     if locale.getdefaultlocale() == (None, None):
@@ -652,6 +684,9 @@ def get():
             sections = OrderedDict()
             sections_names = {}
             for f in sorted(files):
+                if f in prive and not is_private_session:
+                    continue
+
                 # YAHOG -- When in WSGI, Python adds 0xdc00 to every extended (e.g. accentuated) character, leading to
                 # errors in utf-8 re-interpretation.
                 if locale.getdefaultlocale() == (None, None):
@@ -703,7 +738,8 @@ def get():
         i18NPlugin.set_lang(lang)
 
         return template(this_template, code=code, lang=lang, enonce=enonce, solution=solution,
-                        page=page, title=title, sections=sections, identifier=identifier, rand=random.randint(0, 2**16))
+                        page=page, title=title, sections=sections, identifier=identifier,
+                        rand=random.randint(0, 2**16), extra_left=extra_left)
 
 
     @app.route('/static/<filename:path>')

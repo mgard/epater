@@ -70,7 +70,7 @@ MOV R0, #1
 
 SECTION DATA
 
-nombres DS8 128             ; Tableau contenant les nombres. Sa taille doit correspondre à la
+nombres ALLOC8 128             ; Tableau contenant les nombres. Sa taille doit correspondre à la
                             ; valeur contenue dans R11 (voir ligne 12)
                             ; Notez que chaque élément fait 1 octet et non 4! (DS8)
 

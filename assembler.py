@@ -186,8 +186,9 @@ def parse(code, memLayout="simulation"):
             dep = parsedLine["BYTECODE"][1]
             if dep is not None:
                 unresolvedDepencencies[(currentSection, currentAddr, i)] = dep
-                if dep[0] == "addrptr":
-                    # We will need to add a constant with this label address at the end of the section
+                if dep[0] in ("addrptr", "const"):
+                    # We will need to add a constant with this label address
+                    # or this constant at the end of the section
                     requiredLabelsPtr.append((dep[1], i))
             # We add the size of the object to the current address (so this always points to the address of the next element)
             tmpAddr = currentAddr
@@ -224,14 +225,19 @@ def parse(code, memLayout="simulation"):
     # At the end of the CODE section, we write all the label adresses referenced
     currentAddr = bytecode['__MEMINFOEND'][sectionToUse]
     for labelPtr,lineNo in requiredLabelsPtr:
-        if labelPtr not in labelsAddr:
+        isConst = isinstance(labelPtr, int)
+        if not isConst and labelPtr not in labelsAddr:
             listErrors.append(("codeerror", lineNo, "Cette ligne demande l'adresse de l'étiquette {}, mais celle-ci n'est déclarée nulle part".format(labelPtr)))
             continue
 
         if labelPtr in labelsPtrAddr:
             # Already added (it's just referenced at two different places)
             continue
-        bytecode[sectionToUse].extend(struct.pack("<I", labelsAddr[labelPtr] & 0xFFFFFFFF))
+
+        if isConst:
+            bytecode[sectionToUse].extend(struct.pack("<I", labelPtr & 0xFFFFFFFF))
+        else:
+            bytecode[sectionToUse].extend(struct.pack("<I", labelsAddr[labelPtr] & 0xFFFFFFFF))
         labelsPtrAddr[labelPtr] = currentAddr
         currentAddr += 4
     bytecode['__MEMINFOEND'][sectionToUse] = currentAddr
@@ -246,7 +252,7 @@ def parse(code, memLayout="simulation"):
         # We retrieve the instruction and fit it into a 32 bit integer
         reladdr = addr - bytecode['__MEMINFOSTART'][sec]
         instrInt = struct.unpack("<I", bytecode[sec][reladdr:reladdr+4])[0]
-        if depInfo[0] in ('addr', 'addrptr'):
+        if depInfo[0] in ('addr', 'addrptr', 'const'):
             # A LDR/STR on a label or a label's address
             dictToLookIn = (labelsAddr if depInfo[0] == 'addr' else labelsPtrAddr)
             try:

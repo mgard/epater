@@ -164,7 +164,8 @@ class Simulator:
     def stepBack(self, count=1):
         for c in range(count):
             self.history.stepBack()
-        self.fetchAndDecode()
+        self.fetchAndDecode(forceExplain=True)
+        self.bkptLastFetch = None
 
     def executionStats(self):
         """
@@ -424,6 +425,7 @@ class Simulator:
             # We raise the last error to explain the illegal access
             raise self.errorsPending
 
+        isFirstInst = self.runIteration == self.history.cyclesCount
         # One more cycle to do!
         self.history.newCycle()
         # Clear previous errors
@@ -433,11 +435,12 @@ class Simulator:
 
         currentCallStackLen = len(self.callStack)
 
-        if self.stepMode in ("out", "forward", "run"):
+        if self.stepMode in ("out", "run", "forward") and not isFirstInst:
             if self.bkptLastFetch:
                 # We hit a breakpoint on the last decoded instruction
                 err = self.bkptLastFetch
                 self.bkptLastFetch = None
+                self.history.restartCycle()
                 raise err
             try:
                 self.currentInstr.execute(self)
@@ -448,6 +451,7 @@ class Simulator:
                 self._toggleBreakpoint(bp)
                 if bp.mode != 8:
                     # READ/WRITE breakpoint
+                    self.history.restartCycle()
                     raise bp
                 # Execution error
                 self.errorsPending.append(bp.cmp, bp.desc)
@@ -455,7 +459,8 @@ class Simulator:
                 self.errorsPending.append('execution', err.text, self.getCurrentLine())
 
         else:
-            # In stepIn mode, breakpoints are temporary deactivate
+            # In stepIn mode or this is the first step to be execute in this mode.
+            # Breakpoints are temporary deactivate
             try:
                 self.deactivateAllBreakpoints()
                 self.currentInstr.execute(self)
