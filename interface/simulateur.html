@@ -545,13 +545,13 @@
 
             $(".register_row").click(function(e) {
                 var mode = "";
-                if(e.ctrlKey || event.metaKey) {
+                if(e.ctrlKey || e.metaKey) {
                     $(this).toggleClass("reg_bkp_w");
                 }
                 if(e.shiftKey) {
                     $(this).toggleClass("reg_bkp_r");
                 }
-                if (!(e.ctrlKey || event.metaKey || e.shiftKey)) {
+                if (!(e.ctrlKey || e.metaKey || e.shiftKey)) {
                     return;
                 }
 

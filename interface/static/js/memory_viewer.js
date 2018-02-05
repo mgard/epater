@@ -184,7 +184,7 @@ function cellClick(e) {
   if(e.shiftKey) {
     sendCmd(['breakpointsmem', addr, 'r']);
   }
-  if(e.ctrlKey || event.metaKey) {
+  if(e.ctrlKey || e.metaKey) {
     sendCmd(['breakpointsmem', addr, 'w']);
   }
   if(e.altKey) {
