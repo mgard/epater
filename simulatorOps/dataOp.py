@@ -98,6 +98,7 @@ class DataOp(AbstractOp):
             op2dis = "R{}{}".format(self.op2reg, shiftinstr)
             if not self.shift.immediate:
                 self._readregs |= utils.registerWithCurrentBank(self.shift.value, bank)
+            op2 = simulatorContext.regs[self.op2reg]
 
         if self.opcode in ("AND", "TST"):
             # These instructions do not affect the V flag (ARM Instr. set, 4.5.1)
