@@ -559,6 +559,8 @@ SECTION CODE
 
 main
 
+fin
+B fin
 
 SECTION DATA
 """
