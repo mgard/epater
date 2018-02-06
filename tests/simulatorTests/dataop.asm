@@ -17,6 +17,10 @@ MOV R10, #0xE00
 MOV R4, R3
 MOV R0, R3
 
+; Check that we can MOV in PC
+MOV R8, PC
+MOV PC, R8
+
 ; ADD and SUB
 ADD R4, R0, #10
 ADD R4, R0, R1
