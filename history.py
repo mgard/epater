@@ -18,6 +18,9 @@ class History:
         self.cyclesCount = 0
         self.ckpt = {}
         self.history = deque(maxlen=self.maxlen)
+        # We add a first pseudo-cycle in case of a modification before the first cycle
+        self.history.append({k:{} for k in self.members})
+        self.ckpt = {k:{} for k in self.members}
 
     def registerObject(self, obj):
         """
