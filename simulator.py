@@ -410,7 +410,7 @@ class Simulator:
                                 .format(target, expectedVal, actualVal)
                     else:
                         # Assert type unknown
-                        strError += "Assertion inconnue!".format(target, val)
+                        strError += "Assertion inconnue : ({}, {})!".format(target, val)
 
                 if len(strError) > 0:
                     self.errorsPending.append("assert", strError, assertionLine)
