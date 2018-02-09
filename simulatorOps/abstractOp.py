@@ -65,6 +65,8 @@ class AbstractOp:
         # Since all instructions can be conditional, we can put a generic
         # implementation of the condition verification (before execution) here
         cond = self.condition
+        if not self.conditionValid:
+            raise ExecutionException("L'instruction est invalide (la condition demandée n'existe pas)")
         self._readflags = utils.conditionFlagsMapping[cond]
 
         # Check condition
