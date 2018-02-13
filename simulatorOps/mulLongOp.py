@@ -55,7 +55,7 @@ class MulLongOp(AbstractOp):
 
         if self.accumulate:
             # MLAL
-            disassembly += "MLAL"
+            disassembly += "MLAL" + disCond
             description += "<li>Effectue une multiplication et une addition {} sur 64 bits (A*B+[C,D]) entre :\n".format("signées" if self.signed else "non signées")
             description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(utils.regSuffixWithBank(self.rm, bank))
             description += "<li>Le registre {}</li>\n".format(utils.regSuffixWithBank(self.rs, bank))
@@ -65,7 +65,7 @@ class MulLongOp(AbstractOp):
             self._readregs |= utils.registerWithCurrentBank(self.rdHi, bank)
         else:
             # MULL
-            disassembly += "MULL"
+            disassembly += "MULL" + disCond
             description += "<li>Effectue une multiplication {} (A*B) entre :\n".format("signée" if self.signed else "non signée")
             description += "<ol type=\"A\"><li>Le registre {}</li>\n".format(utils.regSuffixWithBank(self.rm, bank))
             description += "<li>Le registre {}</li></ol>\n".format(utils.regSuffixWithBank(self.rs, bank))

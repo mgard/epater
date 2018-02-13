@@ -42,6 +42,7 @@ class SwapOp(AbstractOp):
         description = "<ol>\n"
         disCond, descCond = self._explainCondition()
         description += descCond
+        disassembly += disCond
         sizedesc = "1 octet" if self.byte else "4 octets"
 
         self._readregs |= utils.registerWithCurrentBank(self.rn, bank)
