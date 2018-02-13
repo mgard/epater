@@ -134,9 +134,15 @@ def parse(code, memLayout="simulation"):
 
             if parsedLine["SECTION"] == "INTVEC":
                 currentSection = "INTVEC"
+                if viewedSections.intersection(("CODE", "DATA")):
+                    listErrors.append(("codeerror", i, "La section INTVEC doit être définie avant les sections CODE et DATA!"))
+                    return None, None, None, None, None, listErrors
                 currentAddr = max(memory_configs[memLayout]["INTVEC"], currentAddr)
             elif parsedLine["SECTION"] == "CODE":
                 currentSection = "CODE"
+                if "DATA" in viewedSections:
+                    listErrors.append(("codeerror", i, "La section CODE doit être définie avant la section DATA!"))
+                    return None, None, None, None, None, listErrors
                 currentAddr = max(memory_configs[memLayout]["CODE"], currentAddr)
             elif parsedLine["SECTION"] == "DATA":
                 currentSection = "DATA"
