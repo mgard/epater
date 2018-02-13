@@ -19,8 +19,8 @@ class MultipleMemOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not (utils.checkMask(instrInt, (27,), (26, 25))):
-            raise ExecutionException("masque de décodage invalide pour une instruction de type MULTIPLEMEM", 
-                                        internalError=True)
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (6)", 
+                                        internalError=False)
 
         # Retrieve the condition field
         self._decodeCondition()

@@ -17,8 +17,8 @@ class BranchOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not (utils.checkMask(instrInt, (27, 25), (26,)) or utils.checkMask(instrInt, (24, 21, 4) + tuple(range(8, 20)), (27, 26, 25, 23, 22, 20, 7, 6, 5))):
-            raise ExecutionException("masque de décodage invalide pour une instruction de type BRANCH", 
-                                        internalError=True)
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (1)", 
+                                        internalError=False)
 
         # Retrieve the condition field
         self._decodeCondition()

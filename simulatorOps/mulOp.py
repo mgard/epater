@@ -18,8 +18,8 @@ class MulOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not (utils.checkMask(instrInt, (7, 4), tuple(range(22, 28)) + (5, 6))):
-            raise ExecutionException("masque de décodage invalide pour une instruction de type MUL", 
-                                        internalError=True)
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (6)", 
+                                        internalError=False)
 
         # Retrieve the condition field
         self._decodeCondition()

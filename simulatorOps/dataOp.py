@@ -20,8 +20,8 @@ class DataOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not utils.checkMask(instrInt, (), (27, 26)):
-            raise ExecutionException("masque de décodage invalide pour une instruction de type DATA", 
-                                        internalError=True)
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (2)", 
+                                        internalError=False)
 
         # Retrieve the condition field
         self._decodeCondition()
@@ -75,7 +75,6 @@ class DataOp(AbstractOp):
         if self.modifyFlags and self.opcode not in ("TST", "TEQ", "CMP", "CMN"):
             disassembly += "S"
 
-        op1 = simulatorContext.regs[self.rn]
         if self.opcode not in ("MOV", "MVN"):
             self._readregs |= utils.registerWithCurrentBank(self.rn, bank)
 

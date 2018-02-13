@@ -16,8 +16,8 @@ class SoftInterruptOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not (utils.checkMask(instrInt, (24, 25, 26, 27), ())):
-            raise ExecutionException("masque de décodage invalide pour une instruction de type SOFTINT", 
-                                        internalError=True)
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (9)", 
+                                        internalError=False)
 
         # Retrieve the condition field
         self._decodeCondition()

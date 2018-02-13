@@ -18,8 +18,8 @@ class MemOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not (utils.checkMask(self.instrInt, (26, 25), (4, 27)) or utils.checkMask(self.instrInt, (26,), (25, 27))):
-            raise ExecutionException("masque de décodage invalide pour une instruction de type MEM", 
-                                        internalError=True)
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (4)", 
+                                        internalError=False)
 
         # Retrieve the condition field
         self._decodeCondition()
