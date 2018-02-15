@@ -67,9 +67,9 @@ class MemOp(AbstractOp):
             addr += self.sign * self.offsetImm
             if self.offsetImm > 0:
                 if self.sign > 0:
-                    descoffset = "<li>Additionne la constante #{} à l'adresse de base</li>\n".format(self.offsetImm)
+                    descoffset = "<li>Additionne la constante {} à l'adresse de base</li>\n".format(self.offsetImm)
                 else:
-                    descoffset = "<li>Soustrait la constante #{} à l'adresse de base</li>\n".format(self.offsetImm)
+                    descoffset = "<li>Soustrait la constante {} à l'adresse de base</li>\n".format(self.offsetImm)
         else:
             shiftDesc = utils.shiftToDescription(self.offsetRegShift, bank)
             regDesc = utils.regSuffixWithBank(self.offsetReg, bank)
@@ -124,7 +124,7 @@ class MemOp(AbstractOp):
                 if self.offsetImm == 0:
                     disassembly += "]"
                 else:
-                    disassembly += ", {}]".format(hex(self.sign * self.offsetImm))
+                    disassembly += ", #{}]".format(hex(self.sign * self.offsetImm))
             else:
                 disassembly += ", R{}".format(self.offsetReg)
                 disassembly += utils.shiftToInstruction(self.offsetRegShift) + "]"
@@ -132,7 +132,7 @@ class MemOp(AbstractOp):
             # Post (a post-incrementation of 0 is useless)
             disassembly += "]"
             if self.imm and self.offsetImm != 0:
-                disassembly += ", {}".format(hex(self.sign * self.offsetImm))
+                disassembly += ", #{}".format(hex(self.sign * self.offsetImm))
             elif not self.imm:
                 disassembly += ", R{}".format(self.offsetReg)
                 disassembly += utils.shiftToInstruction(self.offsetRegShift)
