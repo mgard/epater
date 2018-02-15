@@ -67,9 +67,9 @@ class HalfSignedMemOp(AbstractOp):
             addr += self.sign * self.offsetImm
             if self.offsetImm > 0:
                 if self.sign > 0:
-                    descoffset = "<li>Additionne la constante {} à l'adresse de base</li>\n".format(self.offsetImm)
+                    descoffset = "<li>Additionne la constante #{} à l'adresse de base</li>\n".format(self.offsetImm)
                 else:
-                    descoffset = "<li>Soustrait la constante {} à l'adresse de base</li>\n".format(self.offsetImm)
+                    descoffset = "<li>Soustrait la constante #{} à l'adresse de base</li>\n".format(self.offsetImm)
         else:
             regDesc = utils.regSuffixWithBank(self.offsetReg, bank)
             if self.sign > 0:

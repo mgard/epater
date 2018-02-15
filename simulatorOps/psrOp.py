@@ -67,7 +67,7 @@ class PSROp(AbstractOp):
                 disassembly += "_flg"
                 if self.imm:
                     _unused, valToSet = utils.applyShift(self.val, self.shift, simulatorContext.regs.C)
-                    description += "<li>Écrit la constante {} dans {}</li>\n".format(valToSet, "SPSR" if self.usespsr else "CPSR")
+                    description += "<li>Écrit la constante #{} dans {}</li>\n".format(valToSet, "SPSR" if self.usespsr else "CPSR")
                     disassembly += ", #{}".format(hex(valToSet))
                 else:
                     disassembly += ", R{}".format(self.val)

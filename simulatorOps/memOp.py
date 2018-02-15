@@ -67,9 +67,9 @@ class MemOp(AbstractOp):
             addr += self.sign * self.offsetImm
             if self.offsetImm > 0:
                 if self.sign > 0:
-                    descoffset = "<li>Additionne la constante {} à l'adresse de base</li>\n".format(self.offsetImm)
+                    descoffset = "<li>Additionne la constante #{} à l'adresse de base</li>\n".format(self.offsetImm)
                 else:
-                    descoffset = "<li>Soustrait la constante {} à l'adresse de base</li>\n".format(self.offsetImm)
+                    descoffset = "<li>Soustrait la constante #{} à l'adresse de base</li>\n".format(self.offsetImm)
         else:
             shiftDesc = utils.shiftToDescription(self.offsetRegShift, bank)
             regDesc = utils.regSuffixWithBank(self.offsetReg, bank)
