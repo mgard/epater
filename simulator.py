@@ -479,7 +479,7 @@ class Simulator:
 
         if self.currentInstr.pcmodified:
             # If PC was modified, we simulate the prefetch by adding 8 immediately to it
-            self.regs[15] += 8
+            self.regs[15] += self.pcoffset
         else:
             self.regs[15] += 4       # PC = PC + 4
 
