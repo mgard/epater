@@ -478,9 +478,8 @@ class Simulator:
         self.deactivatedBkpts = []
 
         if self.currentInstr.pcmodified:
-            # We don't want this to be logged in the history since this
-            # was just a transitioning value
-            self.regs.setRegister("User", 15, self.regs[15] + self.pcoffset, logToHistory=False)
+            # If PC was modified, we simulate the prefetch by adding 8 immediately to it
+            self.regs[15] += 8
         else:
             self.regs[15] += 4       # PC = PC + 4
 

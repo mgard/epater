@@ -54,12 +54,18 @@ class History:
         for name, val in change.items():
             previousVal = self.history[-1][obj.__class__].get(name)
             if previousVal:
-                # If the object is present in the same cycle, we keep the first value
+                # If we already set a value for this key in the current cycle,
+                # we want to keep the original old value. In other terms, if
+                # the first change was (oldval, newval) and there is another change
+                # (newval, newnewval), we want to keep (oldval, newnewval) as the
+                # change, so that a step back will revert everything.
                 newVal = (previousVal[0], val[1])
                 self.history[-1][obj.__class__][name] = newVal
             else:
                 self.history[-1][obj.__class__].update(change)
-                self.ckpt[obj.__class__].update(change)
+            # We always want to update the checkpoint (so that the interface
+            # is always up to date)
+            self.ckpt[obj.__class__].update(change)
 
     def stepBack(self):
         """
