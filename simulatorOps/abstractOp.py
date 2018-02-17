@@ -41,9 +41,9 @@ class AbstractOp:
     def execCounters(self):
         return self.countExec, self.countExecConditionFalse
 
-    def setBytecode(self, bytecode):
+    def setBytecode(self, bytecodeAsInteger):
         # It's easier to work with integer objects when it comes to bit manipulation
-        self.instrInt = bytecode # struct.unpack("<I", bytecode)[0]
+        self.instrInt = bytecodeAsInteger
 
     def decode(self):
         raise NotImplementedError()

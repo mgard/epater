@@ -72,17 +72,17 @@ class PSROp(AbstractOp):
                 else:
                     disassembly += ", R{}".format(self.val)
                     self._writeregs |= utils.registerWithCurrentBank(self.val, bank)
-                    description += "<li>Lit la valeur de {}</li>\n".format(utils.registerWithCurrentBank(self.val, bank))
+                    description += "<li>Lit la valeur de {}</li>\n".format(utils.regSuffixWithBank(self.val, bank))
                     description += "<li>Écrit les 4 bits les plus significatifs de cette valeur (qui correspondent aux drapeaux) dans {}</li>\n".format("SPSR" if self.usespsr else "CPSR")
             else:
-                description += "<li>Lit la valeur de {}</li>\n".format(utils.registerWithCurrentBank(self.val, bank))
+                description += "<li>Lit la valeur de {}</li>\n".format(utils.regSuffixWithBank(self.val, bank))
                 description += "<li>Écrit cette valeur dans {}</li>\n".format("SPSR" if self.usespsr else "CPSR")
                 disassembly += ", R{}".format(self.val)
         else:       # Read
             disassembly += " R{}, {}".format(self.rd, "SPSR" if self.usespsr else "CPSR")
             self._writeregs |= utils.registerWithCurrentBank(self.rd, bank)
             description += "<li>Lit la valeur de {}</li>\n".format("SPSR" if self.usespsr else "CPSR")
-            description += "<li>Écrit le résultat dans {}</li>\n".format(utils.registerWithCurrentBank(self.rd, bank))
+            description += "<li>Écrit le résultat dans {}</li>\n".format(utils.regSuffixWithBank(self.rd, bank))
 
         description += "</ol>"
         simulatorContext.regs.reactivateBreakpoints()
