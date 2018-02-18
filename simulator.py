@@ -382,7 +382,12 @@ class Simulator:
                     if target[0] == "R":
                         # Register
                         reg = int(target[1:])
-                        val = int(value, base=0) & 0xFFFFFFFF
+                        try:
+                            val = int(value, base=0) & 0xFFFFFFFF
+                        except ValueError:
+                            # If this is a decimal with leading zeros, base=0 will crash
+                            val = int(value, base=10) & 0xFFFFFFFF
+                            
                         self.regs.deactivateBreakpoints()
                         valreg = self.regs[reg]
                         self.regs.reactivateBreakpoints()
@@ -391,7 +396,12 @@ class Simulator:
                     elif target[:2] == "0x":
                         # Memory
                         addr = int(target, base=16)
-                        val = int(value, base=0)
+                        try:
+                            val = int(value, base=0)
+                        except ValueError:
+                            # If this is a decimal with leading zeros, base=0 will crash
+                            val = int(value, base=10)
+
                         formatStruct = "<B"
                         if not 0 <= int(val) < 255:
                             val &= 0xFFFFFFFF
