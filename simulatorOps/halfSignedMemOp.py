@@ -103,10 +103,16 @@ class HalfSignedMemOp(AbstractOp):
             self._writeregs |= utils.registerWithCurrentBank(self.rd, bank)
 
             if self.rd == simulatorContext.PC:
-                m = simulatorContext.mem.get(realAddr, size=sizeaccess, mayTriggerBkpt=False)
-                if m is not None:
-                    res = struct.unpack("<B" if self.byte else "<H", m)[0]
-                    self._nextInstrAddr = res
+                try:
+                    m = simulatorContext.mem.get(realAddr, size=sizeaccess, mayTriggerBkpt=False)
+                except ExecutionException as ex:
+                    # We do not want to handle user errors here;
+                    # If there is an issue with the memory access, we simply carry on
+                    pass
+                else:
+                    if m is not None:
+                        res = struct.unpack("<B" if self.byte else "<H", m)[0]
+                        self._nextInstrAddr = res
 
         else:       # STR
             descRange = " de l'octet le moins significatif" if self.byte else " des 2 octets les moins significatifs"

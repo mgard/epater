@@ -4,7 +4,7 @@ from settings import getSetting
 from simulator import Simulator
 from simulator import MultipleErrors
 import operator
-from components import Breakpoint
+from components import Breakpoint, ComponentException
 
 
 class BCInterpreter:
@@ -210,8 +210,7 @@ class BCInterpreter:
         try:
             self.sim.loop()
         except Breakpoint as bp:
-            # We hit a breakpoint execution stop
-            assert bp.mode != 8
+            # We hit a breakpoint, execution stop
             self.sim.stepMode = None
             self.sim.explainInstruction()
         except MultipleErrors as err:
@@ -234,8 +233,7 @@ class BCInterpreter:
         try:
             self.sim.nextInstr(forceExplain=True)
         except Breakpoint as bp:
-            # We hit a breakpoint execution stop
-            assert bp.mode != 8
+            # We hit a breakpoint, execution stop
             self.sim.stepMode = None
         except MultipleErrors as err:
             # Execution error
@@ -360,7 +358,7 @@ class BCInterpreter:
         cpsr = self.sim.regs.CPSR
         try:
             spsr = self.sim.regs.SPSR
-        except Breakpoint:
+        except ComponentException:
             # Currently in user mode
             spsr = None
         flags = self._parseFlags(cpsr=cpsr, spsr=spsr)

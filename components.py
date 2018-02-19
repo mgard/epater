@@ -2,12 +2,13 @@ import operator
 import struct
 from enum import Enum
 from collections import defaultdict, namedtuple, deque
+from simulatorOps.abstractOp import ExecutionException
 
 from settings import getSetting
 
 class Breakpoint(Exception):
     """
-    Indicates that a breakpoint or an error occured while executing 
+    Indicates that a breakpoint occurred while executing
     the requested operation.
 
     This exception object holds details about this breakpoint:
@@ -17,26 +18,38 @@ class Breakpoint(Exception):
         if mode & 1, then it indicates an _execution_ breakpoint
         if mode & 2, then it indicates a _write_ breakpoint
         if mode & 4, then it indicates a _read_ breakpoint
-        if mode & 8, then it indicates an _error_ with the request
-       The last type is not an actual breakpoint, but is nevertheless
-       used to raise errors caused by the user behavior (and that
-       should thus appropriately be displayed in the UI)
     * `info` is a field containing more information about the
         component which trigged the breakpoint.
         In the case of memory, this is the address where the
-        breakpoint has occured.
+        breakpoint has occurred.
         In the case of register, it is the register index.
         In the case of a flag, it is the flag letter (C, V, Z, or N)
-    * `desc` is used in case of error (e.g. mode & 8) to provide a
-        user-friendly description of the problem
     """
 
-    def __init__(self, component, mode, info=None, desc=""):
+    def __init__(self, component, mode, info=None):
         self.cmp = component
         self.mode = mode
         self.info = info
-        self.desc = desc
-    
+
+
+class ComponentException(ExecutionException):
+    """
+    Indicates an error occurred while executing
+    the requested operation.
+    This exception object inherits from ExecutionException
+    to be interpreted in other parts of the simulator without
+    importing Components
+
+    This exception object holds details about this error:
+    * `cmp` contains a string describing the subsystem where the
+        error occurred. Can be "memory", "register" or "flags".
+    * `text` provide a user-friendly description of the problem
+    """
+
+    def __init__(self, component, text=""):
+        super().__init__(text)
+        self.cmp = component
+
 
 class Component:
     
@@ -198,14 +211,14 @@ class Registers(Component):
     def SPSR(self):
         currentBank = self.currentMode
         if currentBank == "User":
-            raise Breakpoint("register", 8, None, "Le registre SPSR n'existe pas en mode 'User'!")
+            raise ComponentException("register", "Le registre SPSR n'existe pas en mode 'User'!")
         return self.banks[currentBank][16].val
 
     @SPSR.setter
     def SPSR(self, val):
         currentBank = self.currentMode
         if currentBank == "User":
-            raise Breakpoint("register", 8, None, "Le registre SPSR n'existe pas en mode 'User'!")
+            raise ComponentException("register", "Le registre SPSR n'existe pas en mode 'User'!")
         self.history.signalChange(self, {(self.mode, "SPSR"): (self[16], val)})
         self[16] = val
 
@@ -323,7 +336,7 @@ class Registers(Component):
         try:
             bkptFlag = self.bkptFlags[flag]
         except KeyError:
-            raise Breakpoint("flags", 8, flag)
+            raise ComponentException("flags")
 
         if self.bkptActive and mayTriggerBkpt and bkptFlag & 2:
             raise Breakpoint("flags", 2, flag)
@@ -438,7 +451,7 @@ class Memory(Component):
                 desc = "Tentative de lecture d'une instruction a une adresse non initialisée : {}".format(hex(addr))
             else:
                 desc = "Accès mémoire en lecture fautif a l'adresse {}".format(hex(addr))
-            raise Breakpoint("memory", 8, addr, desc)
+            raise ComponentException("memory", desc)
 
         for offset in range(size):
             if self.bkptActive and execMode and self.breakpoints[addr+offset] & 1:
@@ -452,7 +465,7 @@ class Memory(Component):
     def set(self, addr, val, size=4, mayTriggerBkpt=True):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
-            raise Breakpoint("memory", 8, addr, "Accès invalide pour une écriture de taille {} à l'adresse {}".format(size, hex(addr)))
+            raise ComponentException("memory", "Accès invalide pour une écriture de taille {} à l'adresse {}".format(size, hex(addr)))
 
         for offset in range(size):
             if self.bkptActive and mayTriggerBkpt and self.breakpoints[addr+offset] & 2:

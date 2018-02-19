@@ -105,13 +105,10 @@ class MemOp(AbstractOp):
             if self.rd == simulatorContext.PC:
                 try:
                     m = simulatorContext.mem.get(realAddr, size=sizeaccess, mayTriggerBkpt=False)
-                except Exception as ex:
+                except ExecutionException as ex:
                     # We do not want to handle user errors here;
                     # If there is an issue with the memory access, we simply carry on
-                    # However, if this is an internal error, we want to propagate it
-                    # We don't really want to import Breakpoint here
-                    if "components.Breakpoint" not in str(ex.__class__):
-                        raise
+                    pass
                 else:
                     if m is not None:
                         res = struct.unpack("<B" if self.byte else "<I", m)[0]
