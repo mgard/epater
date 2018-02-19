@@ -103,10 +103,19 @@ class MemOp(AbstractOp):
             self._writeregs |= utils.registerWithCurrentBank(self.rd, bank)
 
             if self.rd == simulatorContext.PC:
-                m = simulatorContext.mem.get(realAddr, size=sizeaccess, mayTriggerBkpt=False)
-                if m is not None:
-                    res = struct.unpack("<B" if self.byte else "<I", m)[0]
-                    self._nextInstrAddr = res
+                try:
+                    m = simulatorContext.mem.get(realAddr, size=sizeaccess, mayTriggerBkpt=False)
+                except Exception as ex:
+                    # We do not want to handle user errors here;
+                    # If there is an issue with the memory access, we simply carry on
+                    # However, if this is an internal error, we want to propagate it
+                    # We don't really want to import Breakpoint here
+                    if "components.Breakpoint" not in str(ex.__class__):
+                        raise
+                else:
+                    if m is not None:
+                        res = struct.unpack("<B" if self.byte else "<I", m)[0]
+                        self._nextInstrAddr = res
 
         else:       # STR
             if self.pre:
