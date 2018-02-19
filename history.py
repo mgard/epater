@@ -82,6 +82,9 @@ class History:
             obj.stepBack(hist[name])
         
         self.cyclesCount -= 1
+        if self.cyclesCount == 0:
+            # We ensure that we always have at least one history struct in our deque
+            self.clear()
 
     def setCheckpoint(self):
         """
