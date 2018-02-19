@@ -103,7 +103,7 @@ class MemOp(AbstractOp):
             self._writeregs |= utils.registerWithCurrentBank(self.rd, bank)
 
             if self.rd == simulatorContext.PC:
-                m = simulatorContext.mem.get(baseval, size=sizeaccess, mayTriggerBkpt=False)
+                m = simulatorContext.mem.get(realAddr, size=sizeaccess, mayTriggerBkpt=False)
                 if m is not None:
                     res = struct.unpack("<B" if self.byte else "<I", m)[0]
                     self._nextInstrAddr = res
