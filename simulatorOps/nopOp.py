@@ -16,7 +16,7 @@ class NopOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not (utils.checkMask(instrInt, (25, 24, 21), (27, 26, 23, 22, 20, 19, 18, 17, 16))):
-            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (7)", 
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide",
                                         internalError=False)
 
         # Retrieve the condition field

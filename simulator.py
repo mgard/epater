@@ -335,13 +335,18 @@ class Simulator:
 
         if self.currentInstr is not None:
             self.currentInstr.setBytecode(instrInt)
-            self.currentInstr.decode()
-            # Once decoded, we add the instruction to the cache
-            self.decoderCache[instrInt] = (self.currentInstr, self.currentInstr.saveState())
-            if len(self.decoderCache) > 2000:
-                # Fail-safe, we should never get there with programs < 2000 lines, but just in case,
-                # we do not want to bust the RAM with our cache
-                self.decoderCache = {}
+            try:
+                self.currentInstr.decode()
+                # Once decoded, we add the instruction to the cache
+                self.decoderCache[instrInt] = (self.currentInstr, self.currentInstr.saveState())
+                if len(self.decoderCache) > 2000:
+                    # Fail-safe, we should never get there with programs < 2000 lines, but just in case,
+                    # we do not want to bust the RAM with our cache
+                    self.decoderCache = {}
+            except ExecutionException as err:
+                # Invalid instruction
+                self.currentInstr = None
+                self.errorsPending.append('execution', err.text)
 
     def explainInstruction(self):
         if not self.currentInstr:

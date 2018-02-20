@@ -17,7 +17,7 @@ class SwapOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not (utils.checkMask(instrInt, (7, 4, 24), (27, 26, 25, 23, 21, 20, 11, 10, 9, 8, 6, 5))):
-            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (10)", 
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide",
                                         internalError=False)
 
         # Retrieve the condition field

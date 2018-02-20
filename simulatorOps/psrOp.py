@@ -25,7 +25,7 @@ class PSROp(AbstractOp):
         # With MSR and MRS, the bit representing the S flag is always 0, 
         # so we can differentiate these instructions...
         if not (utils.checkMask(instrInt, (19, 24), (27, 26, 23, 20))):
-            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (8)", 
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide",
                                         internalError=False)
 
         # Retrieve the condition field

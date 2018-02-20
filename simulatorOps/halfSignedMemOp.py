@@ -18,7 +18,7 @@ class HalfSignedMemOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not (utils.checkMask(instrInt, (7, 4), (27, 26, 25))):
-            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (3)", 
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide",
                                         internalError=False)
 
         # Retrieve the condition field
