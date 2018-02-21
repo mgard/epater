@@ -199,6 +199,16 @@ class BCInterpreter:
         self.sim.setStepCondition(stepMode)
         self.sim.history.setCheckpoint()
 
+    def executeWithExeption(self, mode=None):
+        """
+        Loop the simulator in a given mode and raise exception
+        :param stepMode: can be "into" | "forward" | "out" | "run" or None, which means to
+                keep the current mode, whatever it is
+        """
+        if mode is not None:
+            self.sim.setStepCondition(mode)
+            self.sim.loop()
+
     def execute(self, mode=None):
         """
         Loop the simulator in a given mode.
@@ -337,7 +347,7 @@ class BCInterpreter:
             val = max(val, self.sim.pcoffset)
         self.sim.regs.setRegister(bank, reg_id, val, False)
         self.sim.regs.reactivateBreakpoints()
-        # Changing the registers may change some infos in the prediction 
+        # Changing the registers may change some infos in the prediction
         # (for instance, memory cells affected by a memory access)
         self.sim.fetchAndDecode()
 
