@@ -624,9 +624,9 @@ Note : l'utilisation des suffixes \texttt{H}, \texttt{SH} ou \texttt{SB} empêch
 Les instructions d'accès mémoire sont du format : \texttt{LDR REG, INFOMEM} où REG est le registre source (dans le cas de STR) ou de destination (dans le cas de LDR), et INFOMEM une expression déterminant une adresse mémoire. Celle-ci peut prendre sept formes :
 \begin{enumerate}
 	\item {[REGBASE] : la valeur contenue dans REGBASE est directement interprétée comme une adresse}
-	\item {[REGBASE, REGADD] : les valeurs de REGBASE et REGADD sont additionnées pour former une adresse. REGADD peut optionnellement être décalé (voir tableau \ref{t:decalage}). Si le ] est suivi d'un point d'exclamation (!), la somme de REGBASE et REGADD est écrite dans REGBASE par après}
+	\item {[REGBASE, REGADD] : les valeurs de REGBASE et REGADD sont additionnées pour former une adresse. REGADD peut optionnellement être décalé, mais seulement par constante (voir tableau \ref{t:decalage}). Si le ] est suivi d'un point d'exclamation (!), la somme de REGBASE et REGADD est écrite dans REGBASE par après}
 	\item {[REGBASE, \#CONST] : les valeurs de REGBASE et CONST sont additionnées pour former une adresse. Un point d'exclamation peut ici aussi être ajouté pour stocker la somme dans REGBASE}
-	\item {[REGBASE], REGADD : la valeur de REGBASE est utilisée comme adresse, mais REGADD est additionné à cette valeur \textit{après} l'accès mémoire, et le résultat stocké dans REGBASE. REGADD peut optionnellement être décalé (voir tableau \ref{t:decalage})}
+	\item {[REGBASE], REGADD : la valeur de REGBASE est utilisée comme adresse, mais REGADD est additionné à cette valeur \textit{après} l'accès mémoire, et le résultat stocké dans REGBASE. REGADD peut optionnellement être décalé (voir tableau \ref{t:decalage}), mais seulement par constante (pas par registre)}
 	\item {[REGBASE], \#CONST : la valeur de REGBASE est utilisée comme adresse, mais CONST est additionné à cette valeur \textit{après} l'accès mémoire, et le résultat stocké dans REGBASE}
 	\item LABEL : l'assembleur transforme l'étiquette LABEL en un accès relatif à PC. L'étiquette doit être définie ailleurs dans le programme.
 	\item =LABEL : l'assembleur transforme =LABEL en un accès relatif à PC vers \textit{l'adresse} de l'étiquette LABEL (l'équivalent d'un pointeur en C). Cette étiquette doit être définie ailleurs dans le programme. Ce mode ne peut être utilisé qu'en conjonction avec \texttt{LDR} (il est interdit de l'utiliser avec une instruction \texttt{STR}).
@@ -640,7 +640,7 @@ Les instructions d'accès mémoire sont du format : \texttt{LDR REG, INFOMEM} o�
 
 \paragraph{\texttt{LDR R0, [R1, R2]}} Copie dans R0 la valeur contenue dans l'adresse mémoire calculée par R1+R2 et les 3 octets suivants (4 octets au total).
 
-\paragraph{\texttt{LDR R0, [R1, R2, LSL R3]}} Copie dans R0 la valeur contenue dans l'adresse mémoire calculée par R1+N et les 3 octets suivants (4 octets au total), où N est la valeur de R2 décalée vers la gauche R3 fois.
+%\paragraph{\texttt{LDR R0, [R1, R2, LSL R3]}} Copie dans R0 la valeur contenue dans l'adresse mémoire calculée par R1+N et les 3 octets suivants (4 octets au total), où N est la valeur de R2 décalée vers la gauche R3 fois.
 
 \paragraph{\texttt{LDR R0, [R1, R2, LSR \#2]}} Copie dans R0 la valeur contenue dans l'adresse mémoire calculée par R1+N et les 3 octets suivants (4 octets au total), où N est la valeur de R2 décalée deux fois vers la droite.
 

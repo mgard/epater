@@ -110,6 +110,15 @@ LDMED R0!, {R4,R8-R11}
 LDR SP, =memvar3
 POP {R4,R8-R11}
 
+; LDM/STM with PC
+LDR SP, =memvar3
+ADD SP, SP, #4
+ADD R1, PC, #8
+PUSH {R1}
+POP {PC}
+MOV R0, #145
+MOV R0, #211
+
 ; Swap operations
 LDR R0, =variable1
 LDR R1, =variable2

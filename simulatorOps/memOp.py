@@ -18,7 +18,7 @@ class MemOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not (utils.checkMask(self.instrInt, (26, 25), (4, 27)) or utils.checkMask(self.instrInt, (26,), (25, 27))):
-            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (4)", 
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide",
                                         internalError=False)
 
         # Retrieve the condition field
@@ -103,10 +103,16 @@ class MemOp(AbstractOp):
             self._writeregs |= utils.registerWithCurrentBank(self.rd, bank)
 
             if self.rd == simulatorContext.PC:
-                m = simulatorContext.mem.get(realAddr, size=sizeaccess, mayTriggerBkpt=False)
-                if m is not None:
-                    res = struct.unpack("<B" if self.byte else "<I", m)[0]
-                    self._nextInstrAddr = res
+                try:
+                    m = simulatorContext.mem.get(realAddr, size=sizeaccess, mayTriggerBkpt=False)
+                except ExecutionException as ex:
+                    # We do not want to handle user errors here;
+                    # If there is an issue with the memory access, we simply carry on
+                    pass
+                else:
+                    if m is not None:
+                        res = struct.unpack("<B" if self.byte else "<I", m)[0]
+                        self._nextInstrAddr = res
 
         else:       # STR
             if self.pre:

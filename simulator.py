@@ -6,7 +6,7 @@ from enum import Enum
 from collections import defaultdict, namedtuple, deque
 
 from settings import getSetting
-from components import Registers, Memory, Breakpoint
+from components import Registers, Memory, Breakpoint, ComponentException
 from history import History
 from simulatorOps.utils import checkMask
 from simulatorOps import *
@@ -210,16 +210,15 @@ class Simulator:
                 # Retrieve instruction from memory
                 self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, execMode=True))
             except Breakpoint as bp:
-                # We hit a breakpoint, or there is an execution error
-                if bp.mode == 8:
-                    # Execution error
-                    self.errorsPending.append(bp.cmp, bp.desc)
-                    # There is no instruction to this address
-                    self.fetchedInstr = None
-                else:
-                    # Get memory instruction again, without trigger breakpoint
-                    self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, mayTriggerBkpt=False))
-                    self.bkptLastFetch = bp
+                # We hit a breakpoint
+                # Get memory instruction again, without trigger breakpoint
+                self.fetchedInstr = bytes(self.mem.get(self.regs[15] - self.pcoffset, mayTriggerBkpt=False))
+                self.bkptLastFetch = bp
+            except ComponentException as err:
+                # Execution error
+                self.errorsPending.append(err.cmp, err.text)
+                # There is no instruction to this address
+                self.fetchedInstr = None
 
         self.bytecodeToInstr()
         if forceExplain or self.isStepDone():
@@ -336,13 +335,18 @@ class Simulator:
 
         if self.currentInstr is not None:
             self.currentInstr.setBytecode(instrInt)
-            self.currentInstr.decode()
-            # Once decoded, we add the instruction to the cache
-            self.decoderCache[instrInt] = (self.currentInstr, self.currentInstr.saveState())
-            if len(self.decoderCache) > 2000:
-                # Fail-safe, we should never get there with programs < 2000 lines, but just in case,
-                # we do not want to bust the RAM with our cache
-                self.decoderCache = {}
+            try:
+                self.currentInstr.decode()
+                # Once decoded, we add the instruction to the cache
+                self.decoderCache[instrInt] = (self.currentInstr, self.currentInstr.saveState())
+                if len(self.decoderCache) > 2000:
+                    # Fail-safe, we should never get there with programs < 2000 lines, but just in case,
+                    # we do not want to bust the RAM with our cache
+                    self.decoderCache = {}
+            except ExecutionException as err:
+                # Invalid instruction
+                self.currentInstr = None
+                self.errorsPending.append('execution', err.text)
 
     def explainInstruction(self):
         if not self.currentInstr:
@@ -382,7 +386,12 @@ class Simulator:
                     if target[0] == "R":
                         # Register
                         reg = int(target[1:])
-                        val = int(value, base=0) & 0xFFFFFFFF
+                        try:
+                            val = int(value, base=0) & 0xFFFFFFFF
+                        except ValueError:
+                            # If this is a decimal with leading zeros, base=0 will crash
+                            val = int(value, base=10) & 0xFFFFFFFF
+                            
                         self.regs.deactivateBreakpoints()
                         valreg = self.regs[reg]
                         self.regs.reactivateBreakpoints()
@@ -391,7 +400,12 @@ class Simulator:
                     elif target[:2] == "0x":
                         # Memory
                         addr = int(target, base=16)
-                        val = int(value, base=0)
+                        try:
+                            val = int(value, base=0)
+                        except ValueError:
+                            # If this is a decimal with leading zeros, base=0 will crash
+                            val = int(value, base=10)
+
                         formatStruct = "<B"
                         if not 0 <= int(val) < 255:
                             val &= 0xFFFFFFFF
@@ -415,9 +429,8 @@ class Simulator:
                 if len(strError) > 0:
                     self.errorsPending.append("assert", strError, assertionLine)
 
-            except Breakpoint as bp:
-                assert bp.mode == 8
-                self.errorsPending.append(bp.cmp, bp.desc, assertionLine)
+            except ComponentException as ex:
+                self.errorsPending.append(ex.cmp, ex.text, assertionLine)
 
     def nextInstr(self, forceExplain=False):
         if self.currentInstr is None:
@@ -445,16 +458,14 @@ class Simulator:
             try:
                 self.currentInstr.execute(self)
             except Breakpoint as bp:
-                # We hit a breakpoint on READ/WRITE, or there is an execution error
-                # Disable raised breakpoint
+                # We hit a breakpoint on READ/WRITE
+                # We temporary disable the raised breakpoint
                 self.deactivatedBkpts.append(bp)
                 self._toggleBreakpoint(bp)
-                if bp.mode != 8:
-                    # READ/WRITE breakpoint
-                    self.history.restartCycle()
-                    raise bp
-                # Execution error
-                self.errorsPending.append(bp.cmp, bp.desc)
+                self.history.restartCycle()
+                raise bp
+            except ComponentException as err:
+                self.errorsPending.append(err.cmp, err.text, self.getCurrentLine())
             except ExecutionException as err:
                 self.errorsPending.append('execution', err.text, self.getCurrentLine())
 
@@ -464,10 +475,8 @@ class Simulator:
             try:
                 self.deactivateAllBreakpoints()
                 self.currentInstr.execute(self)
-            except Breakpoint as bp:
-                # There is an execution error
-                assert bp.mode == 8
-                self.errorsPending.append(bp.cmp, bp.desc)
+            except ComponentException as err:
+                self.errorsPending.append(err.cmp, err.text, self.getCurrentLine())
             except ExecutionException as err:
                 self.errorsPending.append('execution', err.text, self.getCurrentLine())
             self.reactivateAllBreakpoints()

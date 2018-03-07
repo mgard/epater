@@ -18,7 +18,7 @@ class MulLongOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not (utils.checkMask(instrInt, (7, 4, 23), tuple(range(24, 28)) + (5, 6))):
-            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (5)", 
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide",
                                         internalError=False)
 
         # Retrieve the condition field

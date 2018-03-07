@@ -19,7 +19,7 @@ class MultipleMemOp(AbstractOp):
     def decode(self):
         instrInt = self.instrInt
         if not (utils.checkMask(instrInt, (27,), (26, 25))):
-            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide (6)", 
+            raise ExecutionException("Le bytecode à cette adresse ne correspond à aucune instruction valide",
                                         internalError=False)
 
         # Retrieve the condition field
@@ -136,6 +136,20 @@ class MultipleMemOp(AbstractOp):
         if self.mode == "LDR":
             self._writeregs |= reduce(operator.or_, [utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist])
             self._readmem = set(range(baseAddr, endAddr))
+            if simulatorContext.PC in self.reglist:
+                try:
+                    addrPC = baseAddr + (self.sign * (len(self.reglist)-1) * 4)
+                    if self.pre:
+                        addrPC += self.sign * 4
+                    m = simulatorContext.mem.get(addrPC, size=4, mayTriggerBkpt=False)
+                except ExecutionException as ex:
+                    # We do not want to handle user errors here;
+                    # If there is an issue with the memory access, we simply carry on
+                    pass
+                else:
+                    if m is not None:
+                        res = struct.unpack("<I", m)[0]
+                        self._nextInstrAddr = res
         else:
             self._readregs |= reduce(operator.or_, [utils.registerWithCurrentBank(reg, bankToUse) for reg in self.reglist])
             self._writemem = set(range(baseAddr, endAddr))
@@ -145,6 +159,7 @@ class MultipleMemOp(AbstractOp):
         return disassembly, description
     
     def execute(self, simulatorContext):
+        self.pcmodified = False
         if not self._checkCondition(simulatorContext.regs):
             # Nothing to do, instruction not executed
             self.countExecConditionFalse += 1
@@ -175,9 +190,11 @@ class MultipleMemOp(AbstractOp):
                 else:
                     simulatorContext.regs[reg] = val
                 baseAddr += self.sign * 4
-            if self.sbit and simulatorContext.PC in self.reglist:
-                # "If the instruction is a LDM then SPSR_<mode> is transferred to CPSR at the same time as R15 is loaded."
-                simulatorContext.regs.CPSR = simulatorContext.regs.SPSR
+            if simulatorContext.PC in self.reglist:
+                self.pcmodified = True
+                if self.sbit:
+                    # "If the instruction is a LDM then SPSR_<mode> is transferred to CPSR at the same time as R15 is loaded."
+                    simulatorContext.regs.CPSR = simulatorContext.regs.SPSR
         else:   # STR
             for reg in self.reglist[::self.sign]:
                 val = simulatorContext.regs.getRegister("User", reg) if transferToUserBank else simulatorContext.regs[reg]

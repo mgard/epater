@@ -4,7 +4,7 @@ from settings import getSetting
 from simulator import Simulator
 from simulator import MultipleErrors
 import operator
-from components import Breakpoint
+from components import Breakpoint, ComponentException
 
 
 class BCInterpreter:
@@ -116,7 +116,7 @@ class BCInterpreter:
         # Mode = 'r' | 'w' | 'rw' | 'e' | '' (passing an empty string removes the breakpoint)
         modeOctal = 4*('r' in mode) + 2*('w' in mode) + 1*('e' in mode)
         bkptInfo = self.sim.mem.toggleBreakpoint(addr, modeOctal)
-        if 'e' in mode:
+        if 'e' in mode and addr < self.bc['__MEMINFOEND']['CODE']:
             addrprod4 = (addr // 4) * 4
             if addrprod4 in self.addr2line:
                 if bkptInfo & 1:        # Add line breakpoint
@@ -199,6 +199,16 @@ class BCInterpreter:
         self.sim.setStepCondition(stepMode)
         self.sim.history.setCheckpoint()
 
+    def executeWithExeption(self, mode=None):
+        """
+        Loop the simulator in a given mode and raise exception
+        :param stepMode: can be "into" | "forward" | "out" | "run" or None, which means to
+                keep the current mode, whatever it is
+        """
+        if mode is not None:
+            self.sim.setStepCondition(mode)
+            self.sim.loop()
+
     def execute(self, mode=None):
         """
         Loop the simulator in a given mode.
@@ -210,8 +220,7 @@ class BCInterpreter:
         try:
             self.sim.loop()
         except Breakpoint as bp:
-            # We hit a breakpoint execution stop
-            assert bp.mode != 8
+            # We hit a breakpoint, execution stop
             self.sim.stepMode = None
             self.sim.explainInstruction()
         except MultipleErrors as err:
@@ -234,8 +243,7 @@ class BCInterpreter:
         try:
             self.sim.nextInstr(forceExplain=True)
         except Breakpoint as bp:
-            # We hit a breakpoint execution stop
-            assert bp.mode != 8
+            # We hit a breakpoint, execution stop
             self.sim.stepMode = None
         except MultipleErrors as err:
             # Execution error
@@ -339,7 +347,7 @@ class BCInterpreter:
             val = max(val, self.sim.pcoffset)
         self.sim.regs.setRegister(bank, reg_id, val, False)
         self.sim.regs.reactivateBreakpoints()
-        # Changing the registers may change some infos in the prediction 
+        # Changing the registers may change some infos in the prediction
         # (for instance, memory cells affected by a memory access)
         self.sim.fetchAndDecode()
 
@@ -360,7 +368,7 @@ class BCInterpreter:
         cpsr = self.sim.regs.CPSR
         try:
             spsr = self.sim.regs.SPSR
-        except Breakpoint:
+        except ComponentException:
             # Currently in user mode
             spsr = None
         flags = self._parseFlags(cpsr=cpsr, spsr=spsr)
