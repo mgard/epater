@@ -52,7 +52,7 @@ class ComponentException(ExecutionException):
 
 
 class Component:
-    
+
     def __init__(self, history):
         self.history = history
 
@@ -88,8 +88,8 @@ class Registers(Component):
     through different banks (this is done automatically by this class).
 
     The current processor mode (and so the current bank) can be retrieved or
-    modified using the `mode` property. This entirely depends on the value of 
-    CPSR, so if the content of this register is changed, the mode will 
+    modified using the `mode` property. This entirely depends on the value of
+    CPSR, so if the content of this register is changed, the mode will
     automatically follow.
 
     A register value can be retrieved or set using the item retrieval notation.
@@ -273,7 +273,7 @@ class Registers(Component):
     @C.setter
     def C(self, val):
         self.setFlag("C", val)
-    
+
     @property
     def V(self):
         return bool(self.regCPSR & 0x10000000)
@@ -329,7 +329,7 @@ class Registers(Component):
             self.history.signalChange(self, dchanges)
 
         regHandle.val = newValue
-    
+
     def setFlag(self, flag, value, mayTriggerBkpt=True, logToHistory=True):
         currentBank = self.currentMode
 
@@ -340,7 +340,7 @@ class Registers(Component):
 
         if self.bkptActive and mayTriggerBkpt and bkptFlag & 2:
             raise Breakpoint("flags", 2, flag)
-        
+
         oldCPSR = self.regCPSR
         if value:   # We set the flag
             self.regCPSR |= 1 << self.flag2index[flag]
@@ -403,7 +403,7 @@ class Registers(Component):
 class Memory(Component):
     packformat = {1: "<B", 2: "<H", 4: "<I"}
     maskformat = {1: 0xFF, 2: 0xFFFF, 4: 0xFFFFFFFF}
-    
+
     def __init__(self, history, memcontent, initval=0):
         super().__init__(history)
         self.history.registerObject(self)
@@ -428,7 +428,7 @@ class Memory(Component):
 
     def getContext(self):
         return self.data
-    
+
     def _getRelativeAddr(self, addr, size):
         """
         Determine if *addr* is a valid address, and return a tuple containing the section
@@ -443,7 +443,7 @@ class Memory(Component):
             if self.startAddr[sec] <= addr < self.endAddr[sec] - (size-1):
                 return sec, addr - self.startAddr[sec]
         return None
-    
+
     def get(self, addr, size=4, execMode=False, mayTriggerBkpt=True):
         resolvedAddr = self._getRelativeAddr(addr, size)
         if resolvedAddr is None:
@@ -509,7 +509,7 @@ class Memory(Component):
         # Remove all execution breakpoints that are in removeList
         for addr in [a for a,b in self.breakpoints.items() if b & 1 == 1 and a in removeList]:
             self.removeBreakpoint(addr)
-    
+
     def stepBack(self, state):
         for k, val in state.items():
             sec, offset = k

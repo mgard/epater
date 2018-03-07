@@ -116,7 +116,7 @@ class BCInterpreter:
         # Mode = 'r' | 'w' | 'rw' | 'e' | '' (passing an empty string removes the breakpoint)
         modeOctal = 4*('r' in mode) + 2*('w' in mode) + 1*('e' in mode)
         bkptInfo = self.sim.mem.toggleBreakpoint(addr, modeOctal)
-        if 'e' in mode:
+        if 'e' in mode and addr < self.bc['__MEMINFOEND']['CODE']:
             addrprod4 = (addr // 4) * 4
             if addrprod4 in self.addr2line:
                 if bkptInfo & 1:        # Add line breakpoint
