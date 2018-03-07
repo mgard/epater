@@ -136,9 +136,6 @@ class MemOp(AbstractOp):
             elif not self.imm:
                 disassembly += ", R{}".format(self.offsetReg)
                 disassembly += utils.shiftToInstruction(self.offsetRegShift)
-        #else:
-            # Weird case, would happen if we combine post-incrementation and immediate offset of 0
-        #    disassembly += "]"
 
         if self.writeback:
             self._writeregs |= utils.registerWithCurrentBank(self.basereg, bank)
