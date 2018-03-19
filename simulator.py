@@ -515,10 +515,10 @@ class Simulator:
         # We look for interrupts
         # The current instruction is always finished before the interrupt
         # TODO Handle special cases for LDR and STR multiples
-        if self.interruptActive and (self.lastInterruptCycle == -1 and self.history.cyclesCount - self.interruptParams['b'] >= self.interruptParams['t0'] or
-                                        self.lastInterruptCycle >= 0 and self.history.cyclesCount - self.lastInterruptCycle >= self.interruptParams['a']):
+        if self.interruptActive and (self.history.cyclesCount - 1 - self.interruptParams['t0'] - self.interruptParams['b']) % self.interruptParams['a'] == 0:
+            print("INTERRUPT ACTIVE!", self.interruptParams, self.history.cyclesCount)
             if (self.interruptParams['type'] == "FIQ" and not self.regs.FIQ or
-                    self.interruptParams['type'] == "IRQ" and not self.regs.IRQ):        # Is the interrupt masked?
+                    self.interruptParams['type'] == "IRQ" and not self.regs.IRQ and self.regs.mode != 'FIQ'):        # Is the interrupt masked?
                 # Interruption!
                 # We enter it (the entry point is 0x18 for IRQ and 0x1C for FIQ)
                 savedCPSR = self.regs.CPSR                                  # Saving CPSR before changing processor mode
@@ -530,7 +530,6 @@ class Simulator:
                     self.regs.IRQ = True
                 self.regs[14] = self.regs[15] - 4                           # Save PC in LR (on the FIQ or IRQ bank)
                 self.regs[15] = self.pcoffset + (0x18 if self.interruptParams['type'] == "IRQ" else 0x1C)      # Set PC to enter the interrupt
-                self.lastInterruptCycle = self.history.cyclesCount
 
         # We fetch and decode the next instruction
         self.fetchAndDecode(forceExplain)

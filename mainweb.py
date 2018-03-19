@@ -298,7 +298,7 @@ def updateDisplay(interp, force_all=False):
         retval.extend([["membp_e", ["0x{:08x}".format(x) for x in bpm['e']]],
                        ["mempartial", []]])
 
-    retval.append(["cycles_count", interp.getCycleCount() + 1])
+    retval.append(["cycles_count", interp.getCycleCount()])
 
     return translate_retval(interp.lang, retval)
 

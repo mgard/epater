@@ -15,7 +15,7 @@ class History:
         """
         Reset the history (but do not unregister the components)
         """
-        self.cyclesCount = 0
+        self.cyclesCount = 1 
         self.ckpt = {}
         self.history = deque(maxlen=self.maxlen)
         # We add a first pseudo-cycle in case of a modification before the first cycle
@@ -45,6 +45,7 @@ class History:
         at the same instruction it was stopped.
         """
         self.history.pop()
+        self.cyclesCount -= 1
 
     def signalChange(self, obj, change):
         """
