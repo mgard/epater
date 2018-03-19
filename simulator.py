@@ -515,8 +515,8 @@ class Simulator:
         # We look for interrupts
         # The current instruction is always finished before the interrupt
         # TODO Handle special cases for LDR and STR multiples
-        if self.interruptActive and (self.history.cyclesCount - 1 - self.interruptParams['t0'] - self.interruptParams['b']) % self.interruptParams['a'] == 0:
-            print("INTERRUPT ACTIVE!", self.interruptParams, self.history.cyclesCount)
+        if self.interruptActive and self.history.cyclesCount >= (self.interruptParams['t0'] + self.interruptParams['b']) \
+            and (self.history.cyclesCount - 1 - self.interruptParams['t0'] - self.interruptParams['b']) % self.interruptParams['a'] == 0:
             if (self.interruptParams['type'] == "FIQ" and not self.regs.FIQ or
                     self.interruptParams['type'] == "IRQ" and not self.regs.IRQ and self.regs.mode != 'FIQ'):        # Is the interrupt masked?
                 # Interruption!
