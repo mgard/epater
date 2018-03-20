@@ -513,30 +513,25 @@ class Simulator:
             self.execAssert(self.assertionData[newpc], 'BEFORE')
 
         # We look for interrupts
-        # The current instruction is always finished before the interrupt
-        # TODO Handle special cases for LDR and STR multiples
+        # The current instruction is always finished before the interrupt takes on
+        # TODO Handle special cases for LDM and STM
         if self.interruptActive and self.history.cyclesCount >= (self.interruptParams['t0'] + self.interruptParams['b']) \
             and (self.history.cyclesCount - 1 - self.interruptParams['t0'] - self.interruptParams['b']) % self.interruptParams['a'] == 0:
             if (self.interruptParams['type'] == "FIQ" and not self.regs.FIQ or
                     self.interruptParams['type'] == "IRQ" and not self.regs.IRQ and self.regs.mode != 'FIQ'):        # Is the interrupt masked?
                 # Interruption!
                 # We enter it (the entry point is 0x18 for IRQ and 0x1C for FIQ)
-                savedCPSR = self.regs.CPSR                                  # Saving CPSR before changing processor mode
+                savedCPSR = self.regs.CPSR                                  # Keep CPSR before changing processor mode
                 self.regs.mode = self.interruptParams['type']               # Set the register bank and processor mode
                 self.regs.SPSR = savedCPSR                                  # Save the CPSR in the current SPSR
-                if self.interruptParams['type'][0] == "FIQ":
-                    self.regs.FIQ = True                                    # Disable interrupts
-                else:
-                    self.regs.IRQ = True
+                self.regs.IRQ = True                                        # IRQ are always disabled when we enter an interrupt
+                if self.interruptParams['type'] == "FIQ":                   # If we enter a FIQ interrupt,
+                    self.regs.FIQ = True                                    #   then we disable also FIQ interrupts
                 self.regs[14] = self.regs[15] - 4                           # Save PC in LR (on the FIQ or IRQ bank)
                 self.regs[15] = self.pcoffset + (0x18 if self.interruptParams['type'] == "IRQ" else 0x1C)      # Set PC to enter the interrupt
 
         # We fetch and decode the next instruction
         self.fetchAndDecode(forceExplain)
-
-        # Question : if we hit a breakpoint for the _next_ instruction, should we enter the interrupt anyway?
-        # Did we hit a breakpoint?
-        # A breakpoint always stop the simulator
 
         if self.errorsPending:
             raise self.errorsPending
