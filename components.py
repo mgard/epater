@@ -220,7 +220,7 @@ class Registers(Component):
         if currentBank == "User":
             raise ComponentException("register", "Le registre SPSR n'existe pas en mode 'User'!")
         self.history.signalChange(self, {(self.mode, "SPSR"): (self[16], val)})
-        self[16] = val
+        self.banks[currentBank][16].val = val
 
     @property
     def IRQ(self):
@@ -293,7 +293,7 @@ class Registers(Component):
     def getAllRegisters(self):
         # Helper function to get all registers from all banks at once
         # The result is returned as a dictionary of dictionary
-        return {bname: {reg.id: reg.val for reg in bank} for bname, bank in self.banks.items()}
+        return {bname: {reg.id: reg.val for reg in bank if reg.id < 16} for bname, bank in self.banks.items()}
 
     def getRegister(self, bank, reg):
         # Get a register with a specific bank
