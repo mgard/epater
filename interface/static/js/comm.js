@@ -143,7 +143,6 @@ ws.onmessage = function (event) {
         } else if (obj[0] == 'mem') {
             refresh_mem_paginator = true;
             editableGrid.load({"data": obj[1]});
-            editableGrid.renderGrid("memoryview", "testgrid");
         } else if (obj[0] == 'membp_r') {
             mem_breakpoints_r = obj[1];
         } else if (obj[0] == 'membp_w') {
