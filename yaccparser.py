@@ -455,20 +455,16 @@ def p_memaccess(p):
 
 def p_memaccesspre(p):
     """memaccesspre : OPENBRACKET REG CLOSEBRACKET
-                    | OPENBRACKET REG COMMA signedoffsetreg CLOSEBRACKET
-                    | OPENBRACKET REG COMMA signedoffsetreg CLOSEBRACKET EXCLAMATION
-                    | OPENBRACKET REG COMMA SHARP CONST CLOSEBRACKET
-                    | OPENBRACKET REG COMMA SHARP CONST CLOSEBRACKET EXCLAMATION
-                    | OPENBRACKET REG COMMA signedoffsetreg COMMA shiftnoreg CLOSEBRACKET
-                    | OPENBRACKET REG COMMA signedoffsetreg COMMA shiftnoreg CLOSEBRACKET EXCLAMATION"""
+                    | OPENBRACKET REG COMMA signedoffsetreg memaccesspreclosing
+                    | OPENBRACKET REG COMMA SHARP CONST memaccesspreclosing
+                    | OPENBRACKET REG COMMA signedoffsetreg COMMA shiftnoreg memaccesspreclosing"""
     plist = list(p)
     p[0] = plist[2] << 16
     p[0] |= 1 << 24         # Pre indexing bit
 
-    if plist[-1] == "!":    # Writeback
-        p[0] |= 1 << 21
-
     if len(plist) > 4:
+        # Adding optionnal writeback
+        p[0] |= plist[-1]
         if plist[4] == "#":     # Constant offset
             if plist[5] >= 0:
                 p[0] |= 1 << 23
@@ -483,7 +479,7 @@ def p_memaccesspre(p):
             if plist[4] == 15:
                 raise YaccError("PC ne peut pas être utilisé comme registre de décalage!")
             p[0] |= 1 << 25
-            if ',' in plist[5]:     # We have a shift
+            if len(p) == 8:     # We have a shift
                 p[0] |= plist[6]
     else:
         p[0] |= 1 << 23     # Default mode is UP (even if there is no offset)
@@ -491,7 +487,7 @@ def p_memaccesspre(p):
     p[0] = (p[0], None)     # No external dependencies (this instruction is self contained, no reference to labels)
 
 def p_memaccesspre_error(p):
-    """memaccesspre : OPENBRACKET REG COMMA REG error CLOSEBRACKET"""
+    """memaccesspre : OPENBRACKET REG COMMA REG error memaccesspreclosing"""
     raise YaccError("Une opération de décalage doit être précédée par une virgule.")
 
 def p_shiftnoreg(p):
@@ -515,6 +511,13 @@ def p_signedoffsetreg(p):
     if len(p) == 2 or p[1] == "+":
         p[0] |= 1 << 23     # Default mode is UP (even when there is no offset)
     p[0] |= p[len(p) - 1]
+
+def p_memaccesspreclosing(p):
+    """memaccesspreclosing : CLOSEBRACKET
+                           | CLOSEBRACKET EXCLAMATION"""
+    p[0] = 0
+    if len(p) == 3:
+        p[0] = 1 << 21      # Writeback
 
 def p_memaccesspost(p):
     """memaccesspost : OPENBRACKET REG CLOSEBRACKET COMMA signedoffsetreg
