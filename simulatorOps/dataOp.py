@@ -258,6 +258,9 @@ class DataOp(AbstractOp):
                 # not be used in User mode."
                 if simulatorContext.regs.mode == "User":
                     raise ExecutionException("L'utilisation de PC comme registre de destination en combinaison avec la mise a jour des drapeaux est interdite en mode User!")
+                if (simulatorContext.regs.SPSR & 0x1F) not in simulatorContext.regs.bits2mode:
+                    # The mode in SPSR is invalid
+                    raise ExecutionException("SPSR devrait ici être copié dans CPSR, mais le mode contenu dans SPSR est invalide!")
                 simulatorContext.regs.CPSR = simulatorContext.regs.SPSR        # Put back the saved SPSR in CPSR
             else:
                 simulatorContext.regs.setAllFlags(workingFlags)
