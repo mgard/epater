@@ -644,11 +644,16 @@ def p_multiplememinstruction(p):
 def p_listregswithpsr(p):
     """listregswithpsr : OPENBRACE LISTREGS CLOSEBRACE
                        | OPENBRACE LISTREGS CLOSEBRACE CARET"""
+    global currentMnemonic
     plist = list(p)
     p[0] = 0
     if len(p) == 5:
         # PSR and force user bit
         p[0] |= 1 << 22
+
+    # At least one register must be specified (e.g. we cannot have an empty list), see 4.11.1
+    if sum(plist[2]) == 0:
+        raise YaccError("Une instruction {} doit spécifier au moins un registre dans sa liste.".format(currentMnemonic))
 
     # Set the registers
     for i in range(len(plist[2])):
