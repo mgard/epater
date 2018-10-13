@@ -2,8 +2,8 @@ SECTION INTVEC
 
 B main
 
-mavariable DC32 0x22,  0x1
-monautrevariable DC32 0xFFEEDDCC,  0x11223344
+mavariable ASSIGN32 0x22,  0x1
+monautrevariable ASSIGN32 0xFFEEDDCC,  0x11223344
 
 SECTION CODE
 
@@ -55,4 +55,4 @@ B main
 
 SECTION DATA
 
-variablemem DS32 10
+variablemem ALLOC32 10
