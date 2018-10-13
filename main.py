@@ -13,39 +13,23 @@ if __name__ == '__main__':
     with open(args.inputfile) as f:
         bytecode, bcinfos, line2addr, assertions, _, errors = ASMparser(f)
     print("Parsed source code!")
-    print(bytecode)
 
-
+    a = time.time()
     interpreter = BCInterpreter(bytecode, bcinfos, assertions)
     with open(args.inputfile) as f:
         lines = f.readlines()
-        # interpreter.setInterrupt("FIQ", False, 5, 5, 0)
-        a = time.time()
-        print(interpreter.getChanges())
+        interpreter.step(stepMode="forward")
+        print("Cycle {}".format(interpreter.getCycleCount()))
+        print("Next line to execute : " + lines[interpreter.getCurrentLine()][:-1])
+        interpreter.step(stepMode="into")
+        print("Cycle {}".format(interpreter.getCycleCount()))
+        print("Next line to execute : " + lines[interpreter.getCurrentLine()][:-1])
+        interpreter.execute(mode="run")
+        print("Cycle {}".format(interpreter.getCycleCount()))
+        print("Final registers values:")
         print(interpreter.getRegisters())
-        for i in range(2):
-            if i < 37:
-                pass
-                print(i, lines[interpreter.getCurrentLine()][:-1])
-                print(interpreter.getCycleCount())
-                print(interpreter.getChanges())
-                interpreter.execute(mode='run')
-
-            #print(interpreter.sim.regs[15])
-
-            continue
-            b = interpreter.getCurrentLine(), interpreter.getChanges()
-            if i < 7:
-                print(interpreter.getCurrentLine(), interpreter.getChanges())
-                print("################")
-        print("...")
-        interpreter.stepBack();
-        interpreter.stepBack();
-        interpreter.stepBack();
-        print(interpreter.getChanges())
-    print("Time execute {} instructions : {}".format(i, time.time() - a))
-
-
-
-
-
+    
+    deltaTime = time.time() - a
+    cycles = interpreter.getCycleCount()
+    cyclesPerSec = cycles / deltaTime
+    print("Time execute {} instructions : {} ({:.0f} instr/sec)".format(cycles, deltaTime, cyclesPerSec))
