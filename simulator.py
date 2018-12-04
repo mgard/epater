@@ -382,6 +382,9 @@ class Simulator:
             try:
                 for info in assertionInfo:
                     info = info.strip()
+                    if "=" not in info:
+                        # Bad syntax, we skip
+                        continue
                     target, value = info.split("=")
                     if target[0] == "R":
                         # Register
