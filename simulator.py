@@ -386,28 +386,36 @@ class Simulator:
                         # Bad syntax, we skip
                         continue
                     target, value = info.split("=")
-                    if target[0] == "R":
-                        # Register
-                        reg = int(target[1:])
+                    if value.strip()[0] == "R":
+                        # The target is another register
+                        regtarget = int(value[1:].strip())
+                        self.regs.deactivateBreakpoints()
+                        val = self.regs[regtarget]
+                        self.regs.reactivateBreakpoints()
+                    else:
+                        # The target is a constant
+                        regtarget = None
                         try:
                             val = int(value, base=0) & 0xFFFFFFFF
                         except ValueError:
                             # If this is a decimal with leading zeros, base=0 will crash
                             val = int(value, base=10) & 0xFFFFFFFF
                             
+                    if target[0] == "R":
+                        # Register
+                        reg = int(target[1:])
+
                         self.regs.deactivateBreakpoints()
                         valreg = self.regs[reg]
                         self.regs.reactivateBreakpoints()
                         if valreg != val:
-                            strError += "Erreur : {} devrait valoir {}, mais il vaut {}\n".format(target, val, valreg)
+                            if regtarget:
+                                strError += "Erreur : {} devrait valoir {} (la valeur du registre R{}), mais il vaut {}\n".format(target, val, regtarget, valreg)
+                            else:
+                                strError += "Erreur : {} devrait valoir {}, mais il vaut {}\n".format(target, val, valreg)
                     elif target[:2] == "0x":
                         # Memory
                         addr = int(target, base=16)
-                        try:
-                            val = int(value, base=0)
-                        except ValueError:
-                            # If this is a decimal with leading zeros, base=0 will crash
-                            val = int(value, base=10)
 
                         formatStruct = "<B"
                         if not 0 <= int(val) < 255:
@@ -416,8 +424,12 @@ class Simulator:
                         valmem = self.mem.get(addr, mayTriggerBkpt=False, size=4 if formatStruct == "<I" else 1)
                         valmem = struct.unpack(formatStruct, valmem)[0]
                         if valmem != val:
-                            strError += "Erreur : l'adresse mémoire {} devrait contenir {}, mais elle contient {}\n"\
-                                .format(target, val, valmem)
+                            if regtarget:
+                                strError += "Erreur : l'adresse mémoire {} devrait contenir {} (la valeur du registre R{}), mais elle contient {}\n"\
+                                    .format(target, val, regtarget, valmem)
+                            else:
+                                strError += "Erreur : l'adresse mémoire {} devrait contenir {}, mais elle contient {}\n"\
+                                    .format(target, val, valmem)
                     elif len(target) == 1 and target in self.regs.flag2index:
                         # Flag
                         expectedVal = value != '0'
