@@ -354,7 +354,7 @@ def t_swpopcode_SPACEORTAB(t):
 # We do not use the keys from exportInstrInfo, because the order is important: the longest mnemonics must
 # be at the beginning, or else the previous (shorter) ones would match them!
 # Also, we have to be careful not to mix up BL/BLE/BLEQ!
-@lex.TOKEN(r'B(L(?!([ST]|E\s))|X)?')
+@lex.TOKEN(r'(B(L(?!([ST]|E\s))|X)?(?=[A-Z\t ]))')
 def t_OPBRANCH(t):
     t.lexer.begin('branchopcode')
     t.lexer.currentMnemonic = t.value
