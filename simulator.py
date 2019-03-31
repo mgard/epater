@@ -386,6 +386,14 @@ class Simulator:
                         # Bad syntax, we skip
                         continue
                     target, value = info.split("=")
+
+                    # The rest of the code assume that a register is encoded
+                    # as R**, so we convert the alternative names
+                    if value.strip() in ("SP", "LR", "PC"):
+                        value = {'SP': 'R13', 'LR': 'R14', 'PC': 'R15'}[value]
+                    if target.strip() in ("SP", "LR", "PC"):
+                        target = {'SP': 'R13', 'LR': 'R14', 'PC': 'R15'}[target]
+                        
                     if value.strip()[0] == "R":
                         # The target is another register
                         regtarget = int(value[1:].strip())
@@ -439,7 +447,7 @@ class Simulator:
                                 .format(target, expectedVal, actualVal)
                     else:
                         # Assert type unknown
-                        strError += "Assertion inconnue : ({}, {})!".format(target, val)
+                        strError += "Assertion inconnue ou impossible à interpréter : ({}, {})!".format(target, value)
 
                 if len(strError) > 0:
                     self.errorsPending.append("assert", strError, assertionLine)
