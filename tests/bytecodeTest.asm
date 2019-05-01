@@ -15,6 +15,10 @@
   MOV R14, #0x01
   MVN R0, #-2
   MVN R1, #0xf
+  MVN r3, #0x4
+  MVN r10, #0x77
+  MVN lr, #11
+  MVN sp, #12
 
   @ SHIFTS
   MOV R0, R0, LSL #10
@@ -120,6 +124,7 @@
   BX R2
 etiquette:  B etiquette
 etiquette2:  BL etiquette2
+pcetiquette:  BL pcetiquette
 
   @ LDR / STR
   LDR R0, [R1]
@@ -172,6 +177,7 @@ label2:  STR R1, label2
   STRH R9, [R3], #-88
 label3:  LDRSB R0, label3
 label4:  STRH R1, label4
+r5label4:  STRH R1, r5label4
 
   @ BLOCK DATA TRANSFER (LDM/STM/PUSH/POP)
   @ GCC replace single PUSH with a single STR, so we should not test that here
@@ -186,6 +192,7 @@ label4:  STRH R1, label4
   STM R7, {R1, R2}
   STM R8!, {R10-R12}^
   LDMED R1, {R2-R8,R9}
+  LDMED R1, {r2-r8,r9}
   LDMIB R1, {R2-R8, R9}
   LDMFD R1, {R2-R8,R9}
   LDMIA R1, {R2-R8, R9}
@@ -219,9 +226,11 @@ label4:  STRH R1, label4
   @ MSR/MRS
   MRS R0, CPSR
   MRS R0, SPSR
+  MRS R0, spsr
   MSR CPSR, R4
   MSR SPSR, R1
   MSR CPSR_flg, R4
+  MSR cpsr_flg, R4
   MSR SPSR_flg, R1
   
   @ MULTIPLICATION LONG

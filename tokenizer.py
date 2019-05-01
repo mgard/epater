@@ -155,7 +155,7 @@ def t_ASSERTION(t):
     return t
 
 def t_assertion_ASSERTIONDATA(t):
-    r'(\s*(R1[0-5]|R[0-9]|SP|LR|PC|C|Z|V|N|0x[0-9a-fA-F]+)=[+-]?(0x[0-9a-fA-F]+|[0-9]+|R1[0-5]|R[0-9]|SP|LR|PC),?)+'
+    r'(\s*((R|r)1[0-5]|(R|r)[0-9]|SP|LR|PC|sp|lr|pc|C|Z|V|N|0x[0-9a-fA-F]+)=[+-]?(0x[0-9a-fA-F]+|[0-9]+|(R|r)1[0-5]|(R|r)[0-9]|SP|LR|PC|sp|lr|pc),?)+'
     return t
 
 # A constant or variable declaration
@@ -465,9 +465,9 @@ def t_dataopcode_shiftopcode_cmpopcode_memopcode_multiplememopcode_swpopcode_bra
 
 # Must come _before_ REG rule
 def t_multiplememinstr_LISTREGS(t):
-    r'(?<={)(R1[0-5]|R[0-9]|SP|LR|PC|-|,|\s)+(?=})'
+    r'(?<={)((R|r)1[0-5]|(R|r)[0-9]|SP|LR|PC|sp|lr|pc|-|,|\s)+(?=})'
     listRegs = [0] * 16
-    val = t.value.replace(" ", "").replace("\t", "").replace("LR", "R14").replace("PC", "R15").replace("SP", "R13")
+    val = t.value.upper().replace(" ", "").replace("\t", "").replace("LR", "R14").replace("PC", "R15").replace("SP", "R13")
     baseRegsPos = [i for i in range(len(val)) if val[i] == "R"]
     baseRegsEndPos = []
     regs = []
@@ -492,8 +492,9 @@ def t_multiplememinstr_LISTREGS(t):
 # PSR transfer might use CPSR or SPSR, with an optionnal suffix
 # Must be before REG rule, because else SPSR will be parsed as "SP + SR"
 def t_psrinstr_PSR(t):
-    r'(SPSR|CPSR)(_flg|_all)?'
+    r'(SPSR|CPSR|spsr|cpsr)(_flg|_all)?'
     t.value = t.value.split("_")
+    t.value[0] = t.value[0].upper()
     return t
 
 # These kinds of instructions may contains register as argument :
@@ -503,10 +504,17 @@ def t_psrinstr_PSR(t):
 # - Memory acesses
 # - Multiple memory accesses
 # - Branches (with BX)
-def t_ANY_REG(t):
-    r'(R1[0-5]|R[0-9]|SP|LR|PC)'
-    if t.value[0] != 'R':
-        t.value = {'SP': 13, 'LR': 14, 'PC': 15}[t.value]
+def t_datainstr_cmpinstr_shiftinstr_meminstr_multiplememinstr_swpinstr_branchinstr_psrinstr_mulinstr_REG(t):
+    r'((R|r)1[0-5]|(R|r)[0-9]|SP|LR|PC|sp|lr|pc)(?=[,\s!\]])'
+    # Note : a register can be followed by:
+    # - a space / line feed
+    # - a comma
+    # - a close bracket ] (for memory operations)
+    # - a ! (first argument of LDM/STM)
+    # - a }, but this case is covered previously by the LISTREGS rule
+    # Anything else is considered as a label
+    if t.value[0].upper() != 'R':
+        t.value = {'SP': 13, 'LR': 14, 'PC': 15}[t.value.upper()]
     else:
         t.value = int(t.value[1:])
     t.lexer.countArgs += 1
@@ -673,7 +681,7 @@ lexer = lex.lex()
 
 
 if __name__ == "__main__":
-    a = lexer.input("STRH\n")
+    a = lexer.input("LDR R0, [R1], R2\n")
     print(lexer.token())
     print(lexer.token())
     print(lexer.token())

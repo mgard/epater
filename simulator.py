@@ -385,7 +385,7 @@ class Simulator:
                     if "=" not in info:
                         # Bad syntax, we skip
                         continue
-                    target, value = info.split("=")
+                    target, value = info.upper().split("=")
 
                     # The rest of the code assume that a register is encoded
                     # as R**, so we convert the alternative names
@@ -421,7 +421,7 @@ class Simulator:
                                 strError += "Erreur : {} devrait valoir {} (la valeur du registre R{}), mais il vaut {}\n".format(target, val, regtarget, valreg)
                             else:
                                 strError += "Erreur : {} devrait valoir {}, mais il vaut {}\n".format(target, val, valreg)
-                    elif target[:2] == "0x":
+                    elif target[:2] == "0X":
                         # Memory
                         addr = int(target, base=16)
 
