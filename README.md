@@ -1,6 +1,8 @@
 # epater
 
-### An ARM emulator in Python for educational purposes
+### An ARM emulator in Python for educational purposes with a web GUI
+
+![Example screenshot](/doc/sample_screenshot3.png "")
 
 **epater** (*Environnement de Programmation ARM Téléopéré pour l'Éducation et la Recherche*) is an ARM assembler and emulator targeted for academic and learning purposes. It is composed of three independent parts:
 
@@ -63,7 +65,7 @@ Other configurations may work as well, but have not been tested.
 
 ## Performances
 
-**epater** was designed for portability and ease of use rather than performance. While its speed is more than sufficient for most educational applications, it is not suitable to emulate actual complex ARM programs. Pypy may be used to speed up the simulator and we recommand uvloop for the server side. The server is multi-threaded, but the simulator is not: with *N* cores, *N* simulators may run simultaneously, but one simulator will not benefit from multiple cores. Here are some performance measurements under various conditions:
+**epater** was primarily designed with portability and ease of use in mind. While its speed is more than sufficient for most educational applications, it is not suitable for complex ARM programs emulation. Pypy may be used to speed up the simulator and we recommand uvloop for the server side. The simulator is not multi-threaded. Here are some performance measurements under various conditions:
 
 | Details | Performance (instr/sec) |
 | ------- |:-----------------------:|
@@ -84,7 +86,7 @@ These features are currently unsupported, but might be included in a future rele
 
 ## Unsupported features
 
-These features are not of great use in a simulation context and/or for academic purposes. Also, a feature may be in this list if the implementation burden would be too high regarding the benefits it might bring. There is currently no plan to implement them, nor to merge a pull request doing so, except some special circumstances.
+These features are not of great use in a simulation context and/or for academic purposes. Also, a feature may be in this list if the implementation burden is too high compared to its benefits. There is currently no plan to implement them, nor to merge a pull request doing so, except some special circumstances.
 
 * Thumb mode
 * Jazelle mode
