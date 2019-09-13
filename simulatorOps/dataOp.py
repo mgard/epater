@@ -270,4 +270,10 @@ class DataOp(AbstractOp):
             simulatorContext.regs[self.rd] = res
             if self.rd == simulatorContext.PC:
                 self.pcmodified = True
-
+            # We consider writing into LR as stepping out of a function
+            # This does not change anything for the emulation, but has consequences
+            # for the emulation stopping criterion
+            if self.rd == 14 and simulatorContext.stepCondition > 0:
+                simulatorContext.stepCondition -= 1
+                if len(simulatorContext.callStack) > 0:
+                    simulatorContext.callStack.pop()
