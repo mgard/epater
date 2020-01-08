@@ -14,7 +14,11 @@ Unlike many other ARM emulators which *interpret* ARM assembly, **epater** is ac
 
 ## Usage
 
-First ensure that you have installed all the required dependencies (see below) and clone the repository. Then, generate the i18n resource files:
+First ensure that you have installed all the required dependencies:
+
+    pip install -r requirements.txt
+
+Once the repository is cloned, generate the i18n resource files:
 
     python utils/po2mo.py
 
@@ -31,19 +35,12 @@ The system will then be available at http://127.0.0.1:8000/.
 **epater** may run in CLI mode (use main.py instead of mainweb.py), in which case it does not need web server components.
 
 * Python >= 3.4
-* PLY (Python Lex-Yacc), BSD-licensed. Might be included at some point in this project.
+* PLY (Python Lex-Yacc), BSD-licensed.
 
-### Web interface
+### Web interface (optional)
 
-* Python >= 3.5
-* greenlet >= 0.4
-* gevent >= 1.0
-* beautifulsoup >= 4 and bs4
-* bottle >= 0.12
-* bottle_i18n
-* python-websockets >= 3.2
-* uvloop (optional)
-* polib (optional)
+* uvloop (increased performance)
+* polib (i18n support)
 
 On client side, the following browsers are supported :
 
