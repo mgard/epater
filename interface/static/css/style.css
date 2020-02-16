@@ -295,10 +295,10 @@ select:disabled, button:disabled, input[type=submit]:disabled {
     color: #70a0f5 !important;
 }
 .ace_constant {
-    color: #fb7b4b;
+    color: #fb7b4b !important;
 }
 .ace_variable {
-    color: #95d1de;
+    color: #95d1de !important;
 }
 .ace_asmcomment {
     color: #95989A;
