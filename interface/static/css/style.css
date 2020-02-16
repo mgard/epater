@@ -292,7 +292,13 @@ select:disabled, button:disabled, input[type=submit]:disabled {
     color: #FFF !important;
 }
 .ace_keyword {
-    color: #2472FB !important;
+    color: #70a0f5 !important;
+}
+.ace_constant {
+    color: #fb7b4b;
+}
+.ace_variable {
+    color: #95d1de;
 }
 .ace_asmcomment {
     color: #95989A;
@@ -463,7 +469,6 @@ select:disabled, button:disabled, input[type=submit]:disabled {
     height: calc(100vh - 115px);
     width: 630px;
     border: 1px solid rgba(136,164,155, 0.7)
-
 }
 
 .etabs-reg { margin: 0; padding: 0; }
