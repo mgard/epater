@@ -126,7 +126,7 @@ class MultipleMemOp(AbstractOp):
         if self.sign > 0:
             if self.pre:
                 baseAddr += 4
-            endAddr = lenAccess*4 + baseAddr
+            endAddr = lenAccess*4 + baseAddr - 4
         else:
             endAddr = baseAddr
             if self.pre:
