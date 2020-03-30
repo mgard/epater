@@ -36,8 +36,11 @@ from assembler import parse as ASMparser
 from bytecodeinterpreter import BCInterpreter
 
 
-with open("emailpass.txt") as fhdl:
-    email_password = fhdl.read().strip()
+try:
+    with open("emailpass.txt") as fhdl:
+        email_password = fhdl.read().strip()
+except FileNotFoundError:
+    email_password = None
 
 try:
     with open("privepass.txt") as fhdl:
@@ -209,6 +212,9 @@ async def handler(websocket, path):
 
 
 def sendEmail(msg):
+    if email_password is None:
+        return
+        
     msg = MIMEText(msg, 'html')
 
     msg['Subject'] = "Error happened on ASM Simulator"
