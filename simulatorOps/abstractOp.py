@@ -69,27 +69,32 @@ class AbstractOp:
             raise ExecutionException("L'instruction est invalide (la condition demandée n'existe pas)")
         self._readflags = utils.conditionFlagsMapping[cond]
 
+        # Fast path for AL condition (execute inconditionally)
+        if cond == "AL":
+            return True
+
         # Check condition
         # Warning : here we check if the condition is NOT met, hence we use the
         # INVERSE of the actual condition
         # See Table 4-2 of ARM7TDMI data sheet as reference of these conditions
+        # They are roughly ordered to match usage (most used condition first)
         if (cond == "EQ" and not flags.Z or
             cond == "NE" and flags.Z or
-            cond == "CS" and not flags.C or
-            cond == "CC" and flags.C or
-            cond == "MI" and not flags.N or
-            cond == "PL" and flags.N or
-            cond == "VS" and not flags.V or
-            cond == "VC" and flags.V or
-            cond == "HI" and (not flags.C or flags.Z) or
-            cond == "LS" and (flags.C and not flags.Z) or
             cond == "GE" and not flags.V == flags.N or
             cond == "LT" and flags.V == flags.N or
             cond == "GT" and (flags.Z or flags.V != flags.N) or
-            cond == "LE" and (not flags.Z and flags.V == flags.N)):
+            cond == "LE" and (not flags.Z and flags.V == flags.N) or
+            cond == "MI" and not flags.N or
+            cond == "PL" and flags.N or
+            cond == "CS" and not flags.C or
+            cond == "CC" and flags.C or
+            cond == "VS" and not flags.V or
+            cond == "VC" and flags.V or
+            cond == "HI" and (not flags.C or flags.Z) or
+            cond == "LS" and (flags.C and not flags.Z)):
             return False
         
-        # Else, the condition is true (including AL)
+        # Else, the condition is true
         return True
     
     def explain(self):
