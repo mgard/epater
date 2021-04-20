@@ -6,7 +6,7 @@ The result should be paste to 'mode-assembly_arm.js'.
 """
 
 def parse(*args):
-    if len(args) < 1:
+    if len(args) < 1 or len(args[0]) < 1:
         return []
     index = [len(i) - 1 for i in args]
     indexBak = index[:]
@@ -36,11 +36,11 @@ COND = [i for i in utils.conditionMapping]
 mnemonics = []
 
 # OP Cond
-OP = ['BX', 'B', 'BL', 'CMP', 'CMN', 'TEQ', 'TST', 'MRS', 'MSR', 'SWI', 'CDP', 'MCR', 'MRC']
+OP = ['BX', 'B', 'BL', 'CMP', 'CMN', 'TEQ', 'TST', 'MRS', 'MSR', 'SWI', 'CDP', 'MCR', 'MRC', 'PUSH', 'POP', 'NOP']
 mnemonics.extend(parse(OP, COND))
 
 # OP Cond S
-OP = ['MOV', 'MVN', 'AND', 'EOR', 'SUB', 'RSB', 'ADD', 'ADC', 'SBC', 'RSC', 'ORR', 'BIC', 'MUL', 'MLA', 'UMULL', 'UMLAL', 'SMULL', 'SMLAL']
+OP = ['MOV', 'MVN', 'AND', 'EOR', 'SUB', 'RSB', 'ADD', 'ADC', 'SBC', 'RSC', 'ORR', 'BIC', 'MUL', 'MLA', 'UMULL', 'UMLAL', 'SMULL', 'SMLAL', 'LSL', 'LSR', 'ASR', 'ROR', 'RRX']
 mnemonics.extend(parse(OP, COND, ['S']))
 
 # OP Cond B T
@@ -64,7 +64,7 @@ OP = ['LDC', 'STC']
 mnemonics.extend(parse(OP, COND, ['L']))
 
 # OP
-OP = ['PUSH', 'POP', 'NOP']
+OP = []
 mnemonics.extend(parse(OP))
 
 # Remove duplicates
