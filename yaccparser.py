@@ -694,43 +694,46 @@ def p_stmldmtargetreg(p):
         # Set writeback
         p[0] |= 1 << 21
 
+def p_stmldmmodifier(p):
+    """stmldmmodifier : SPACEORTAB
+                      | CONDITION SPACEORTAB
+                      | LDMSTMMODE SPACEORTAB
+                      | CONDITION LDMSTMMODE SPACEORTAB"""
+    # currentMnemonic must be LDM or STM
+    cond = "AL"
+    mode = "IA"
+    if len(p) == 3:
+        # condition only or mode only
+        if p[1] in instruction.conditionMapping:
+            cond = p[1]
+        else:
+            mode = p[1]
+    elif len(p) == 4:
+        cond = p[1]
+        mode = p[2]
+
+    p[0] = instruction.conditionMapping[cond] << 28
+
+    modeMapping = instruction.updateModeLDMMapping if currentMnemonic == "LDM" else instruction.updateModeSTMMapping
+    assert mode in modeMapping
+    p[0] |= modeMapping[mode] << 23
+
 def p_stmldminstruction(p):
-    """stmldminstruction : OPMULTIPLEMEM logmnemonic condandspace stmldmtargetreg COMMA listregswithpsr
-                         | OPMULTIPLEMEM logmnemonic LDMSTMMODE condandspace stmldmtargetreg COMMA listregswithpsr"""
-    plist = list(p)
+    """stmldminstruction : OPMULTIPLEMEM logmnemonic stmldmmodifier stmldmtargetreg COMMA listregswithpsr"""
     p[0] = 1 << 27
     # Set base register and write-back
-    p[0] |= plist[-3]
-    if plist[-3] == 15:
+    p[0] |= p[4]
+    if p[4] == 15:
         raise YaccError("Il est interdit d'utiliser PC comme registre de base dans une opération mémoire multiple!")
 
     if currentMnemonic == "LDM":
         p[0] |= 1 << 20     # Set load
 
-    if len(p) == 8:
-        # We have an explicit mode
-        mode = p[3]
-        if currentMnemonic == "LDM":
-            assert mode in instruction.updateModeLDMMapping
-            p[0] |= instruction.updateModeLDMMapping[mode] << 23
-        else:  # STM
-            assert mode in instruction.updateModeSTMMapping
-            p[0] |= instruction.updateModeSTMMapping[mode] << 23
-
-        # Add the condition bits
-        p[0] |= p[4]
-    else:
-        # Set IA mode
-        if currentMnemonic == "LDM":
-            p[0] |= instruction.updateModeLDMMapping['IA'] << 23
-        else:  # STM
-            p[0] |= instruction.updateModeSTMMapping['IA'] << 23
-
-        # Add the condition bits
-        p[0] |= p[3]
+    # Set the condition and mode
+    p[0] |= p[3]
 
     # Set the registers and optionnally the PSR bit
-    p[0] |= plist[-1]
+    p[0] |= p[6]
 
 
 def p_psrinstruction(p):
