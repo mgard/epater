@@ -198,6 +198,9 @@ r5label4:  STRH R1, r5label4
   LDMIA R1, {R2-R8, R9}
   LDMEA R1, {R2-R8,R9}
   LDMDB R1, {R2-R8, R9}
+  LDMEQDB R1, {R2-R8, R9}
+  LDMNEIB R1, {R2-R8, R9}
+  LDMVSEA R1, {R2-R8, R9}
   STMFA R1, {R2-R8,R9}
   STMIB R1, {R2-R8, R9}
   STMEA R1, {R2-R8,R9}
@@ -206,7 +209,10 @@ r5label4:  STRH R1, r5label4
   STMDB R1, {R2-R8, R9}
   STMED R1, {R2-R8,R9}
   STMDA R1, {R2-R8, R9}
-  
+  STMEQDB R1, {R2-R8, R9}
+  STMNEIB R1, {R2-R8, R9}
+  STMVSEA R1, {R2-R8, R9}
+
   @ SWAP TRANSFER (SWP, SWPB)
   SWP R0, R1, [R2]
   SWPB R5, R10, [R12]
@@ -232,7 +238,7 @@ r5label4:  STRH R1, r5label4
   MSR CPSR_flg, R4
   MSR cpsr_flg, R4
   MSR SPSR_flg, R1
-  
+
   @ MULTIPLICATION LONG
   UMULL R1, R2, R3, R4
   SMULL R2, R3, LR, R0
