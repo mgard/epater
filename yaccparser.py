@@ -689,6 +689,8 @@ def p_stackinstruction(p):
 def p_stmldmtargetreg(p):
     """stmldmtargetreg : REG
                        | REG EXCLAMATION"""
+    if p[1] == 15:
+        raise YaccError("Il est interdit d'utiliser PC comme registre de base dans une opération mémoire multiple!")
     p[0] = p[1] << 16
     if len(p) == 3:
         # Set writeback
@@ -723,8 +725,6 @@ def p_stmldminstruction(p):
     p[0] = 1 << 27
     # Set base register and write-back
     p[0] |= p[4]
-    if p[4] == 15:
-        raise YaccError("Il est interdit d'utiliser PC comme registre de base dans une opération mémoire multiple!")
 
     if currentMnemonic == "LDM":
         p[0] |= 1 << 20     # Set load
