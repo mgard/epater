@@ -282,6 +282,10 @@ class Registers(Component):
     def V(self, val):
         self.setFlag("V", val)
 
+    @property
+    def flags(self):
+        return self.regCPSR & 0xF0000000
+
     def __getitem__(self, idx):
         currentBank = self.currentMode
         regHandle = self.banks[currentBank][idx]
