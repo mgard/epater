@@ -475,9 +475,6 @@ def p_memaccesspre(p):
             p[0] |= offset & 0xFFF
         else:                   # Register offset
             p[0] |= p[4]
-
-            if plist[4] == 15:
-                raise YaccError("PC ne peut pas être utilisé comme registre de décalage!")
             p[0] |= 1 << 25
             if len(p) == 8:     # We have a shift
                 p[0] |= plist[6]
@@ -510,7 +507,10 @@ def p_signedoffsetreg(p):
     p[0] = 0
     if len(p) == 2 or p[1] == "+":
         p[0] |= 1 << 23     # Default mode is UP (even when there is no offset)
-    p[0] |= p[len(p) - 1]
+    reg = p[len(p) - 1]
+    if reg == 15:
+        raise YaccError("PC ne peut pas être utilisé comme registre de décalage!")
+    p[0] |= reg
 
 def p_memaccesspreclosing(p):
     """memaccesspreclosing : CLOSEBRACKET
@@ -539,9 +539,6 @@ def p_memaccesspost(p):
         p[0] |= offset & 0xFFF
     else:                   # Register offset
         p[0] |= p[5]
-
-        if plist[5] == 15:
-            raise YaccError("PC ne peut pas être utilisé comme registre de décalage!")
         p[0] |= 1 << 25
         if len(p) > 7:     # We have a shift
             p[0] |= plist[-1]
