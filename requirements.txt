@@ -4,4 +4,4 @@ bs4==0.0.1
 gevent==1.4.0
 greenlet==0.4.15
 ply==3.11
-websockets==8.1
+websockets==9.1
