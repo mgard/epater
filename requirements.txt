@@ -1,5 +1,5 @@
 beautifulsoup4==4.8.2
-bottle==0.12.18
+bottle==0.12.20
 bs4==0.0.1
 gevent==1.4.0
 greenlet==0.4.15
